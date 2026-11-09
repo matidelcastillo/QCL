@@ -143,14 +143,23 @@ test("QCL identity, owner isolation, grants and restoration", async () => {
   }
   // Authenticated denials from missing grants (not RLS row filters).
   const grantDenied: DeniedExpectation = { status: 403, code: "42501" };
-  for (const [token, ownId, otherId] of [
-    [cfg.QCL_USER_A_ACCESS_TOKEN, records[0], ids[1]],
-    [cfg.QCL_USER_B_ACCESS_TOKEN, records[1], ids[0]],
+  for (const [token, ownId, ownUserId, otherId] of [
+    [cfg.QCL_USER_A_ACCESS_TOKEN, records[0], ids[0], ids[1]],
+    [cfg.QCL_USER_B_ACCESS_TOKEN, records[1], ids[1], ids[0]],
   ]) {
     // UPDATE(title) only — owner_id is not granted.
     await denied(await patch(ownId, token, { owner_id: otherId }), grantDenied);
+    // Unfiltered accounts PATCH has no WHERE clause: PostgREST returns 400/21000
+    // and must not change rows. The missing UPDATE grant is asserted with a filter.
+    const unfilteredAccounts = await api(accountsPath, token, {
+      method: "PATCH", body: JSON.stringify({ status: "deletion_pending" }),
+    });
+    expect(unfilteredAccounts.status).toBe(400);
+    expect((await unfilteredAccounts.json() as { code?: unknown }).code).toBe("21000");
+    expect(await json<Account[]>(accountsPath, token))
+      .toEqual([{ id: ownUserId, status: "active" }]);
     // accounts: SELECT only; no UPDATE grant.
-    await denied(await api(accountsPath, token, {
+    await denied(await api(`rest/v1/accounts?id=eq.${ownUserId}&select=id,status`, token, {
       method: "PATCH", body: JSON.stringify({ status: "deletion_pending" }),
     }), grantDenied);
     // e1_private_records: no DELETE grant.
