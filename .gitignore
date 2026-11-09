@@ -1,0 +1,8 @@
+.e1-operator/
+e1-browser/node_modules/
+e1-browser/dist/
+e1-browser/.playwright/
+e1-browser/.npm-cache/
+e1-browser/e1-browser/.npm-cache/
+.e1-review.tgz
+e1-review.tgz
