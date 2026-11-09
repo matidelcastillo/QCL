@@ -43,8 +43,11 @@ advisors reported no findings, which does not demonstrate isolation.
    `admin` must be a server-side QCL client with an operator-only secret. Its
    key is never supplied to the acceptance test. The three users sign in via
    the ordinary publishable client to yield their user access tokens.
-4. Review the exact UUID substitutions and run
-   `tests/fixture-provision.review.sql` with an authorized operator connection.
+4. On the operator SQL connection, set
+   `select set_config('qcl.expected_ref', 'mdytuysdombxyydqnsmj', false);`,
+   review the exact UUID substitutions and run
+   `tests/fixture-provision.review.sql`. Every review SQL file aborts without
+   that session setting.
 5. Set the named environment variables in the test file, then run it in an
    interactive terminal with `QCL_E1_ACCEPTANCE=1`. Missing inputs fail. The
    test uses only a publishable key and ordinary JWTs. It pauses twice:
@@ -72,6 +75,49 @@ Auth Admin methods: [createUser](https://supabase.com/docs/reference/javascript/
 The operator must check whether security notification emails are enabled
 before provisioning; use addresses they control. No email is sent by this
 package itself.
+
+## Local audit fixes (2026-11-09)
+
+Applied only to this local review package. Nothing was applied to QCL.
+
+1. **Specific denial expectations in `tests/e1-api.acceptance.test.ts`.**
+   `denied()` no longer accepts any 4xx. Each denial asserts an exact HTTP
+   status and PostgREST/Postgres `code`. Authenticated missing grants
+   (UPDATE `owner_id`, accounts PATCH, INSERT, DELETE) expect `403` with
+   `code: "42501"`. Anonymous requests without a JWT expect `401` with
+   `code: "42501"`, following PostgREST’s mapping of insufficient privilege
+   (`42501` → 403 if authenticated, else 401). Statuses `400`, `429` and
+   any `5xx` fail the assertion. **To confirm on the real QCL run:** that
+   Supabase’s hosted PostgREST returns exactly `42501` (not a `PGRST*`
+   wrapper) for these missing-grant cases, and that anon without a Bearer
+   token is treated as the unauthenticated mapping (401).
+
+2. **Internal QCL session guard in every review SQL file.**
+   Migration, provision, C pending/active transitions, cleanup and drop all
+   abort unless `current_setting('qcl.expected_ref', true)` equals
+   `mdytuysdombxyydqnsmj`. **Operator step (same connection, before each
+   script):**
+   ```sql
+   select set_config('qcl.expected_ref', 'mdytuysdombxyydqnsmj', false);
+   ```
+   This only verifies that the operator set that session variable. It does
+   not prove the TCP endpoint, dashboard project identity, or credentials.
+   There is no built-in Postgres setting that exposes the Supabase project
+   ref; do not treat this guard as remote project proof.
+
+3. **`deletion_pending` restoration on failure.**
+   After the first operator gate (C → `deletion_pending`), pending-phase
+   assertions run inside `try/finally`. The `finally` always prompts the
+   operator to restore C to `active` and verifies account status plus the
+   original private row before the test ends, even when an earlier assertion
+   fails.
+
+4. **Cleanup aborts on unexpected owned rows.**
+   `fixture-cleanup.review.sql` refuses to delete if A/B/C own any
+   `e1_private_records` beyond the three expected fixtures, so deleting
+   accounts cannot CASCADE-remove unexpected rows. This package only defines
+   `e1_private_records` as dependent on `accounts`; no other dependents are
+   checked.
 
 ## Remaining E1 gates
 

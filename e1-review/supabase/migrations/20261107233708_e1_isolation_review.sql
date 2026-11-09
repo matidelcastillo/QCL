@@ -3,7 +3,18 @@
 -- or the definitive v4 schema. Removal requires a separate reviewed step.
 -- Verified 2026-11-07: public has no relations, policies, functions, triggers,
 -- or user migrations. Auth has no users. Do not apply without approval.
+-- QCL session guard: the operator must set this on the SAME connection first:
+--   select set_config('qcl.expected_ref', 'mdytuysdombxyydqnsmj', false);
+-- This aborts unless that session setting equals the QCL ref. It does NOT prove
+-- the TCP endpoint, dashboard project, or service-role credentials by itself.
 begin;
+do $$
+begin
+  if current_setting('qcl.expected_ref', true) is distinct from 'mdytuysdombxyydqnsmj' then
+    raise exception
+      'Abort: set qcl.expected_ref to mdytuysdombxyydqnsmj on this session before running QCL review SQL';
+  end if;
+end $$;
 
 create table public.accounts (
   id uuid primary key references auth.users(id) on delete cascade,

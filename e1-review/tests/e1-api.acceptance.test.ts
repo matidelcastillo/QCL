@@ -24,6 +24,7 @@ if (!cfg.QCL_PUBLISHABLE_KEY.startsWith("sb_publishable_")) {
 type Row = { id: string; owner_id: string; title: string };
 type Account = { id: string; status: string };
 type Claims = { iss?: string; sub?: string; role?: string; exp?: number; is_anonymous?: boolean };
+type DeniedExpectation = { status: 401 | 403; code: string };
 function claims(token: string, id: string): Claims {
   const parts = token.split(".");
   if (parts.length !== 3) throw new Error("Expected a user JWT");
@@ -71,9 +72,17 @@ async function own(token: string, id: string): Promise<Row> {
   expect(rows).toHaveLength(1);
   return rows[0];
 }
-async function denied(response: Response) {
-  expect(response.status).toBeGreaterThanOrEqual(400);
+// PostgREST maps Postgres 42501 to HTTP 403 when the request role is
+// authenticated, otherwise 401. Missing grants (not RLS empty results) are
+ // expected to surface as { code: "42501" }. Confirm on the real QCL run.
+async function denied(response: Response, expected: DeniedExpectation) {
+  expect([401, 403]).toContain(expected.status);
+  expect(response.status).toBe(expected.status);
   expect(response.status).toBeLessThan(500);
+  expect(response.status).not.toBe(400);
+  expect(response.status).not.toBe(429);
+  const body = await response.json() as { code?: unknown };
+  expect(body.code).toBe(expected.code);
 }
 async function patch(id: string, token: string, body: object) {
   return api(rowPath(id), token, {
@@ -132,18 +141,24 @@ test("QCL identity, owner isolation, grants and restoration", async () => {
     expect(await restored.json()).toEqual([a]);
     expect(await own(cfg.QCL_USER_A_ACCESS_TOKEN, records[0])).toEqual(a);
   }
+  // Authenticated denials from missing grants (not RLS row filters).
+  const grantDenied: DeniedExpectation = { status: 403, code: "42501" };
   for (const [token, ownId, otherId] of [
     [cfg.QCL_USER_A_ACCESS_TOKEN, records[0], ids[1]],
     [cfg.QCL_USER_B_ACCESS_TOKEN, records[1], ids[0]],
   ]) {
-    await denied(await patch(ownId, token, { owner_id: otherId }));
+    // UPDATE(title) only — owner_id is not granted.
+    await denied(await patch(ownId, token, { owner_id: otherId }), grantDenied);
+    // accounts: SELECT only; no UPDATE grant.
     await denied(await api(accountsPath, token, {
       method: "PATCH", body: JSON.stringify({ status: "deletion_pending" }),
-    }));
-    await denied(await api(rowPath(ownId), token, { method: "DELETE" }));
+    }), grantDenied);
+    // e1_private_records: no DELETE grant.
+    await denied(await api(rowPath(ownId), token, { method: "DELETE" }), grantDenied);
+    // e1_private_records: no INSERT grant.
     await denied(await api("rest/v1/e1_private_records", token, {
       method: "POST", body: JSON.stringify({ owner_id: otherId, title: "forged" }),
-    }));
+    }), grantDenied);
   }
   expect(await own(cfg.QCL_USER_A_ACCESS_TOKEN, records[0])).toEqual(a);
   expect(await own(cfg.QCL_USER_B_ACCESS_TOKEN, records[1])).toEqual(b);
@@ -151,10 +166,12 @@ test("QCL identity, owner isolation, grants and restoration", async () => {
     .toEqual([{ id: ids[0], status: "active" }]);
   expect(await json<Account[]>(accountsPath, cfg.QCL_USER_B_ACCESS_TOKEN))
     .toEqual([{ id: ids[1], status: "active" }]);
-  await denied(await api(allPath));
+  // Anon role (no JWT): PostgREST maps 42501 to 401 when unauthenticated.
+  const anonDenied: DeniedExpectation = { status: 401, code: "42501" };
+  await denied(await api(allPath), anonDenied);
   await denied(await api(rowPath(records[0]), undefined, {
     method: "PATCH", body: JSON.stringify({ title: "anonymous" }),
-  }));
+  }), anonDenied);
   expect(await own(cfg.QCL_USER_A_ACCESS_TOKEN, records[0])).toEqual(a);
 });
 
@@ -195,19 +212,23 @@ test("same active C token loses read/write on deletion_pending", async () => {
     throw new Error("C JWT needs at least 3 minutes for the operator transitions");
   }
   await gate("Operator: run reviewed transition SQL for C to deletion_pending");
-  if (claims(token, id).exp! * 1000 <= Date.now() + 10_000) {
-    throw new Error("C JWT expired during the pending-state test");
+  // Any failure after the pending gate must still restore C to active.
+  try {
+    if (claims(token, id).exp! * 1000 <= Date.now() + 10_000) {
+      throw new Error("C JWT expired during the pending-state test");
+    }
+    expect((await json<{ id: string }>("auth/v1/user", token)).id).toBe(id);
+    expect(await json<Account[]>(accountsPath, token)).toEqual([]);
+    expect(await json<Row[]>(allPath, token)).toEqual([]);
+    const blocked = await patch(record, token, { title: `pending-${Date.now()}` });
+    expect(blocked.status).toBe(200);
+    expect(await blocked.json()).toEqual([]);
+  } finally {
+    await gate("Operator: run reviewed transition SQL for C back to active");
+    if (claims(token, id).exp! * 1000 <= Date.now()) {
+      throw new Error("C JWT expired before restoration readback");
+    }
+    expect(await json<Account[]>(accountsPath, token)).toEqual([{ id, status: "active" }]);
+    expect(await own(token, record)).toEqual(original); // Same token; row unchanged.
   }
-  expect((await json<{ id: string }>("auth/v1/user", token)).id).toBe(id);
-  expect(await json<Account[]>(accountsPath, token)).toEqual([]);
-  expect(await json<Row[]>(allPath, token)).toEqual([]);
-  const blocked = await patch(record, token, { title: `pending-${Date.now()}` });
-  expect(blocked.status).toBe(200);
-  expect(await blocked.json()).toEqual([]);
-  await gate("Operator: run reviewed transition SQL for C back to active");
-  if (claims(token, id).exp! * 1000 <= Date.now()) {
-    throw new Error("C JWT expired before final readback");
-  }
-  expect(await json<Account[]>(accountsPath, token)).toEqual([{ id, status: "active" }]);
-  expect(await own(token, record)).toEqual(original); // Same token; row unchanged.
 }, 600_000);

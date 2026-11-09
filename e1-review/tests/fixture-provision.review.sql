@@ -1,7 +1,18 @@
 -- REVIEW ONLY; do not execute until the operator has created A/B/C in QCL
 -- through Auth Admin with email_confirm=true and controlled addresses.
 -- Replace every placeholder with the returned QCL UUID. Use distinct values.
+-- QCL session guard: the operator must set this on the SAME connection first:
+--   select set_config('qcl.expected_ref', 'mdytuysdombxyydqnsmj', false);
+-- This aborts unless that session setting equals the QCL ref. It does NOT prove
+-- the TCP endpoint, dashboard project, or service-role credentials by itself.
 begin;
+do $$
+begin
+  if current_setting('qcl.expected_ref', true) is distinct from 'mdytuysdombxyydqnsmj' then
+    raise exception
+      'Abort: set qcl.expected_ref to mdytuysdombxyydqnsmj on this session before running QCL review SQL';
+  end if;
+end $$;
 do $$
 declare
   a uuid := '<A_USER_UUID>'::uuid;
