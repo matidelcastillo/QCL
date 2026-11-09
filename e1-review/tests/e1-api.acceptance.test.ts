@@ -193,7 +193,8 @@ test("same signed JWT works before expiry and gets 401 afterward", async () => {
   }
   expect((await json<{ id: string }>("auth/v1/user", token)).id).toBe(ids[0]);
   expect((await own(token, records[0])).owner_id).toBe(ids[0]);
-  await Bun.sleep(Math.max(0, expiry + 2_000 - Date.now()));
+  // PostgREST hosted tolera 30 s de desfase de reloj en exp; esperar 35 s pasado el vencimiento.
+  await Bun.sleep(Math.max(0, expiry + 35_000 - Date.now()));
   const response = await api(rowPath(records[0]), token);
   expect(response.status).toBe(401);
 }, 150_000);
