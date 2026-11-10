@@ -862,7 +862,6 @@ textarea,
   }
 }
 
-
 @utility h-preview {
   height: 126px;
 }
@@ -1259,7 +1258,6 @@ textarea,
   .qc-tile-enter {
     animation: none;
   }
-
 }
 
 /* QC — press-state genérico (QUIERO/HE IDO, Seguir, etc.), mismo criterio
@@ -1562,3 +1560,302 @@ textarea,
   }
 }
 
+/* QCL E2 product surface. Reuses existing tokens; does not invent a palette. */
+.qcl-boot {
+  min-height: 40dvh;
+}
+
+.qcl-page {
+  padding-left: var(--page-margin);
+  padding-right: var(--page-margin);
+}
+
+.qcl-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.qcl-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.qcl-field > span {
+  color: var(--gray-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.qcl-field input,
+.qcl-field select {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid var(--gray-light);
+  background: #ffffff;
+  padding: 0 14px;
+  color: var(--black);
+  outline: none;
+}
+
+.qcl-field input:focus,
+.qcl-field select:focus {
+  border-color: #e8624a;
+}
+
+.qcl-primary-btn,
+.qcl-secondary-btn {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 40px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.qcl-primary-btn {
+  color: #ffffff;
+  background: #e8624a;
+}
+
+.qcl-primary-btn:disabled,
+.qcl-secondary-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.qcl-secondary-btn {
+  color: #0a0a0a;
+  background: transparent;
+  border: 1px solid rgba(10, 10, 10, 0.28);
+}
+
+.qcl-text-btn {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #e8624a;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qcl-switch {
+  margin-top: var(--space-4);
+  color: var(--gray-text);
+  font-size: 15px;
+}
+
+.qcl-filter-tabs {
+  margin: 4px 0 var(--space-4);
+}
+
+.qcl-filter-tab-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--filter-gap);
+}
+
+.qcl-filter-tab {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font-size: var(--qc-filter-font-size);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: #c0bcb6;
+  cursor: pointer;
+}
+
+.qcl-filter-tab[data-active="true"] {
+  color: #0a0a0a;
+}
+
+.qcl-book-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.qcl-book-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  background: #ffffff;
+  border: 0;
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+  box-shadow:
+    0 2px 4px rgba(10, 10, 10, 0.06),
+    0 8px 18px -10px rgba(10, 10, 10, 0.16);
+  cursor: pointer;
+}
+
+.qcl-book-title {
+  color: #0a0a0a;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.qcl-book-author,
+.qcl-book-meta,
+.qcl-empty,
+.qcl-last-read p {
+  color: var(--gray-text);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.qcl-empty {
+  margin: var(--space-4) 0 0;
+}
+
+.qcl-nav-wrap {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(12px + var(--safe-bottom));
+  width: calc(100% - 24px);
+  max-width: calc(var(--app-viewport-max) - 24px);
+  z-index: 40;
+}
+
+.qcl-nav-item {
+  color: rgba(255, 255, 255, 0.62);
+  text-decoration: none;
+}
+
+.qcl-nav-item[aria-current="page"] {
+  color: #ffffff;
+}
+
+.qcl-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(10, 10, 10, 0.4);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.qcl-sheet {
+  width: 100%;
+  background: #f5f0eb;
+  padding: 12px var(--page-margin) var(--drawer-bottom-pad);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  overflow: auto;
+}
+
+.qcl-sheet-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(10, 10, 10, 0.18);
+  margin: 0 auto 4px;
+}
+
+.qcl-sheet-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.qcl-sheet-title {
+  margin: 0;
+}
+
+.qcl-close {
+  border: 0;
+  background: transparent;
+  color: #0a0a0a;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 0 4px;
+}
+
+.qcl-sheet-actions,
+.qcl-status-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.qcl-sheet-actions {
+  gap: var(--space-2);
+}
+
+.qcl-counters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.qcl-counter {
+  background: #ffffff;
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.qcl-counter strong {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0a0a0a;
+  line-height: 1;
+}
+
+.qcl-counter span,
+.qcl-last-read h2 {
+  color: var(--gray-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.qcl-last-read {
+  margin-bottom: var(--space-8);
+}
+
+.qcl-last-read h2 {
+  margin: 0 0 var(--space-2);
+  text-transform: none;
+}
+
+.qcl-last-read p {
+  margin: 0;
+  color: #0a0a0a;
+  font-size: 16px;
+}
+
+.qcl-last-read p strong {
+  font-weight: 800;
+}
+
+.qcl-logout {
+  margin-top: var(--space-8);
+  margin-bottom: var(--space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qcl-sheet-backdrop,
+  .qcl-sheet {
+    transition: none;
+  }
+}

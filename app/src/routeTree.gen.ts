@@ -10,33 +10,63 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgregarRouteImport } from './routes/agregar'
+import { Route as EntrarRouteImport } from './routes/entrar'
+import { Route as VosRouteImport } from './routes/vos'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgregarRoute = AgregarRouteImport.update({
+  id: '/agregar',
+  path: '/agregar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EntrarRoute = EntrarRouteImport.update({
+  id: '/entrar',
+  path: '/entrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VosRoute = VosRouteImport.update({
+  id: '/vos',
+  path: '/vos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agregar': typeof AgregarRoute
+  '/entrar': typeof EntrarRoute
+  '/vos': typeof VosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agregar': typeof AgregarRoute
+  '/entrar': typeof EntrarRoute
+  '/vos': typeof VosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agregar': typeof AgregarRoute
+  '/entrar': typeof EntrarRoute
+  '/vos': typeof VosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/agregar' | '/entrar' | '/vos'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/agregar' | '/entrar' | '/vos'
+  id: '__root__' | '/' | '/agregar' | '/entrar' | '/vos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgregarRoute: typeof AgregarRoute
+  EntrarRoute: typeof EntrarRoute
+  VosRoute: typeof VosRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +78,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agregar': {
+      id: '/agregar'
+      path: '/agregar'
+      fullPath: '/agregar'
+      preLoaderRoute: typeof AgregarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entrar': {
+      id: '/entrar'
+      path: '/entrar'
+      fullPath: '/entrar'
+      preLoaderRoute: typeof EntrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vos': {
+      id: '/vos'
+      path: '/vos'
+      fullPath: '/vos'
+      preLoaderRoute: typeof VosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgregarRoute: AgregarRoute,
+  EntrarRoute: EntrarRoute,
+  VosRoute: VosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
+  Navigate,
   createRootRouteWithContext,
   useRouter,
   useRouterState,
@@ -12,7 +13,9 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { AppNav } from "@/components/app-nav";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider, useAuth } from "@/lib/auth-session";
 import { BRAND_NAME } from "@/lib/site";
 
 function NotFoundComponent() {
@@ -96,7 +99,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: BRAND_NAME },
       {
         name: "description",
-        content: "Qué Carajo Leer. La base visual está. La biblioteca, todavía no.",
+        content: "Qué Carajo Leer. Lo que querés leer y lo que ya leíste.",
       },
       { name: "robots", content: "noindex" },
     ],
@@ -144,19 +147,49 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div
-        style={{
-          maxWidth: "var(--app-viewport-max)",
-          margin: "0 auto",
-          minHeight: "100dvh",
-          position: "relative",
-        }}
-      >
-        <div className="safe-area-top qcba-content-fade">
-          <Outlet />
+      <AuthProvider>
+        <div
+          style={{
+            maxWidth: "var(--app-viewport-max)",
+            margin: "0 auto",
+            minHeight: "100dvh",
+            position: "relative",
+          }}
+        >
+          <div className="safe-area-top qcba-content-fade">
+            <AppFrame />
+          </div>
         </div>
-      </div>
-      <Toaster position="top-center" />
+        <Toaster position="top-center" />
+      </AuthProvider>
     </QueryClientProvider>
+  );
+}
+
+function AppFrame() {
+  const { ready, user } = useAuth();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isAuthPage = pathname === "/entrar";
+
+  if (isAuthPage) {
+    if (ready && user) {
+      return <Navigate to="/" replace />;
+    }
+    return <Outlet />;
+  }
+
+  if (!ready) {
+    return <div className="qcl-boot" aria-hidden="true" />;
+  }
+
+  if (!user) {
+    return <Navigate to="/entrar" replace />;
+  }
+
+  return (
+    <>
+      <Outlet />
+      <AppNav />
+    </>
   );
 }

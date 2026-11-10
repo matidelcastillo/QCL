@@ -3,11 +3,18 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const root = new URL("../..", import.meta.url).pathname;
-const skipDirs = new Set(["node_modules", ".git", ".vinxi", ".wrangler", ".nitro", "dist"]);
+const skipDirs = new Set([
+  "node_modules",
+  ".git",
+  ".vinxi",
+  ".wrangler",
+  ".nitro",
+  "dist",
+  ".output",
+]);
 
 const patterns = [
   { name: "qc-host", re: /quecarajoba/i },
-  { name: "supabase", re: /supabase/i },
   { name: "posthog", re: /posthog/i },
   { name: "capacitor", re: /capacitor/i },
   { name: "google-services", re: /google-services|GoogleService-Info/i },
@@ -30,7 +37,7 @@ function filesUnder(dir, acc = []) {
 }
 
 describe("scaffold isolation", () => {
-  test("app source and config do not carry QC hosts, clients, or credential markers", () => {
+  test("app source and config do not carry QC hosts, native clients, or secret markers", () => {
     const hits = [];
     for (const file of filesUnder(root)) {
       const rel = relative(root, file);
@@ -57,6 +64,5 @@ describe("scaffold isolation", () => {
         expect(name.endsWith(piece)).toBe(false);
       }
     }
-    expect(names.some((name) => name.includes("supabase/"))).toBe(false);
   });
 });
