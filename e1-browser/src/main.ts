@@ -63,13 +63,15 @@ function render() {
         const { error: authError } = await supabase.auth.signInWithPassword({
           email: String(data.get('email')), password: String(data.get('password')),
         });
-        if (authError) { error = 'No se pudo iniciar sesión'; render(); }
+        if (authError) { error = 'No se pudo iniciar sesión'; }
       } catch {
         error = 'No se pudo iniciar sesión';
-        render();
       } finally {
         busy = false;
-        button.disabled = false;
+        // Fallo: recrear el form con busy=false (Ingresar habilitado) y el mensaje de error.
+        // Éxito: onAuthStateChange ya puso current; no tocar session-generation.
+        if (!current) render();
+        else if (button.isConnected) button.disabled = false;
       }
     });
     root.append(form);
