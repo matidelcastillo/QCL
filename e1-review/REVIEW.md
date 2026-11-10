@@ -129,3 +129,11 @@ table and REST test cannot approve E1 by themselves.
 Private Auth Site URL/redirect allowlist, SMTP and recovery settings remain
 product integration work. They do not block this administratively provisioned
 RLS experiment if accounts can be created and signed in without mail delivery.
+
+## Ejecución y cleanup en QCL (2026-11-09)
+
+E1 se ejecutó en el proyecto QCL `mdytuysdombxyydqnsmj` (migración `e1_isolation_review` / `20261109181812`).
+
+- REST isolation, C `deletion_pending` y expiry (con JWT a 120 s y restauración a 3600) pasaron.
+- Browser gate: A/B, logout/reload, late-response discard y C pending pasaron; se corrigieron el puerto del gate y el botón Ingresar tras login fallido (`c59b192`).
+- Cleanup del mismo día: se borraron solo las filas/usuarios fixture A/B/C, se dropearon `public.accounts` y `public.e1_private_records` (y sus policies), y se quitó la entrada de historial de esa migración. QCL quedó sin tablas en `public` y sin usuarios en Auth. No se tocó QC.
