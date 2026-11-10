@@ -1,5 +1,6 @@
 import "./lib/error-capture";
 
+import { searchOpenLibrary, searchGoogleBooks, mergeCatalog } from "./lib/catalog";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 
@@ -49,6 +50,8 @@ export function tagNotFoundResponse(response: Response): Response {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const catalogResponse = await maybeCatalogResponse(request);
+      if (catalogResponse) return catalogResponse;
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return tagNotFoundResponse(await normalizeCatastrophicSsrResponse(response));
@@ -61,3 +64,34 @@ export default {
     }
   },
 };
+
+async function maybeCatalogResponse(request: Request): Promise<Response | null> {
+  const url = new URL(request.url);
+  if (url.pathname !== "/api/libros") return null;
+  if (request.method !== "GET") {
+    return json({ error: "Método no permitido." }, 405);
+  }
+  const query = (url.searchParams.get("q") ?? url.searchParams.get("isbn") ?? "").trim();
+  if (!query) return json({ results: [] });
+  if (query.length > 200) return json({ error: "La búsqueda es demasiado larga." }, 400);
+  try {
+    const [openLibrary, google] = await Promise.all([
+      searchOpenLibrary(query),
+      searchGoogleBooks(query),
+    ]);
+    return json({ results: mergeCatalog(query, [openLibrary, google]) });
+  } catch (error) {
+    console.error(error);
+    return json({ error: "No se pudo buscar ahora." }, 502);
+  }
+}
+
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+    },
+  });
+}

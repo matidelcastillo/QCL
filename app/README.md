@@ -10,7 +10,9 @@ Abrí [https://qcl.matidelcastillo.workers.dev](https://qcl.matidelcastillo.work
 
 Creá una cuenta con tu email y una contraseña. Después podés:
 
-- agregar un libro como Quiero o Leí
+- buscar un libro por título, autor o ISBN y agregarlo de un toque como Quiero o Leí
+- escanear el código de barras con la cámara del teléfono
+- si no aparece, cargarlo a mano
 - ver tus libros y filtrarlos
 - editarlos o sacarlos
 - poner tu nombre en Vos, ver los contadores y el último leído
@@ -45,7 +47,7 @@ bun run deploy
 
 Proyecto de Supabase: `mdytuysdombxyydqnsmj` (solo QCL, nunca QC).
 
-- `public.books`: título, autor, estado `quiero` o `lei`, fecha de lectura opcional
+- `public.books`: título, autor, estado `quiero` o `lei`, fecha de lectura opcional, tapa, ISBN e id externo
 - `public.profiles`: nombre para Vos
 - RLS básico: cada usuario lee y toca solo sus filas
 
@@ -54,3 +56,9 @@ La confirmación de email del proyecto hay que dejarla apagada. El correo defaul
 ## De dónde salió la cáscara visual
 
 La fuente fue un zip de solo lectura del árbol trackeado de QC, commit comentado `16cab3a412a90785469a1aa3b8997332ba93f678`. QC no se modifica desde acá. El detalle de qué se copió y qué no está en el historial de esta carpeta y en `docs/SYSTEM.md`.
+
+## Catálogo y escáner
+
+La búsqueda combina Open Library (siempre, desde el server) y Google Books (sin clave; si el server está saturado, se intenta desde el teléfono). No hay clave paga ni service role en el cliente.
+
+El escáner usa la cámara: `BarcodeDetector` cuando el navegador lo trae, y ZXing si no. Hace falta HTTPS, que ya está en workers.dev, y permiso de cámara. Funciona con códigos ISBN / EAN-13 de libro (978 y 979).

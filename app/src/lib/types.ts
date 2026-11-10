@@ -7,6 +7,10 @@ export type Book = {
   author: string;
   status: BookStatus;
   read_at: string | null;
+  cover_url: string | null;
+  isbn: string | null;
+  source: string | null;
+  external_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -16,4 +20,15 @@ export type Profile = {
   name: string;
   created_at: string;
   updated_at: string;
+};
+
+export type CatalogBook = {
+  title: string;
+  author: string;
+  year: string | null;
+  coverUrl: string | null;
+  isbn: string | null;
+  source: "google" | "openlibrary";
+  externalId: string;
+  language: string | null;
 };

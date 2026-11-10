@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { BookCover } from "@/components/book-cover";
 import { BookSheet } from "@/components/book-sheet";
 import { StatusTabs } from "@/components/status-tabs";
 import { useAuth } from "@/lib/auth-session";
@@ -11,6 +12,7 @@ import {
   brandTitleStyle,
 } from "@/lib/brand-header-style";
 import { formatDate, statusLabel } from "@/lib/format";
+import { BOOK_COLUMNS } from "@/lib/books";
 import { getSupabase } from "@/lib/supabase";
 import type { Book, BookStatus } from "@/lib/types";
 
@@ -33,7 +35,7 @@ function MisLibros() {
     queryFn: async () => {
       const { data, error } = await getSupabase()
         .from("books")
-        .select("id, owner_id, title, author, status, read_at, created_at, updated_at")
+        .select(BOOK_COLUMNS)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Book[];
@@ -117,11 +119,14 @@ function MisLibros() {
                 className="qc-press-card qcl-book-card"
                 onClick={() => setSelected(book)}
               >
-                <span className="qcl-book-title">{book.title}</span>
-                {book.author ? <span className="qcl-book-author">{book.author}</span> : null}
-                <span className="qcl-book-meta">
-                  {statusLabel(book.status)}
-                  {book.status === "lei" && book.read_at ? ` · ${formatDate(book.read_at)}` : ""}
+                <BookCover url={book.cover_url} title={book.title} />
+                <span className="qcl-book-copy">
+                  <span className="qcl-book-title">{book.title}</span>
+                  {book.author ? <span className="qcl-book-author">{book.author}</span> : null}
+                  <span className="qcl-book-meta">
+                    {statusLabel(book.status)}
+                    {book.status === "lei" && book.read_at ? ` · ${formatDate(book.read_at)}` : ""}
+                  </span>
                 </span>
               </button>
             </li>
