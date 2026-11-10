@@ -1,0 +1,11 @@
+{
+  // Local scaffold only. No account, routes, crons, or bindings.
+  // Do not deploy this file.
+  "name": "qcl",
+  "compatibility_date": "2026-11-07",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": ".output/server/index.mjs",
+  "assets": {
+    "directory": ".output/public"
+  }
+}

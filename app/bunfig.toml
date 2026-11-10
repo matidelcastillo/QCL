@@ -1,0 +1,4 @@
+[install]
+# Same supply-chain guard as the QC toolchain this scaffold was taken from.
+minimumReleaseAge = 86400
+minimumReleaseAgeExcludes = ["@lovable.dev/vite-tanstack-config"]
