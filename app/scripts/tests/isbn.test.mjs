@@ -6,6 +6,7 @@ import {
   queryLooksLikeIsbn,
 } from "../../src/lib/isbn.ts";
 import { mergeCatalog, parseOpenLibrarySearch } from "../../src/lib/catalog.ts";
+import { formatMonthYear } from "../../src/lib/format.ts";
 
 describe("isbn", () => {
   test("keeps a valid ISBN-13", () => {
@@ -89,5 +90,11 @@ describe("catalog merge", () => {
       language: "es",
     });
     expect(books[0].coverUrl).toContain("/b/id/123-L.jpg");
+  });
+});
+
+describe("dates", () => {
+  test("formats a short month and year", () => {
+    expect(formatMonthYear("2026-11-10")).toBe("nov 2026");
   });
 });

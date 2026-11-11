@@ -12,7 +12,7 @@ import {
   brandSubtitleStyle,
   brandTitleStyle,
 } from "@/lib/brand-header-style";
-import { formatDate, statusLabel } from "@/lib/format";
+import { formatMonthYear, statusLabel } from "@/lib/format";
 import { BOOK_COLUMNS } from "@/lib/books";
 import { getSupabase } from "@/lib/supabase";
 import type { Book, BookStatus } from "@/lib/types";
@@ -118,18 +118,20 @@ function MisLibros() {
                 <li key={book.id}>
                   <button
                     type="button"
-                    className="qc-press-card qcl-book-card"
+                    className={`qc-press-card qcl-book-card qcl-book-card-${book.status}`}
                     onClick={() => setSelected(book)}
                   >
                     <BookCover url={book.cover_url} title={book.title} />
                     <span className="qcl-book-copy">
                       <span className="qcl-book-title">{book.title}</span>
                       {book.author ? <span className="qcl-book-author">{book.author}</span> : null}
-                      <span className="qcl-book-meta">
-                        {statusLabel(book.status)}
-                        {book.status === "lei" && book.read_at
-                          ? ` · ${formatDate(book.read_at)}`
-                          : ""}
+                      <span className="qcl-book-foot">
+                        <span className={`qcl-badge qcl-badge-${book.status}`}>
+                          {statusLabel(book.status)}
+                        </span>
+                        {book.status === "lei" && book.read_at ? (
+                          <span className="qcl-book-date">{formatMonthYear(book.read_at)}</span>
+                        ) : null}
                       </span>
                     </span>
                   </button>

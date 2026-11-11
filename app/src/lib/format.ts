@@ -29,3 +29,21 @@ export function todayIsoDate(): string {
 export function statusLabel(status: "quiero" | "lei"): string {
   return status === "lei" ? "Leí" : "Quiero";
 }
+
+/** Short date for cards, e.g. "nov 2026". */
+export function formatMonthYear(value: string | null | undefined): string {
+  if (!value) return "";
+  const iso = value.length <= 10 ? `${value}T12:00:00` : value;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return value;
+  const parts = new Intl.DateTimeFormat("es-AR", {
+    timeZone: "America/Buenos_Aires",
+    month: "short",
+    year: "numeric",
+  }).formatToParts(date);
+  const month = (parts.find((part) => part.type === "month")?.value ?? "")
+    .replace(".", "")
+    .toLowerCase();
+  const year = parts.find((part) => part.type === "year")?.value ?? "";
+  return `${month} ${year}`.trim();
+}
