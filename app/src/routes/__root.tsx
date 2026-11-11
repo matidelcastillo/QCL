@@ -95,7 +95,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: BRAND_NAME },
       {
         name: "description",
-        content: "Qué Carajo Leer.",
+        content: "Que Carajo Leer.",
       },
       { name: "robots", content: "noindex" },
     ],

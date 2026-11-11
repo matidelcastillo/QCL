@@ -3,7 +3,7 @@ export function renderNotFoundPage(): string {
 <html lang="es-AR">
   <head>
     <meta charset="utf-8" />
-    <title>Esto no existe · Qué Carajo Leer</title>
+    <title>Esto no existe · Que Carajo Leer</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
     <style>

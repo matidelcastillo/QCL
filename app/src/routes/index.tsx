@@ -93,7 +93,7 @@ function MisLibros() {
             className="app-brand-title"
             style={{ ...brandTitleStyle(FONT, "#0A0A0A"), margin: 0 }}
           >
-            <span style={{ color: "#E8624A" }}>qué carajo</span> <span>leer</span>
+            <span style={{ color: "#E8624A" }}>que carajo</span> <span>leer</span>
           </h1>
         </div>
         <p style={{ ...brandSubtitleStyle(FONT, "#C0BCB6"), margin: 0 }}>{subtitle}</p>
