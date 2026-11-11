@@ -3,7 +3,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BookCover } from "@/components/book-cover";
-import { CatalogSearch } from "@/components/catalog-search";
 import { BookSheet } from "@/components/book-sheet";
 import { StatusTabs } from "@/components/status-tabs";
 import { useAuth } from "@/lib/auth-session";
@@ -29,7 +28,6 @@ function MisLibros() {
   const [filter, setFilter] = useState<"todos" | BookStatus>("todos");
   const [selected, setSelected] = useState<Book | null>(null);
   const [busy, setBusy] = useState(false);
-  const [searchingCatalog, setSearchingCatalog] = useState(false);
 
   const booksQuery = useQuery({
     queryKey: ["books", user?.id],
@@ -102,44 +100,38 @@ function MisLibros() {
         <p style={{ ...brandSubtitleStyle(FONT, "#C0BCB6"), margin: 0 }}>{subtitle}</p>
       </header>
 
-      <CatalogSearch afterAdd="stay" onActiveChange={setSearchingCatalog} />
+      <StatusTabs value={filter} onChange={setFilter} />
 
-      {searchingCatalog ? null : (
-        <>
-          <StatusTabs value={filter} onChange={setFilter} />
-
-          {booksQuery.isError ? (
-            <p className="qcl-empty">No se pudieron cargar.</p>
-          ) : visible.length === 0 ? (
-            <p className="qcl-empty">{books.length === 0 ? "Agregá el primero." : "Nada acá."}</p>
-          ) : (
-            <ul className="qcl-book-list">
-              {visible.map((book) => (
-                <li key={book.id}>
-                  <button
-                    type="button"
-                    className={`qc-press-card qcl-book-card qcl-book-card-${book.status}`}
-                    onClick={() => setSelected(book)}
-                  >
-                    <BookCover url={book.cover_url} title={book.title} />
-                    <span className="qcl-book-copy">
-                      <span className="qcl-book-title">{book.title}</span>
-                      {book.author ? <span className="qcl-book-author">{book.author}</span> : null}
-                      <span className="qcl-book-foot">
-                        <span className={`qcl-badge qcl-badge-${book.status}`}>
-                          {statusLabel(book.status)}
-                        </span>
-                        {book.status === "lei" && book.read_at ? (
-                          <span className="qcl-book-date">{formatMonthYear(book.read_at)}</span>
-                        ) : null}
-                      </span>
+      {booksQuery.isError ? (
+        <p className="qcl-empty">No se pudieron cargar.</p>
+      ) : visible.length === 0 ? (
+        <p className="qcl-empty">{books.length === 0 ? "Agregá el primero." : "Nada acá."}</p>
+      ) : (
+        <ul className="qcl-book-list">
+          {visible.map((book) => (
+            <li key={book.id}>
+              <button
+                type="button"
+                className={`qc-press-card qcl-book-card qcl-book-card-${book.status}`}
+                onClick={() => setSelected(book)}
+              >
+                <BookCover url={book.cover_url} title={book.title} />
+                <span className="qcl-book-copy">
+                  <span className="qcl-book-title">{book.title}</span>
+                  {book.author ? <span className="qcl-book-author">{book.author}</span> : null}
+                  <span className="qcl-book-foot">
+                    <span className={`qcl-badge qcl-badge-${book.status}`}>
+                      {statusLabel(book.status)}
                     </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
+                    {book.status === "lei" && book.read_at ? (
+                      <span className="qcl-book-date">{formatMonthYear(book.read_at)}</span>
+                    ) : null}
+                  </span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
 
       {selected ? (
