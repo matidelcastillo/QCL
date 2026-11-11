@@ -68,7 +68,7 @@ export function BookSheet({
         ) : null}
         <div className="qcl-sheet-top">
           <h2 id={titleId} className="drawer-title qcl-sheet-title">
-            El libro
+            Libro
           </h2>
           <button
             type="button"
@@ -104,7 +104,7 @@ export function BookSheet({
 
         {status === "lei" ? (
           <label className="qcl-field">
-            <span>Cuándo lo leíste</span>
+            <span>Fecha</span>
             <input type="date" value={readAt} onChange={(event) => setReadAt(event.target.value)} />
           </label>
         ) : null}

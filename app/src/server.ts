@@ -73,7 +73,7 @@ async function maybeCatalogResponse(request: Request): Promise<Response | null> 
   }
   const query = (url.searchParams.get("q") ?? url.searchParams.get("isbn") ?? "").trim();
   if (!query) return json({ results: [] });
-  if (query.length > 200) return json({ error: "La búsqueda es demasiado larga." }, 400);
+  if (query.length > 200) return json({ error: "Búsqueda muy larga." }, 400);
   try {
     const [openLibrary, google] = await Promise.all([
       searchOpenLibrary(query),
@@ -82,7 +82,7 @@ async function maybeCatalogResponse(request: Request): Promise<Response | null> 
     return json({ results: mergeCatalog(query, [openLibrary, google]) });
   } catch (error) {
     console.error(error);
-    return json({ error: "No se pudo buscar ahora." }, 502);
+    return json({ error: "No se pudo buscar." }, 502);
   }
 }
 

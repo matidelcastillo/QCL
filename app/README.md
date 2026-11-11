@@ -10,7 +10,7 @@ Abrí [https://qcl.matidelcastillo.workers.dev](https://qcl.matidelcastillo.work
 
 Creá una cuenta con tu email y una contraseña. Después podés:
 
-- buscar un libro por título, autor o ISBN y agregarlo de un toque como Quiero o Leí
+- buscar un libro en la pantalla de inicio o en Buscar, y agregarlo como Quiero o Leí
 - escanear el código de barras con la cámara del teléfono
 - si no aparece, cargarlo a mano
 - ver tus libros y filtrarlos

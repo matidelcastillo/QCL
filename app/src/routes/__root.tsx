@@ -25,15 +25,13 @@ function NotFoundComponent() {
       <div className="max-w-md text-center">
         <h1 className="text-hero font-medium text-foreground">404</h1>
         <h2 className="mt-simple text-title font-medium text-foreground">Esto no existe</h2>
-        <p className="mt-simple text-body text-muted-foreground">
-          El link está roto o la página se movió.
-        </p>
+        <p className="mt-simple text-body text-muted-foreground">El link no anda.</p>
         <div className="mt-doble">
           <Link
             to="/"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-half text-body font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Volver al inicio
+            Inicio
           </Link>
         </div>
       </div>
@@ -64,9 +62,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
     <div className="flex min-h-dvh items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-title font-medium text-foreground">Se rompió algo</h1>
-        <p className="mt-simple text-body text-muted-foreground">
-          Nuestro error, no tuyo. Probá de nuevo o volvé al inicio.
-        </p>
+        <p className="mt-simple text-body text-muted-foreground">Nuestro error. Probá de nuevo.</p>
         <div className="mt-doble flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
@@ -81,7 +77,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-half text-body font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Volver al inicio
+            Inicio
           </a>
         </div>
       </div>
@@ -99,7 +95,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: BRAND_NAME },
       {
         name: "description",
-        content: "Qué Carajo Leer. Lo que querés leer y lo que ya leíste.",
+        content: "Qué Carajo Leer.",
       },
       { name: "robots", content: "noindex" },
     ],

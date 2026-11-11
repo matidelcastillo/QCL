@@ -85,7 +85,7 @@ function Vos() {
         .eq("id", user.id);
       if (error) throw error;
       await queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
-      toast.success("Nombre guardado.");
+      toast.success("Guardado.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo guardar.");
     } finally {
@@ -117,7 +117,7 @@ function Vos() {
           </h1>
         </div>
         <p style={{ ...brandSubtitleStyle(FONT, "#C0BCB6"), margin: 0 }}>
-          {profileQuery.data?.name ? profileQuery.data.name : "Tu perfil."}
+          {profileQuery.data?.name ? profileQuery.data.name : "Perfil."}
         </p>
       </header>
 
@@ -141,13 +141,13 @@ function Vos() {
             {lastRead.read_at ? ` · ${formatDate(lastRead.read_at)}` : ""}
           </p>
         ) : (
-          <p>Todavía no marcaste ningún libro como leído.</p>
+          <p>Ninguno todavía.</p>
         )}
       </section>
 
       <form className="qcl-form" onSubmit={(event) => void saveName(event)}>
         <label className="qcl-field">
-          <span>Tu nombre</span>
+          <span>Nombre</span>
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}

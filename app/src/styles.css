@@ -1896,6 +1896,10 @@ textarea,
   letter-spacing: -0.03em;
 }
 
+.qcl-catalog-search {
+  margin-bottom: var(--space-2);
+}
+
 .qcl-search-row {
   display: flex;
   align-items: flex-end;

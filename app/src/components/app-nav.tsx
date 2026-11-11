@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 
 const items = [
   { to: "/", label: "Libros", icon: BookIcon },
-  { to: "/agregar", label: "Agregar", icon: PlusIcon },
+  { to: "/agregar", label: "Buscar", icon: SearchIcon },
   { to: "/vos", label: "Vos", icon: PersonIcon },
 ] as const;
 
@@ -56,11 +56,18 @@ function BookIcon({ active }: { active: boolean }) {
   );
 }
 
-function PlusIcon({ active }: { active: boolean }) {
+function SearchIcon({ active }: { active: boolean }) {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle
+        cx="10.5"
+        cy="10.5"
+        r="4.75"
+        stroke="currentColor"
+        strokeWidth={active ? "2.2" : "1.7"}
+      />
       <path
-        d="M12 6.5v11M6.5 12h11"
+        d="M14.25 14.25 18.25 18.25"
         stroke="currentColor"
         strokeWidth={active ? "2.2" : "1.7"}
         strokeLinecap="round"

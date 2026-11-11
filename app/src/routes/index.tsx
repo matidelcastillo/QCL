@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BookCover } from "@/components/book-cover";
+import { CatalogSearch } from "@/components/catalog-search";
 import { BookSheet } from "@/components/book-sheet";
 import { StatusTabs } from "@/components/status-tabs";
 import { useAuth } from "@/lib/auth-session";
@@ -28,6 +29,7 @@ function MisLibros() {
   const [filter, setFilter] = useState<"todos" | BookStatus>("todos");
   const [selected, setSelected] = useState<Book | null>(null);
   const [busy, setBusy] = useState(false);
+  const [searchingCatalog, setSearchingCatalog] = useState(false);
 
   const booksQuery = useQuery({
     queryKey: ["books", user?.id],
@@ -46,7 +48,7 @@ function MisLibros() {
   const visible = filter === "todos" ? books : books.filter((book) => book.status === filter);
   const subtitle =
     books.length === 0
-      ? "Todavía no hay libros."
+      ? "Sin libros."
       : `${books.length} ${books.length === 1 ? "libro" : "libros"}.`;
 
   async function refresh() {
@@ -76,7 +78,7 @@ function MisLibros() {
     try {
       const { error } = await getSupabase().from("books").delete().eq("id", book.id);
       if (error) throw error;
-      toast.success("Listo, lo sacamos.");
+      toast.success("Listo.");
       setSelected(null);
       await refresh();
     } catch (error) {
@@ -100,38 +102,42 @@ function MisLibros() {
         <p style={{ ...brandSubtitleStyle(FONT, "#C0BCB6"), margin: 0 }}>{subtitle}</p>
       </header>
 
-      <StatusTabs value={filter} onChange={setFilter} />
+      <CatalogSearch afterAdd="stay" onActiveChange={setSearchingCatalog} />
 
-      {booksQuery.isError ? (
-        <p className="qcl-empty">No se pudieron cargar tus libros. Probá de nuevo.</p>
-      ) : visible.length === 0 ? (
-        <p className="qcl-empty">
-          {books.length === 0
-            ? "Agregá el primero cuando quieras."
-            : "No hay libros en este filtro."}
-        </p>
-      ) : (
-        <ul className="qcl-book-list">
-          {visible.map((book) => (
-            <li key={book.id}>
-              <button
-                type="button"
-                className="qc-press-card qcl-book-card"
-                onClick={() => setSelected(book)}
-              >
-                <BookCover url={book.cover_url} title={book.title} />
-                <span className="qcl-book-copy">
-                  <span className="qcl-book-title">{book.title}</span>
-                  {book.author ? <span className="qcl-book-author">{book.author}</span> : null}
-                  <span className="qcl-book-meta">
-                    {statusLabel(book.status)}
-                    {book.status === "lei" && book.read_at ? ` · ${formatDate(book.read_at)}` : ""}
-                  </span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+      {searchingCatalog ? null : (
+        <>
+          <StatusTabs value={filter} onChange={setFilter} />
+
+          {booksQuery.isError ? (
+            <p className="qcl-empty">No se pudieron cargar.</p>
+          ) : visible.length === 0 ? (
+            <p className="qcl-empty">{books.length === 0 ? "Agregá el primero." : "Nada acá."}</p>
+          ) : (
+            <ul className="qcl-book-list">
+              {visible.map((book) => (
+                <li key={book.id}>
+                  <button
+                    type="button"
+                    className="qc-press-card qcl-book-card"
+                    onClick={() => setSelected(book)}
+                  >
+                    <BookCover url={book.cover_url} title={book.title} />
+                    <span className="qcl-book-copy">
+                      <span className="qcl-book-title">{book.title}</span>
+                      {book.author ? <span className="qcl-book-author">{book.author}</span> : null}
+                      <span className="qcl-book-meta">
+                        {statusLabel(book.status)}
+                        {book.status === "lei" && book.read_at
+                          ? ` · ${formatDate(book.read_at)}`
+                          : ""}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
 
       {selected ? (

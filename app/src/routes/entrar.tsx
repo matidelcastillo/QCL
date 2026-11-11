@@ -16,15 +16,14 @@ export const Route = createFileRoute("/entrar")({
 
 function friendlyAuthError(message: string): string {
   const text = message.toLowerCase();
-  if (text.includes("invalid login")) return "El email o la contraseña no coinciden.";
+  if (text.includes("invalid login")) return "Email o contraseña mal.";
   if (text.includes("already registered") || text.includes("already been registered")) {
-    return "Esa cuenta ya existe. Probá entrar.";
+    return "Esa cuenta ya existe.";
   }
-  if (text.includes("password")) return "La contraseña es muy corta. Usá al menos 6 caracteres.";
+  if (text.includes("password")) return "Mínimo 6 caracteres.";
   if (text.includes("email")) return "Revisá el email.";
-  if (text.includes("rate") || text.includes("too many"))
-    return "Esperá un momento y volvé a intentar.";
-  return "No se pudo completar. Probá de nuevo.";
+  if (text.includes("rate") || text.includes("too many")) return "Esperá un toque.";
+  return "No se pudo. Probá de nuevo.";
 }
 
 function Entrar() {
@@ -51,7 +50,7 @@ function Entrar() {
         });
         if (error) throw error;
         if (!data.session) {
-          toast.error("La cuenta se creó, pero no se pudo entrar ahora.");
+          toast.error("Cuenta creada. No se pudo entrar.");
         }
       }
     } catch (error) {
@@ -74,14 +73,14 @@ function Entrar() {
           </h1>
         </div>
         <p style={{ ...brandSubtitleStyle(FONT, "#C0BCB6"), margin: 0 }}>
-          {mode === "entrar" ? "Entrá para ver tus libros." : "Creá tu cuenta con tu email."}
+          {mode === "entrar" ? "Entrá." : "Creá tu cuenta."}
         </p>
       </header>
 
       <form className="qcl-form" onSubmit={(event) => void handleSubmit(event)}>
         {mode === "crear" ? (
           <label className="qcl-field">
-            <span>Tu nombre</span>
+            <span>Nombre</span>
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
@@ -122,7 +121,7 @@ function Entrar() {
           className="qcl-text-btn"
           onClick={() => setMode(mode === "entrar" ? "crear" : "entrar")}
         >
-          {mode === "entrar" ? "Crear una" : "Entrar"}
+          {mode === "entrar" ? "Crear" : "Entrar"}
         </button>
       </p>
     </main>

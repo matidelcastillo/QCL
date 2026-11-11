@@ -84,7 +84,7 @@ export function IsbnScanner({
         const detector = Detector ? new Detector({ formats: ["ean_13", "ean_8", "upc_a"] }) : null;
         const context = canvas.getContext("2d", { willReadFrequently: true });
         if (!context) {
-          setError("No se pudo leer la cámara.");
+          setError("Sin cámara.");
           return;
         }
 
@@ -139,7 +139,7 @@ export function IsbnScanner({
         };
         void tick();
       } catch {
-        if (!stoppedRef.current) setError("No se pudo leer la cámara.");
+        if (!stoppedRef.current) setError("Sin cámara.");
       }
     }
 
@@ -173,7 +173,7 @@ export function IsbnScanner({
     event.preventDefault();
     const isbn = isbnFromBarcode(manual);
     if (!isbn) {
-      setError("Ese ISBN no cierra. Revisá los números de debajo del código.");
+      setError("ISBN inválido.");
       return;
     }
     finishManual(isbn);
@@ -191,7 +191,7 @@ export function IsbnScanner({
         className="qcl-scanner"
         role="dialog"
         aria-modal="true"
-        aria-label="Escanear código de barras"
+        aria-label="Escanear"
         onClick={(event) => event.stopPropagation()}
       >
         <video
@@ -204,9 +204,7 @@ export function IsbnScanner({
         />
         <canvas ref={canvasRef} className="qcl-scanner-canvas" aria-hidden="true" />
         <div className="qcl-scanner-frame" aria-hidden="true" />
-        <p className="qcl-scanner-hint">
-          {error ?? "Apuntá al código. Si no lo toma, escribí el ISBN."}
-        </p>
+        <p className="qcl-scanner-hint">{error ?? "Apuntá al código."}</p>
         <div className="qcl-scanner-tools">
           {torchAvailable ? (
             <button
@@ -214,7 +212,7 @@ export function IsbnScanner({
               className="qcl-secondary-btn qcl-scanner-tool"
               onClick={() => void toggleTorch()}
             >
-              {torchOn ? "Apagar luz" : "Luz"}
+              {torchOn ? "Apagar" : "Luz"}
             </button>
           ) : null}
           <button
@@ -237,7 +235,7 @@ export function IsbnScanner({
         </div>
         <form className="qcl-scanner-isbn" onSubmit={handleManual}>
           <label>
-            <span>Escribir el ISBN</span>
+            <span>ISBN</span>
             <input
               value={manual}
               onChange={(event) => {
@@ -247,7 +245,7 @@ export function IsbnScanner({
               inputMode="numeric"
               autoComplete="off"
               enterKeyHint="search"
-              placeholder="Los números de debajo del código"
+              placeholder="978…"
             />
           </label>
           <button type="submit" className="qcl-primary-btn">
