@@ -26,6 +26,12 @@ describe("isbn", () => {
     expect(queryLooksLikeIsbn("978-84-376-0494-7")).toBe(true);
     expect(isbnFromBarcode("7790001234567")).toBeNull();
   });
+
+  test("strips a 5-digit add-on from an ISBN barcode", () => {
+    expect(isbnFromBarcode("978026206266490000")).toBe("9780262062664");
+    expect(isbnFromBarcode("978-0-262-06266-4 90000")).toBe("9780262062664");
+    expect(isbnFromBarcode("97802620626649")).toBe("9780262062664");
+  });
 });
 
 describe("catalog merge", () => {

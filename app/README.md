@@ -61,4 +61,4 @@ La fuente fue un zip de solo lectura del árbol trackeado de QC, commit comentad
 
 La búsqueda combina Open Library (siempre, desde el server) y Google Books (sin clave; si el server está saturado, se intenta desde el teléfono). No hay clave paga ni service role en el cliente.
 
-El escáner usa la cámara: `BarcodeDetector` cuando el navegador lo trae, y ZXing si no. Hace falta HTTPS, que ya está en workers.dev, y permiso de cámara. Funciona con códigos ISBN / EAN-13 de libro (978 y 979).
+El escáner usa la cámara: `BarcodeDetector` cuando el navegador lo trae, y ZXing si no, con `TRY_HARDER`, el recuadro completo (no solo la guía), rotaciones e inversión. Pide 1920×1080 y foco continuo cuando el teléfono lo permite. Ignora el add-on de 2 o 5 dígitos a la derecha del código. Si no lo toma, se puede escribir el ISBN. Hace falta HTTPS, que ya está en workers.dev, y permiso de cámara. Funciona con códigos ISBN / EAN-13 de libro (978 y 979).

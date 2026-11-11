@@ -46,10 +46,32 @@ export function queryLooksLikeIsbn(raw: string): boolean {
   return digits.length === 10 || digits.length === 13;
 }
 
-/** Accept book barcodes (ISBN-10 or EAN-13 starting 978/979). */
+function uniqueValues(values: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    result.push(value);
+  }
+  return result;
+}
+
+/** Accept book barcodes (ISBN-10 or EAN-13 starting 978/979). Ignores a 2- or 5-digit add-on. */
 export function isbnFromBarcode(raw: string): string | null {
-  const normalized = normalizeIsbn(raw);
-  if (!normalized) return null;
-  if (normalized.startsWith("978") || normalized.startsWith("979")) return normalized;
+  if (!raw) return null;
+  const digits = isbnDigits(raw);
+  const candidates = uniqueValues([
+    digits.length > 13 ? digits.slice(0, 13) : "",
+    digits.length > 10 && digits.length !== 13 ? digits.slice(0, 10) : "",
+    digits,
+    raw,
+  ]);
+  for (const candidate of candidates) {
+    const normalized = normalizeIsbn(candidate);
+    if (normalized && (normalized.startsWith("978") || normalized.startsWith("979"))) {
+      return normalized;
+    }
+  }
   return null;
 }
