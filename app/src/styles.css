@@ -1714,7 +1714,6 @@ textarea,
   overflow: hidden;
   background: var(--gray-light);
   box-shadow: var(--shadow-qcba-hero);
-  transform: rotate(-6deg);
 }
 
 .qcl-book-title {
