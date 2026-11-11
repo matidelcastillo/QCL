@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { revealFadeImg } from "@/lib/image-fade";
 
 export function BookCover({
@@ -11,6 +11,9 @@ export function BookCover({
   className?: string;
 }) {
   const [broken, setBroken] = useState(false);
+  useEffect(() => {
+    setBroken(false);
+  }, [url]);
   const showImage = Boolean(url) && !broken;
 
   return (

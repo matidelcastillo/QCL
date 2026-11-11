@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { BookCover } from "@/components/book-cover";
+import { BookCard } from "@/components/book-card";
 import { BookSheet } from "@/components/book-sheet";
 import { StatusTabs } from "@/components/status-tabs";
 import { useAuth } from "@/lib/auth-session";
@@ -11,7 +11,6 @@ import {
   brandSubtitleStyle,
   brandTitleStyle,
 } from "@/lib/brand-header-style";
-import { formatMonthYear, statusLabel } from "@/lib/format";
 import { BOOK_COLUMNS } from "@/lib/books";
 import { getSupabase } from "@/lib/supabase";
 import type { Book, BookStatus } from "@/lib/types";
@@ -110,25 +109,7 @@ function MisLibros() {
         <ul className="qcl-book-list">
           {visible.map((book) => (
             <li key={book.id}>
-              <button
-                type="button"
-                className={`qc-press-card qcl-book-card qcl-book-card-${book.status}`}
-                onClick={() => setSelected(book)}
-              >
-                <BookCover url={book.cover_url} title={book.title} />
-                <span className="qcl-book-copy">
-                  <span className="qcl-book-title">{book.title}</span>
-                  {book.author ? <span className="qcl-book-author">{book.author}</span> : null}
-                  <span className="qcl-book-foot">
-                    <span className={`qcl-badge qcl-badge-${book.status}`}>
-                      {statusLabel(book.status)}
-                    </span>
-                    {book.status === "lei" && book.read_at ? (
-                      <span className="qcl-book-date">{formatMonthYear(book.read_at)}</span>
-                    ) : null}
-                  </span>
-                </span>
-              </button>
+              <BookCard book={book} onSelect={setSelected} />
             </li>
           ))}
         </ul>

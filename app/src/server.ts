@@ -1,6 +1,7 @@
 import "./lib/error-capture";
 
 import { searchOpenLibrary, searchGoogleBooks, mergeCatalog } from "./lib/catalog";
+import { isAllowedTapaUrl } from "./lib/tapa";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 
@@ -50,6 +51,8 @@ export function tagNotFoundResponse(response: Response): Response {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const tapaResponse = await maybeTapaResponse(request);
+      if (tapaResponse) return tapaResponse;
       const catalogResponse = await maybeCatalogResponse(request);
       if (catalogResponse) return catalogResponse;
       const handler = await getServerEntry();
@@ -64,6 +67,56 @@ export default {
     }
   },
 };
+
+async function maybeTapaResponse(request: Request): Promise<Response | null> {
+  const url = new URL(request.url);
+  if (url.pathname !== "/api/tapa") return null;
+  if (request.method !== "GET") {
+    return new Response("Método no permitido.", { status: 405 });
+  }
+  const target = isAllowedTapaUrl(url.searchParams.get("u") ?? "");
+  if (!target) return new Response("Tapa inválida.", { status: 400 });
+
+  try {
+    let current = target;
+    let upstream: Response | null = null;
+    for (let hop = 0; hop < 4; hop += 1) {
+      upstream = await fetch(current.toString(), {
+        headers: { accept: "image/*" },
+        redirect: "manual",
+        signal: AbortSignal.timeout(8000),
+      });
+      if (![301, 302, 303, 307, 308].includes(upstream.status)) break;
+      const location = upstream.headers.get("location");
+      if (!location) return new Response("No se pudo cargar.", { status: 502 });
+      const next = isAllowedTapaUrl(new URL(location, current).toString());
+      if (!next) return new Response("Tapa inválida.", { status: 400 });
+      current = next;
+    }
+    if (!upstream || !upstream.ok) {
+      return new Response("No se pudo cargar.", { status: 502 });
+    }
+    const type = (upstream.headers.get("content-type") ?? "").split(";")[0].trim();
+    if (!type.startsWith("image/")) {
+      return new Response("No es una imagen.", { status: 502 });
+    }
+    const bytes = await upstream.arrayBuffer();
+    if (bytes.byteLength === 0 || bytes.byteLength > 2_000_000) {
+      return new Response("Imagen no válida.", { status: 502 });
+    }
+    return new Response(bytes, {
+      status: 200,
+      headers: {
+        "content-type": type,
+        "cache-control": "public, max-age=86400",
+        "x-content-type-options": "nosniff",
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return new Response("No se pudo cargar.", { status: 502 });
+  }
+}
 
 async function maybeCatalogResponse(request: Request): Promise<Response | null> {
   const url = new URL(request.url);
