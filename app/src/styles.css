@@ -1739,21 +1739,14 @@ textarea,
 
 .qcl-nav-wrap {
   position: fixed;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(12px + var(--safe-bottom));
-  width: calc(100% - 24px);
-  max-width: calc(var(--app-viewport-max) - 24px);
-  z-index: 40;
-}
-
-.qcl-nav-item {
-  color: var(--nav-inactive-color);
-  text-decoration: none;
-}
-
-.qcl-nav-item[aria-current="page"] {
-  color: var(--nav-active-color);
+  width: 100%;
+  max-width: var(--app-viewport-max);
+  padding: 12px 20px calc(12px + var(--safe-bottom));
+  background: transparent;
+  z-index: 50;
 }
 
 .qcl-sheet-backdrop {
