@@ -7,7 +7,14 @@ import {
   paletteFromSamples,
   relativeLuminance,
 } from "../../src/lib/cover-colors.ts";
-import { isAllowedTapaUrl, tapaSrc } from "../../src/lib/tapa.ts";
+import {
+  googleIsbnCoverUrl,
+  googleIsbnCoverUrls,
+  isbnFromCoverUrl,
+  isAllowedTapaUrl,
+  isUsableCoverPayload,
+  tapaSrc,
+} from "../../src/lib/tapa.ts";
 
 describe("cover colors", () => {
   test("treats near-white and near-black as unusable", () => {
@@ -61,5 +68,40 @@ describe("tapa urls", () => {
       "/api/tapa?u=https%3A%2F%2Fcovers.openlibrary.org%2Fb%2Fid%2F1-L.jpg",
     );
     expect(tapaSrc("data:image/png;base64,abc")).toBe("data:image/png;base64,abc");
+  });
+
+  test("passes an ISBN so the proxy can try a Google Books cover first", () => {
+    expect(
+      tapaSrc("https://covers.openlibrary.org/b/id/8097558-L.jpg?default=false", "9780262062664"),
+    ).toBe(
+      "/api/tapa?u=https%3A%2F%2Fcovers.openlibrary.org%2Fb%2Fid%2F8097558-L.jpg%3Fdefault%3Dfalse&isbn=9780262062664",
+    );
+    expect(isbnFromCoverUrl("https://covers.openlibrary.org/b/isbn/9788437604572-L.jpg")).toBe(
+      "9788437604572",
+    );
+    expect(googleIsbnCoverUrl("9788437604572")).toBe(
+      "https://books.google.com/books/content?vid=ISBN9788437604572&printsec=frontcover&img=1&zoom=2",
+    );
+    const jpeg = new Uint8Array(3000);
+    jpeg[0] = 0xff;
+    jpeg[1] = 0xd8;
+    jpeg[2] = 0xff;
+    expect(isUsableCoverPayload("image/jpeg", jpeg.buffer)).toBe(true);
+    expect(isUsableCoverPayload("image/jpeg", jpeg.buffer, "google")).toBe(true);
+    const stub = new Uint8Array(1269);
+    stub[0] = 0x89;
+    stub[1] = 0x50;
+    stub[2] = 0x4e;
+    expect(isUsableCoverPayload("image/png", stub.buffer)).toBe(false);
+    const unavailable = new Uint8Array(9103);
+    unavailable[0] = 0x89;
+    unavailable[1] = 0x50;
+    unavailable[2] = 0x4e;
+    expect(isUsableCoverPayload("image/png", unavailable.buffer)).toBe(true);
+    expect(isUsableCoverPayload("image/png", unavailable.buffer, "google")).toBe(false);
+    expect(googleIsbnCoverUrls("9788437604572")).toEqual([
+      "https://books.google.com/books/content?vid=ISBN9788437604572&printsec=frontcover&img=1&zoom=2",
+      "https://books.google.com/books/content?vid=ISBN9788437604572&printsec=frontcover&img=1&zoom=1",
+    ]);
   });
 });

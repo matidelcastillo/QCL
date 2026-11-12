@@ -1,7 +1,12 @@
 import "./lib/error-capture";
 
 import { searchOpenLibrary, searchGoogleBooks, mergeCatalog } from "./lib/catalog";
-import { isAllowedTapaUrl } from "./lib/tapa";
+import {
+  googleIsbnCoverUrls,
+  isAllowedTapaUrl,
+  isUsableCoverPayload,
+  resolveTapaIsbn,
+} from "./lib/tapa";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 
@@ -68,6 +73,49 @@ export default {
   },
 };
 
+const TAPA_FETCH_HEADERS = {
+  accept: "image/*",
+  "user-agent": "QCL/1.0 (Que Carajo Leer; personal library app)",
+};
+
+function tapaImageResponse(type: string, bytes: ArrayBuffer): Response {
+  return new Response(bytes, {
+    status: 200,
+    headers: {
+      "content-type": type,
+      "cache-control": "public, max-age=86400",
+      "x-content-type-options": "nosniff",
+    },
+  });
+}
+
+async function fetchTapaBytes(
+  target: URL,
+  timeoutMs: number,
+  kind: "google" | "any" = "any",
+): Promise<{ type: string; bytes: ArrayBuffer } | null> {
+  let current = target;
+  let upstream: Response | null = null;
+  for (let hop = 0; hop < 4; hop += 1) {
+    upstream = await fetch(current.toString(), {
+      headers: TAPA_FETCH_HEADERS,
+      redirect: "manual",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (![301, 302, 303, 307, 308].includes(upstream.status)) break;
+    const location = upstream.headers.get("location");
+    if (!location) return null;
+    const next = isAllowedTapaUrl(new URL(location, current).toString());
+    if (!next) return null;
+    current = next;
+  }
+  if (!upstream || !upstream.ok) return null;
+  const type = (upstream.headers.get("content-type") ?? "").split(";")[0].trim();
+  const bytes = await upstream.arrayBuffer();
+  if (!isUsableCoverPayload(type, bytes, kind)) return null;
+  return { type, bytes };
+}
+
 async function maybeTapaResponse(request: Request): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.pathname !== "/api/tapa") return null;
@@ -78,40 +126,16 @@ async function maybeTapaResponse(request: Request): Promise<Response | null> {
   if (!target) return new Response("Tapa inválida.", { status: 400 });
 
   try {
-    let current = target;
-    let upstream: Response | null = null;
-    for (let hop = 0; hop < 4; hop += 1) {
-      upstream = await fetch(current.toString(), {
-        headers: { accept: "image/*" },
-        redirect: "manual",
-        signal: AbortSignal.timeout(8000),
-      });
-      if (![301, 302, 303, 307, 308].includes(upstream.status)) break;
-      const location = upstream.headers.get("location");
-      if (!location) return new Response("No se pudo cargar.", { status: 502 });
-      const next = isAllowedTapaUrl(new URL(location, current).toString());
-      if (!next) return new Response("Tapa inválida.", { status: 400 });
-      current = next;
+    const isbn = resolveTapaIsbn(target, url.searchParams.get("isbn"));
+    for (const candidate of isbn ? googleIsbnCoverUrls(isbn) : []) {
+      const googleUrl = isAllowedTapaUrl(candidate);
+      if (!googleUrl) continue;
+      const google = await fetchTapaBytes(googleUrl, 4000, "google");
+      if (google) return tapaImageResponse(google.type, google.bytes);
     }
-    if (!upstream || !upstream.ok) {
-      return new Response("No se pudo cargar.", { status: 502 });
-    }
-    const type = (upstream.headers.get("content-type") ?? "").split(";")[0].trim();
-    if (!type.startsWith("image/")) {
-      return new Response("No es una imagen.", { status: 502 });
-    }
-    const bytes = await upstream.arrayBuffer();
-    if (bytes.byteLength === 0 || bytes.byteLength > 2_000_000) {
-      return new Response("Imagen no válida.", { status: 502 });
-    }
-    return new Response(bytes, {
-      status: 200,
-      headers: {
-        "content-type": type,
-        "cache-control": "public, max-age=86400",
-        "x-content-type-options": "nosniff",
-      },
-    });
+    const primary = await fetchTapaBytes(target, 12000);
+    if (primary) return tapaImageResponse(primary.type, primary.bytes);
+    return new Response("No se pudo cargar.", { status: 502 });
   } catch (error) {
     console.error(error);
     return new Response("No se pudo cargar.", { status: 502 });

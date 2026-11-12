@@ -1,4 +1,5 @@
 import { BookCover } from "@/components/book-cover";
+import { tapaSrc } from "@/lib/tapa";
 import type { BookStatus, CatalogBook } from "@/lib/types";
 
 export function CatalogResults({
@@ -18,7 +19,7 @@ export function CatalogResults({
         const busy = busyId === id;
         return (
           <li key={id} className="qcl-catalog-item">
-            <BookCover url={book.coverUrl} title={book.title} />
+            <BookCover url={tapaSrc(book.coverUrl, book.isbn)} title={book.title} />
             <div className="qcl-catalog-body">
               <p className="qcl-book-title">{book.title}</p>
               {book.author ? <p className="qcl-book-author">{book.author}</p> : null}

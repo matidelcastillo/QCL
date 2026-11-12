@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { BookCover } from "@/components/book-cover";
+import { tapaSrc } from "@/lib/tapa";
 import { StatusChoice } from "@/components/status-tabs";
 import { todayIsoDate } from "@/lib/format";
 import type { Book, BookStatus } from "@/lib/types";
@@ -63,7 +64,7 @@ export function BookSheet({
         <div className="qcl-sheet-handle" aria-hidden="true" />
         {book.cover_url ? (
           <div className="qcl-sheet-cover">
-            <BookCover url={book.cover_url} title={book.title} />
+            <BookCover url={tapaSrc(book.cover_url, book.isbn)} title={book.title} />
           </div>
         ) : null}
         <div className="qcl-sheet-top">

@@ -22,7 +22,6 @@ export function BookCover({
         <img
           src={url!}
           alt=""
-          loading="lazy"
           className="qc-grid-image-fade qcl-cover-img"
           ref={(element) => revealFadeImg(element)}
           onLoad={(event) => event.currentTarget.classList.add("is-loaded")}

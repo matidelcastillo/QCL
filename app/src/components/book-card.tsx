@@ -6,7 +6,7 @@ import { useCoverPalette } from "@/lib/use-cover-palette";
 import type { Book } from "@/lib/types";
 
 export function BookCard({ book, onSelect }: { book: Book; onSelect: (book: Book) => void }) {
-  const src = tapaSrc(book.cover_url);
+  const src = tapaSrc(book.cover_url, book.isbn);
   const palette = useCoverPalette(src);
 
   return (
