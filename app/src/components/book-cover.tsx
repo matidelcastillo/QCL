@@ -1,35 +1,28 @@
-import { useEffect, useState } from "react";
-import { revealFadeImg } from "@/lib/image-fade";
+import { useState } from "react";
+import { coverCandidate } from "../domain/cover-url";
 
 export function BookCover({
   url,
-  title,
-  className = "",
+  isbn,
+  large = false,
 }: {
-  url: string | null | undefined;
-  title: string;
-  className?: string;
+  url?: string | null;
+  isbn?: string | null;
+  large?: boolean;
 }) {
-  const [broken, setBroken] = useState(false);
-  useEffect(() => {
-    setBroken(false);
-  }, [url]);
-  const showImage = Boolean(url) && !broken;
-
+  const [failed, setFailed] = useState(false);
+  const candidate = coverCandidate(url, isbn);
+  const params = new URLSearchParams();
+  if (candidate) params.set("u", candidate);
+  if (isbn) params.set("isbn", isbn);
+  if (!candidate || failed)
+    return <div aria-hidden="true" className={`cover cover-fallback${large ? " large" : ""}`} />;
   return (
-    <div className={`qcl-cover ${className}`.trim()} aria-hidden="true">
-      {showImage ? (
-        <img
-          src={url!}
-          alt=""
-          className="qc-grid-image-fade qcl-cover-img"
-          ref={(element) => revealFadeImg(element)}
-          onLoad={(event) => event.currentTarget.classList.add("is-loaded")}
-          onError={() => setBroken(true)}
-        />
-      ) : (
-        <span className="qcl-cover-fallback">{title.trim().slice(0, 1).toUpperCase() || "L"}</span>
-      )}
-    </div>
+    <img
+      className={`cover qc-card-image${large ? " large" : ""}`}
+      src={`/api/tapa?${params}`}
+      alt=""
+      onError={() => setFailed(true)}
+    />
   );
 }

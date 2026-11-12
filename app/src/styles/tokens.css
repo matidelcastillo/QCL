@@ -1,0 +1,164 @@
+/* Values copied from QC/src/styles.css, grouped here for QCL. */
+:root {
+  --bg: #f5f0eb;
+  --background: #f5f0eb;
+  --black: #0a0a0a;
+  --foreground: #0a0a0a;
+  --white: #ffffff;
+  --gray-light: #e8e3dc;
+  --gray-text: #6b6560;
+  --primary: oklch(0.6606 0.1714 32.12);
+  --muted-foreground: oklch(0.52 0.02 60);
+  --rule: oklch(0.9 0.005 70);
+  --destructive: oklch(0.62 0.21 25);
+  --ring: oklch(0.68 0.21 35);
+  --font-body: "Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --text-display-xl: 2.125rem;
+  --leading-display-xl: 2.5rem;
+  --text-heading-l: 1.75rem;
+  --leading-heading-l: 2.125rem;
+  --text-heading-m: 1.5rem;
+  --leading-heading-m: 1.875rem;
+  --text-section: 1.25rem;
+  --leading-section: 1.625rem;
+  --text-body-qcba: 1rem;
+  --leading-body-qcba: 1.5rem;
+  --text-caption: 0.8125rem;
+  --leading-caption: 1.125rem;
+  --text-micro-qcba: 0.75rem;
+  --leading-micro-qcba: 1rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --radius-card: 16px;
+  --radius-sm: 6px;
+  --app-viewport-max: 430px;
+  --filter-gap: 10px;
+  --nav-height: 60px;
+  --nav-radius: 40px;
+  --nav-inline-padding: 8px;
+  --nav-hit-size: 44px;
+  --nav-icon-size: 26px;
+  --nav-active-color: #ffffff;
+  --nav-inactive-color: rgba(255, 255, 255, 0.55);
+  --page-px-mobile: 1.5rem;
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --page-pb-nav: calc(3.75rem + 40px + var(--safe-bottom));
+  --drawer-max-h: 88dvh;
+  --drawer-radius: 24px;
+  --drawer-side-pad: 20px;
+  --drawer-viewport-inset: 20px;
+  --drawer-viewport-max: calc(
+    var(--app-viewport-max) - var(--drawer-viewport-inset) - var(--drawer-viewport-inset)
+  );
+  --drawer-top-pad: 20px;
+  --drawer-bottom-pad: calc(20px + var(--safe-bottom));
+  --ease-press: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-fade: ease-out;
+  --dur-press: 0.14s;
+  --dur-fade: 0.28s;
+  --dur-enter: 0.36s;
+  --dur-drawer: 0.35s;
+  --dur-bounce: 0.45s;
+  --dur-glow: 2.5s;
+  /* QC/routes/index.tsx shimmerStyle. */
+  --qcl-shimmer-duration: 1.5s;
+  /* QC/src/styles.css lines 2488-2504: heartPop. */
+  --qcl-heart-pop-up: 1.35;
+  --qcl-heart-pop-down: 0.9;
+  --press-card-scale: 0.985;
+  --press-button-scale: 0.96;
+  --glass-bg: rgba(255, 255, 255, 0.42);
+  --glass-border: rgba(255, 255, 255, 0.62);
+  --glass-shine: rgba(255, 255, 255, 0.2);
+  --glass-depth: rgba(10, 10, 10, 0.1);
+  --glass-ambient: 0 8px 24px rgba(10, 10, 10, 0.12), 0 2px 6px rgba(10, 10, 10, 0.08);
+  --glass-blur: 18px;
+  --glass-saturate: 145%;
+  --glass-bg-solid: #f5f0eb;
+  --qcl-glass-orange-bg: rgba(232, 98, 74, 0.85);
+  --qcl-glass-orange-border: rgba(255, 255, 255, 0.35);
+  --qcl-glass-orange-shine: rgba(255, 255, 255, 0.22);
+  --qcl-glass-orange-depth: rgba(0, 0, 0, 0.12);
+  --glass-gradient-angle: 70deg;
+  --glass-orange-gradient: linear-gradient(
+    var(--glass-gradient-angle),
+    rgba(232, 98, 74, 0.9) 0%,
+    rgba(241, 114, 92, 0.9) 100%
+  );
+  --media-card-shadow-compact:
+    0 2px 4px rgba(10, 10, 10, 0.1), 0 8px 14px -8px rgba(10, 10, 10, 0.28);
+  --filter-action-icon-size: 24px;
+  --drawer-cta-gap: var(--space-6);
+  --media-title-size: 22px;
+  --media-title-weight: 800;
+  --media-title-leading: 1.2;
+  --media-title-tracking: -0.02em;
+  --drawer-meta-size: 14px;
+  --drawer-meta-weight: 600;
+  --drawer-description-leading: 1.55;
+  --drawer-cta-font-size: 13px;
+  --drawer-cta-font-weight: 700;
+  --drawer-hero-content-gap: var(--space-5);
+  --drawer-action-edge-gap: var(--space-6);
+  /* Aliases for QC literals: src/lib/brand-header-style.ts lines 9-16. */
+  --qcl-brand-title-size: 26px;
+  --qcl-brand-title-weight: 800;
+  --qcl-brand-title-tracking: -0.03em;
+  --qcl-brand-title-leading: 1.1;
+  /* QC/src/routes/index.tsx line 3247. */
+  --qcl-nav-btn-inline: 14px;
+  /* QC/src/routes/index.tsx lines 131-135 and 2697. */
+  --qcl-orange: #e8624a;
+  --qcl-meta-gray: #888888;
+  --qcl-separator-muted: #c0bcb6;
+  --qcl-backdrop: rgba(0, 0, 0, 0.5);
+  /* Only new visual value: physical book cover ratio. */
+  --qcl-cover-ratio: 2 / 3;
+  --qcl-one-px: 1px;
+  --qcl-zero: 0px;
+  --qcl-pill-height: 30px;
+  --qcl-pill-inline: 11px;
+  --qcl-pill-block: 5px;
+  --qcl-skeleton-height: 16px;
+  --qcl-row-min: 56px;
+  --qcl-row-block: 10px;
+  --qcl-handle-w: 40px;
+  --qcl-handle-h: 4px;
+  --qcl-handle-radius: 2px;
+  --qcl-loader-size: 40px;
+  --qcl-empty-size: 140px;
+  --qcl-description-lines: 4;
+  --qcl-title-lines: 2;
+  --qcl-nav-gradient: linear-gradient(
+    180deg,
+    rgba(241, 114, 92, 0.9) 0%,
+    rgba(232, 98, 74, 0.9) 100%
+  );
+  --qcl-pill-gradient: linear-gradient(
+    180deg,
+    rgba(241, 114, 92, 0.72) 0%,
+    rgba(232, 98, 74, 0.72) 100%
+  );
+  --qcl-white-gradient: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(255, 255, 255, 0.56) 100%
+  );
+  --qcl-border-orange: rgba(232, 98, 74, 0.2);
+  --qcl-border-dark: rgba(10, 10, 10, 0.28);
+  --qcl-shimmer: linear-gradient(90deg, var(--gray-light), var(--bg), var(--gray-light));
+}
+@media (min-width: 431px) {
+  :root {
+    --app-viewport-max: 390px;
+  }
+}
