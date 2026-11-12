@@ -2,8 +2,8 @@ import type { CSSProperties, ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 
 const items = [
-  { to: "/", label: "Libros", icon: BookIcon },
-  { to: "/agregar", label: "Buscar", icon: SearchIcon },
+  { to: "/", label: "Libros", icon: BookOpenIcon },
+  { to: "/agregar", label: "Buscar", icon: BarcodeIcon },
   { to: "/vos", label: "Vos", icon: UserIcon },
 ] as const;
 
@@ -85,19 +85,23 @@ function LucideIcon({
   );
 }
 
-function BookIcon({ active }: { active: boolean }) {
+function BookOpenIcon({ active }: { active: boolean }) {
   return (
-    <LucideIcon active={active} name="book">
-      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
+    <LucideIcon active={active} name="book-open">
+      <path d="M12 7v14" />
+      <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
     </LucideIcon>
   );
 }
 
-function SearchIcon({ active }: { active: boolean }) {
+function BarcodeIcon({ active }: { active: boolean }) {
   return (
-    <LucideIcon active={active} name="search">
-      <path d="m21 21-4.34-4.34" />
-      <circle cx="11" cy="11" r="8" />
+    <LucideIcon active={active} name="barcode">
+      <path d="M3 5v14" />
+      <path d="M8 5v14" />
+      <path d="M12 5v14" />
+      <path d="M17 5v14" />
+      <path d="M21 5v14" />
     </LucideIcon>
   );
 }
