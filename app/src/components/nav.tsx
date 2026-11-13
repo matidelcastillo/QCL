@@ -1,9 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Barcode, BookOpen, User } from "lucide-react";
+import { Barcode, BookOpen, User, UsersRound } from "lucide-react";
 
 const items = [
   { to: "/", label: "Inicio", Icon: BookOpen },
   { to: "/agregar", label: "Agregar", Icon: Barcode },
+  { to: "/gilada", label: "Gilada", Icon: UsersRound },
   { to: "/vos", label: "Vos", Icon: User },
 ] as const;
 
