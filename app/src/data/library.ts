@@ -1,4 +1,5 @@
 import type { Book, BookStatus, CatalogBook } from "../domain/types";
+import { today } from "../domain/date";
 import { identity } from "../domain/metadata";
 import { coverCandidate } from "../domain/cover-url";
 import { browserSupabase } from "./supabase";
@@ -13,6 +14,7 @@ export async function listBooks(ownerId: string): Promise<Book[]> {
   return (data ?? []) as Book[];
 }
 
+/* Same book = same ISBN, or same normalized title + author when there is no ISBN. */
 export function duplicate(
   books: Book[],
   candidate: { title: string; author: string; isbn?: string | null },
@@ -26,12 +28,62 @@ export function duplicate(
 }
 
 export type NewBook = Pick<
-  CatalogBook,
-  "title" | "author" | "isbn" | "coverUrl" | "page_count" | "published_year" | "genre" | "synopsis"
-> & {
-  source: Book["source"];
-  externalId?: string | null;
-};
+  Book,
+  | "title"
+  | "author"
+  | "isbn"
+  | "source"
+  | "external_id"
+  | "page_count"
+  | "published_year"
+  | "genre"
+  | "synopsis"
+> & { coverUrl: string | null };
+
+export function toNewBook(book: Book | CatalogBook): NewBook {
+  return {
+    title: book.title,
+    author: book.author,
+    isbn: book.isbn,
+    source: book.source,
+    external_id: "externalId" in book ? book.externalId : book.external_id,
+    page_count: book.page_count,
+    published_year: book.published_year,
+    genre: book.genre,
+    synopsis: book.synopsis,
+    coverUrl: "coverUrl" in book ? book.coverUrl : book.cover_url,
+  };
+}
+
+/* Optimistic row shown while the insert is in flight. */
+export function pendingBook(ownerId: string, input: NewBook, status: BookStatus): Book {
+  const now = new Date().toISOString();
+  const { coverUrl, ...fields } = input;
+  return {
+    ...fields,
+    id: `pending:${now}`,
+    owner_id: ownerId,
+    status,
+    read_at: status === "lei" ? today() : null,
+    cover_url: coverUrl,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+/* Only a cover that passed /api/tapa validation is stored. */
+async function validatedCover(url: string | null, isbn: string | null): Promise<string | null> {
+  const candidate = coverCandidate(url, isbn);
+  if (!candidate) return null;
+  const params = new URLSearchParams({ u: candidate });
+  if (isbn) params.set("isbn", isbn);
+  try {
+    const response = await fetch(`/api/tapa?${params}`);
+    return response.ok ? response.headers.get("x-qcl-cover-url") : null;
+  } catch {
+    return null;
+  }
+}
 
 export async function ensureBook(
   ownerId: string,
@@ -40,35 +92,17 @@ export async function ensureBook(
 ): Promise<Book> {
   const existing = duplicate(await listBooks(ownerId), input);
   if (existing) return existing;
-  let cover: string | null = null;
-  const candidate = coverCandidate(input.coverUrl, input.isbn);
-  if (candidate) {
-    const params = new URLSearchParams({ u: candidate });
-    if (input.isbn) params.set("isbn", input.isbn);
-    try {
-      const response = await fetch(`/api/tapa?${params}`);
-      if (response.ok && response.headers.get("content-type")?.startsWith("image/"))
-        cover = response.headers.get("x-qcl-cover-url");
-    } catch {
-      /* A book can be saved without a cover. */
-    }
-  }
+  const { coverUrl, ...fields } = input;
   const { data, error } = await browserSupabase()
     .from("books")
     .insert({
+      ...fields,
       owner_id: ownerId,
       title: input.title.trim(),
       author: input.author.trim(),
       status,
-      read_at: status === "lei" ? new Date().toISOString().slice(0, 10) : null,
-      cover_url: cover,
-      isbn: input.isbn ?? null,
-      source: input.source,
-      external_id: input.externalId ?? null,
-      page_count: input.page_count,
-      published_year: input.published_year,
-      genre: input.genre,
-      synopsis: input.synopsis,
+      read_at: status === "lei" ? today() : null,
+      cover_url: await validatedCover(coverUrl, input.isbn),
     })
     .select("*")
     .single();
@@ -83,10 +117,7 @@ export async function setBookStatus(
 ): Promise<Book> {
   const { data, error } = await browserSupabase()
     .from("books")
-    .update({
-      status,
-      read_at: status === "lei" ? new Date().toISOString().slice(0, 10) : null,
-    })
+    .update({ status, read_at: status === "lei" ? today() : null })
     .eq("id", bookId)
     .eq("owner_id", ownerId)
     .select("*")

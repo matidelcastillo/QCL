@@ -4,14 +4,16 @@ import type { Book, BookStatus } from "../domain/types";
 import { ensureBook } from "../data/library";
 import { useSession } from "../data/session-context";
 import { sessionEpoch } from "../data/session-epoch";
+import { buttonClass } from "./button";
 import { Sheet } from "./sheet";
 
+/* Manual entry: same .drawer-surface, QC inputs and .drawer-choice-dock. */
 export function ManualSheet({
   isbn,
   onClose,
   onSaved,
 }: {
-  isbn?: string | null;
+  isbn: string | null;
   onClose: () => void;
   onSaved: (book: Book) => void;
 }) {
@@ -22,9 +24,10 @@ export function ManualSheet({
   const [status, setStatus] = useState<BookStatus>("quiero");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
   async function save(event: FormEvent) {
     event.preventDefault();
-    if (!user || !title.trim()) return;
+    if (!user || !title.trim() || busy) return;
     const epoch = sessionEpoch();
     setBusy(true);
     setError("");
@@ -34,20 +37,20 @@ export function ManualSheet({
         {
           title,
           author,
-          isbn: isbn ?? null,
-          coverUrl: null,
+          isbn,
+          source: "manual",
+          external_id: null,
           page_count: null,
           published_year: null,
           genre: null,
           synopsis: null,
-          source: "manual",
+          coverUrl: null,
         },
         status,
       );
-      if (epoch === sessionEpoch()) {
-        await queryClient.invalidateQueries({ queryKey: ["books", user.id] });
-        onSaved(book);
-      }
+      if (epoch !== sessionEpoch()) return;
+      await queryClient.invalidateQueries({ queryKey: ["books", user.id] });
+      onSaved(book);
     } catch {
       if (epoch === sessionEpoch()) {
         setError("No pudimos guardar.");
@@ -55,52 +58,57 @@ export function ManualSheet({
       }
     }
   }
+
   return (
     <Sheet onClose={onClose} label="A mano">
-      <div className="drawer-body form-stack">
+      <form className="drawer-body drawer-body-enter stack" onSubmit={(event) => void save(event)}>
         <h2 className="drawer-title">A mano</h2>
-        <form className="form-stack" onSubmit={(event) => void save(event)}>
-          <input
-            className="qc-auth-code-input"
-            placeholder="Título"
-            aria-label="Título"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            required
-          />
-          <input
-            className="qc-auth-code-input"
-            placeholder="Autor"
-            aria-label="Autor"
-            value={author}
-            onChange={(event) => setAuthor(event.target.value)}
-          />
-          <div className="drawer-choice-dock">
+        <input
+          className="qc-auth-email-input"
+          placeholder="Título"
+          aria-label="Título"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          required
+        />
+        <input
+          className="qc-auth-email-input"
+          placeholder="Autor"
+          aria-label="Autor"
+          value={author}
+          onChange={(event) => setAuthor(event.target.value)}
+        />
+        <div className="drawer-choice-dock" role="group" aria-label="Estado">
+          {(
+            [
+              ["quiero", "Quiero"],
+              ["lei", "Leí"],
+            ] as const
+          ).map(([value, label]) => (
             <button
+              key={value}
               type="button"
-              className={`drawer-choice${status === "quiero" ? " active" : ""}`}
-              onClick={() => setStatus("quiero")}
+              className={`drawer-choice${status === value ? " drawer-choice-active" : ""}`}
+              aria-pressed={status === value}
+              onClick={() => setStatus(value)}
             >
-              Quiero
+              {label}
             </button>
-            <button
-              type="button"
-              className={`drawer-choice${status === "lei" ? " active" : ""}`}
-              onClick={() => setStatus("lei")}
-            >
-              Leí
-            </button>
-          </div>
-          <button className="primary-button" disabled={!title.trim() || busy}>
-            Guardar
-          </button>
-        </form>
+          ))}
+        </div>
+        <button
+          type="submit"
+          className={buttonClass("primary", true)}
+          disabled={!title.trim() || busy}
+        >
+          Guardar
+        </button>
         {error && (
           <p className="error-text" role="alert">
             {error}
           </p>
         )}
-      </div>
+      </form>
     </Sheet>
   );
 }

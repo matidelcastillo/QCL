@@ -37,12 +37,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   }),
   shellComponent: Shell,
   component: Root,
-  notFoundComponent: () => (
-    <div className="app-frame page">
-      <h1 className="screen-title">No está.</h1>
-      <a href="/">Inicio</a>
-    </div>
-  ),
+  notFoundComponent: () => <Navigate to="/" />,
 });
 
 function Shell({ children }: { children: ReactNode }) {
@@ -78,14 +73,14 @@ function Gate() {
   const sheetOpen = useSheetOpen();
   if (loading)
     return (
-      <div className="app-frame">
+      <div className="app-frame safe-area-top">
         <LoadingPage />
       </div>
     );
   if (!user && path !== "/entrar") return <Navigate to="/entrar" />;
   if (user && path === "/entrar") return <Navigate to="/" />;
   return (
-    <div className="app-frame">
+    <div className="app-frame safe-area-top">
       <Outlet />
       {user && <AppNav hidden={sheetOpen} />}
     </div>

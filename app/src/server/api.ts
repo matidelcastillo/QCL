@@ -2,6 +2,10 @@ import { normalizeIsbn } from "../domain/isbn";
 import { searchCatalog } from "./catalog";
 import { allowedCoverUrl, fetchCover } from "./cover";
 
+/* Bump when the CatalogBook shape or cleaning rules change, so cached
+   responses from an older worker are not served. */
+const CATALOG_SCHEMA = "3";
+
 const json = (body: unknown, status = 200, cache = "no-store") =>
   new Response(JSON.stringify(body), {
     status,
@@ -23,7 +27,9 @@ export async function apiResponse(request: Request): Promise<Response | null> {
       typeof caches !== "undefined"
         ? (caches as unknown as { default?: Cache }).default
         : undefined;
-    const key = new Request(url.toString(), { method: "GET" });
+    const cacheUrl = new URL(url);
+    cacheUrl.searchParams.set("schema", CATALOG_SCHEMA);
+    const key = new Request(cacheUrl.toString(), { method: "GET" });
     const hit = await cache?.match(key);
     if (hit) return hit;
     try {

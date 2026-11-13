@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { browserSupabase } from "../data/supabase";
+import { BrandHeader } from "../components/brand-header";
+import { buttonClass } from "../components/button";
 
 export const Route = createFileRoute("/entrar")({ component: Enter });
 
@@ -40,76 +42,75 @@ function Enter() {
     }
   }
   return (
-    <main className="page">
-      <h1 className="brand">
-        <span className="brand-accent">que carajo</span> leer
-      </h1>
-      <div className="form-stack">
-        <div className="drawer-choice-dock" aria-label="Modo de acceso">
-          <button
-            type="button"
-            className={`drawer-choice${mode === "entrar" ? " active" : ""}`}
-            onClick={() => {
-              setMode("entrar");
-              setError("");
-            }}
-          >
-            Entrar
-          </button>
-          <button
-            type="button"
-            className={`drawer-choice${mode === "crear" ? " active" : ""}`}
-            onClick={() => {
-              setMode("crear");
-              setError("");
-            }}
-          >
-            Crear cuenta
-          </button>
-        </div>
-        <form className="form-stack" onSubmit={(event) => void submit(event)}>
-          {mode === "crear" && (
+    <main className="auth-screen">
+      <div className="auth-panel">
+        <BrandHeader heading />
+        <div className="stack app-gutter">
+          <div className="drawer-choice-dock" role="group" aria-label="Acceso">
+            {(
+              [
+                ["entrar", "Entrar"],
+                ["crear", "Crear cuenta"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={`drawer-choice${mode === value ? " drawer-choice-active" : ""}`}
+                aria-pressed={mode === value}
+                onClick={() => {
+                  setMode(value);
+                  setError("");
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <form className="stack" onSubmit={(event) => void submit(event)}>
+            {mode === "crear" && (
+              <input
+                className="qc-auth-email-input"
+                type="text"
+                placeholder="Nombre"
+                aria-label="Nombre"
+                autoComplete="name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                required
+              />
+            )}
             <input
               className="qc-auth-email-input"
-              type="text"
-              placeholder="Nombre"
-              aria-label="Nombre"
-              autoComplete="name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
+              type="email"
+              placeholder="Email"
+              aria-label="Email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               required
             />
-          )}
-          <input
-            className="qc-auth-email-input"
-            type="email"
-            placeholder="Email"
-            aria-label="Email"
-            autoComplete="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
-          <input
-            className="qc-auth-email-input"
-            type="password"
-            placeholder="Contraseña"
-            aria-label="Contraseña"
-            autoComplete={mode === "entrar" ? "current-password" : "new-password"}
-            minLength={mode === "crear" ? 6 : undefined}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-          />
-          {error && (
-            <p className="error-text" role="alert">
-              {error}
-            </p>
-          )}
-          <button type="submit" className="primary-button qc-press" disabled={busy}>
-            {mode === "entrar" ? "Entrar" : "Crear cuenta"}
-          </button>
-        </form>
+            <input
+              className="qc-auth-email-input"
+              type="password"
+              placeholder="Contraseña"
+              aria-label="Contraseña"
+              autoComplete={mode === "entrar" ? "current-password" : "new-password"}
+              minLength={mode === "crear" ? 6 : undefined}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+            {error && (
+              <p className="error-text" role="alert">
+                {error}
+              </p>
+            )}
+            <button type="submit" className={buttonClass("primary", true)} disabled={busy}>
+              {mode === "entrar" ? "Entrar" : "Crear cuenta"}
+            </button>
+          </form>
+        </div>
       </div>
     </main>
   );

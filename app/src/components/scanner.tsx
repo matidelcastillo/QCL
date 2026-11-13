@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BarcodeFormat, BrowserMultiFormatReader, DecodeHintType } from "@zxing/library";
 import { Flashlight, FlashlightOff, X, ZoomIn } from "lucide-react";
 import { normalizeIsbn } from "../domain/isbn";
+import { buttonClass } from "./button";
 import { Sheet } from "./sheet";
 
 type Detector = { detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue: string }>> };
@@ -136,9 +137,11 @@ export function Scanner({
   }
 
   return (
-    <Sheet onClose={onClose} label="Escanear ISBN">
-      <div className="drawer-body form-stack">
-        {!noCamera && (
+    <Sheet onClose={onClose} label="Escanear">
+      <div className="drawer-body drawer-body-enter stack">
+        {noCamera ? (
+          <p className="scanner-note">Sin cámara. Escribí el ISBN.</p>
+        ) : (
           <div className="scanner-frame">
             <video
               ref={video}
@@ -148,35 +151,41 @@ export function Scanner({
               autoPlay
               aria-label="Cámara"
             />
-            <span className="scanner-guide" />
+            <span className="scanner-guide" aria-hidden="true" />
           </div>
         )}
-        {noCamera && <p>Sin cámara. Escribí el ISBN.</p>}
         <div className="drawer-action-dock">
           {canTorch && (
             <button
+              type="button"
               className="drawer-action"
-              onClick={() => void toggleTorch()}
               aria-label={torch ? "Apagar linterna" : "Prender linterna"}
+              aria-pressed={torch}
+              onClick={() => void toggleTorch()}
             >
               {torch ? (
-                <FlashlightOff size={24} strokeWidth={2} />
+                <FlashlightOff className="drawer-action-icon" strokeWidth={2} aria-hidden="true" />
               ) : (
-                <Flashlight size={24} strokeWidth={2} />
+                <Flashlight className="drawer-action-icon" strokeWidth={2} aria-hidden="true" />
               )}
             </button>
           )}
           {canZoom && (
-            <button className="drawer-action" onClick={() => void nextZoom()} aria-label="Zoom">
-              <ZoomIn size={24} strokeWidth={2} />
+            <button
+              type="button"
+              className="drawer-action"
+              aria-label="Zoom"
+              onClick={() => void nextZoom()}
+            >
+              <ZoomIn className="drawer-action-icon" strokeWidth={2} aria-hidden="true" />
             </button>
           )}
-          <button className="drawer-action" onClick={onClose} aria-label="Cerrar">
-            <X size={24} strokeWidth={2} />
+          <button type="button" className="drawer-action" aria-label="Cerrar" onClick={onClose}>
+            <X className="drawer-action-icon" strokeWidth={2} aria-hidden="true" />
           </button>
         </div>
         <form
-          className="form-stack"
+          className="stack"
           onSubmit={(event) => {
             event.preventDefault();
             const isbn = normalizeIsbn(manual);
@@ -187,20 +196,25 @@ export function Scanner({
           <input
             className="qc-auth-email-input"
             inputMode="numeric"
+            enterKeyHint="search"
             placeholder="ISBN"
             aria-label="ISBN"
+            autoComplete="off"
             value={manual}
-            onChange={(event) => setManual(event.target.value)}
+            onChange={(event) => {
+              setManual(event.target.value);
+              setError("");
+            }}
           />
-          <button className="primary-button" type="submit">
+          <button type="submit" className={buttonClass("primary", true)}>
             Buscar
           </button>
+          {error && (
+            <p className="error-text" role="alert">
+              {error}
+            </p>
+          )}
         </form>
-        {error && (
-          <p className="error-text" role="alert">
-            {error}
-          </p>
-        )}
       </div>
     </Sheet>
   );

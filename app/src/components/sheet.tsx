@@ -1,10 +1,27 @@
-import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
 import { SheetVisibility } from "./sheet-visibility";
 
 export function SheetProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   return <SheetVisibility.Provider value={{ open, setOpen }}>{children}</SheetVisibility.Provider>;
 }
+
+const DRAG_CLOSE_RATIO = 0.25;
+
+function prefersReducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/* QC routes/index.tsx l. 2690-2760: backdrop + .drawer-surface sliding with
+   --dur-drawer / --ease-press, handle on top, drag down or Escape to close. */
 export function Sheet({
   children,
   onClose,
@@ -14,29 +31,38 @@ export function Sheet({
   onClose: () => void;
   label: string;
 }) {
-  const sheet = useRef<HTMLDivElement>(null);
-  const startY = useRef<number | null>(null);
+  const surface = useRef<HTMLDivElement>(null);
+  const dragStart = useRef<number | null>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const [visible, setVisible] = useState(false);
   const { setOpen } = useContext(SheetVisibility);
+
+  const close = useCallback(() => {
+    if (prefersReducedMotion()) onCloseRef.current();
+    else setVisible(false);
+  }, []);
+
   useEffect(() => {
     setOpen(true);
-    return () => setOpen(false);
+    const frame = requestAnimationFrame(() => setVisible(true));
+    return () => {
+      cancelAnimationFrame(frame);
+      setOpen(false);
+    };
   }, [setOpen]);
+
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
-    const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onCloseRef.current();
-      if (event.key !== "Tab" || !sheet.current) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+      if (event.key !== "Tab" || !surface.current) return;
       const controls = [
-        ...sheet.current.querySelectorAll<HTMLElement>(
+        ...surface.current.querySelectorAll<HTMLElement>(
           "button:not([disabled]),input:not([disabled]),a[href]",
         ),
       ];
-      if (!controls.length) {
-        event.preventDefault();
-        return;
-      }
+      if (!controls.length) return;
       if (event.shiftKey && document.activeElement === controls[0]) {
         event.preventDefault();
         controls.at(-1)?.focus();
@@ -45,43 +71,50 @@ export function Sheet({
         controls[0].focus();
       }
     };
-    document.addEventListener("keydown", handler);
-    sheet.current?.focus();
+    document.addEventListener("keydown", onKey);
+    surface.current?.focus();
     return () => {
-      document.removeEventListener("keydown", handler);
+      document.removeEventListener("keydown", onKey);
       previous?.focus();
     };
-  }, []);
+  }, [close]);
+
+  function onDragEnd(event: PointerEvent<HTMLDivElement>) {
+    if (dragStart.current === null || !surface.current) return;
+    const distance = event.clientY - dragStart.current;
+    dragStart.current = null;
+    if (distance > surface.current.offsetHeight * DRAG_CLOSE_RATIO) close();
+  }
+
   return (
-    <div
-      className="backdrop"
-      onPointerDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
+    <>
+      <div className={`drawer-backdrop${visible ? " is-visible" : ""}`} onClick={close} />
       <div
-        ref={sheet}
-        className="drawer-surface"
+        ref={surface}
+        className={`drawer-surface${visible ? " is-visible" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        onTouchStart={(event) => {
-          startY.current = event.touches[0]?.clientY ?? null;
-        }}
-        onTouchEnd={(event) => {
-          if (
-            startY.current != null &&
-            (event.changedTouches[0]?.clientY ?? 0) - startY.current > 100 &&
-            event.currentTarget.scrollTop === 0
-          )
-            onClose();
-          startY.current = null;
+        onTransitionEnd={(event) => {
+          if (event.target === event.currentTarget && !visible) onCloseRef.current();
         }}
       >
-        <span className="drawer-handle" aria-hidden="true" />
+        <div
+          className="drawer-handle-zone"
+          onPointerDown={(event) => {
+            dragStart.current = event.clientY;
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerUp={onDragEnd}
+          onPointerCancel={() => {
+            dragStart.current = null;
+          }}
+        >
+          <div className="drawer-handle" />
+        </div>
         {children}
       </div>
-    </div>
+    </>
   );
 }

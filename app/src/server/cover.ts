@@ -1,8 +1,12 @@
+/* Accepted cover sources. */
 const hosts = new Set([
   "covers.openlibrary.org",
   "books.google.com",
   "books.googleusercontent.com",
 ]);
+/* Open Library serves every cover through a redirect to its Internet Archive
+   storage (archive.org, then ia<N>.us.archive.org); only those hops are added. */
+const redirectHosts = /^(archive\.org|ia\d+\.us\.archive\.org)$/;
 /* Google Books generic "image not available" bytes observed at zoom 0–3. */
 const placeholderHashes = new Set(["c84d8baf", "5c4ccddd", "6a075bb7", "f231d268", "b67b4c6d"]);
 
@@ -15,19 +19,27 @@ function fnv1a(bytes: Uint8Array): string {
   return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
-export function allowedCoverUrl(raw: string): URL | null {
+function safeUrl(raw: string, allowed: (host: string) => boolean): URL | null {
   try {
     const url = new URL(raw);
     return url.protocol === "https:" &&
       !url.port &&
-      hosts.has(url.hostname) &&
       !url.username &&
-      !url.password
+      !url.password &&
+      allowed(url.hostname)
       ? url
       : null;
   } catch {
     return null;
   }
+}
+
+export function allowedCoverUrl(raw: string): URL | null {
+  return safeUrl(raw, (host) => hosts.has(host));
+}
+
+function allowedRedirect(raw: string): URL | null {
+  return safeUrl(raw, (host) => hosts.has(host) || redirectHosts.test(host));
 }
 
 function dimensions(bytes: Uint8Array, type: string): { width: number; height: number } | null {
@@ -86,7 +98,7 @@ export async function fetchCover(
     }
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       const location = response.headers.get("location");
-      const next = location && allowedCoverUrl(new URL(location, current).toString());
+      const next = location && allowedRedirect(new URL(location, current).toString());
       if (!next) return null;
       current = next;
       continue;
@@ -96,7 +108,7 @@ export async function fetchCover(
     if (length > 2_000_000) return null;
     const type = (response.headers.get("content-type") ?? "").split(";")[0].trim();
     const bytes = new Uint8Array(await response.arrayBuffer());
-    return validCover(bytes, type) ? { bytes, type, sourceUrl: current.toString() } : null;
+    return validCover(bytes, type) ? { bytes, type, sourceUrl: url.toString() } : null;
   }
   return null;
 }

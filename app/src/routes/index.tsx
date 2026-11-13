@@ -3,18 +3,26 @@ import { useState } from "react";
 import type { Book, BookStatus } from "../domain/types";
 import { useSession } from "../data/session-context";
 import { useBooks } from "../data/use-books";
+import { BrandHeader } from "../components/brand-header";
 import { BookRow } from "../components/book-row";
 import { BookSheet } from "../components/book-sheet";
-import { LoadingRows, LoadError } from "../components/feedback";
+import { EmptyState, LoadError, LoadingRows } from "../components/feedback";
+import { buttonClass } from "../components/button";
 
 type Filter = "todos" | BookStatus;
+const filters: Array<[Filter, string]> = [
+  ["todos", "Todos"],
+  ["quiero", "Quiero"],
+  ["lei", "Leí"],
+];
+
 export const Route = createFileRoute("/")({
-  validateSearch: (search: Record<string, unknown>): { f?: BookStatus } => ({
-    f: search.f === "quiero" || search.f === "lei" ? search.f : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { f?: BookStatus } =>
+    search.f === "quiero" || search.f === "lei" ? { f: search.f } : {},
   component: Home,
 });
 
+/* QC routes/index.tsx home: brand header, filter tabs row, feed. */
 function Home() {
   const { user } = useSession();
   const { f } = Route.useSearch();
@@ -23,51 +31,53 @@ function Home() {
   const [selected, setSelected] = useState<Book | null>(null);
   const books = useBooks(user?.id);
   const visible = (books.data ?? []).filter((book) => filter === "todos" || book.status === filter);
-  function chooseFilter(value: Filter) {
-    void navigate({ to: "/", search: { f: value === "todos" ? undefined : value }, replace: true });
-  }
+
   return (
-    <>
-      <h1 className="brand">
-        <span className="brand-accent">que carajo</span> leer
-      </h1>
-      <main className="page">
-        <div className="filter-row" aria-label="Filtrar libros">
-          {(["todos", "quiero", "lei"] as Filter[]).map((value) => (
+    <main className="page-pb-nav">
+      <BrandHeader heading />
+      <div className="filter-row app-gutter">
+        <div className="filter-tabs" role="group" aria-label="Filtrar">
+          {filters.map(([value, label]) => (
             <button
               key={value}
               type="button"
-              className={`filter-pill surface-pill-flat${filter === value ? " active" : ""}`}
+              className="filter-tab"
               aria-pressed={filter === value}
-              onClick={() => chooseFilter(value)}
+              onClick={() =>
+                void navigate({
+                  to: "/",
+                  search: value === "todos" ? {} : { f: value },
+                  replace: true,
+                })
+              }
             >
-              {value === "todos" ? "Todos" : value === "quiero" ? "Quiero" : "Leí"}
+              {label}
             </button>
           ))}
         </div>
-        {books.isLoading ? (
+      </div>
+      <section className="feed app-gutter">
+        {books.isPending ? (
           <LoadingRows count={5} />
         ) : books.isError ? (
           <LoadError retry={() => void books.refetch()} />
-        ) : visible.length ? (
-          <div key={filter} className="qc-card-image">
+        ) : visible.length > 0 ? (
+          <div key={filter} className="content-fade">
             {visible.map((book) => (
-              <BookRow key={book.id} book={book} onClick={() => setSelected(book)} />
+              <BookRow key={book.id} book={book} onOpen={() => setSelected(book)} />
             ))}
           </div>
+        ) : filter === "todos" ? (
+          <EmptyState text="Nada todavía." art>
+            <Link to="/agregar" className={buttonClass("primary")}>
+              Agregar
+            </Link>
+          </EmptyState>
         ) : (
-          <div className="empty-state">
-            {filter === "todos" && <img className="empty-art" src="/empty-state.gif" alt="" />}
-            <span>{filter === "todos" ? "Nada todavía." : "Nada acá."}</span>
-            {filter === "todos" && (
-              <Link to="/agregar" className="primary-button">
-                Agregar
-              </Link>
-            )}
-          </div>
+          <EmptyState key={filter} text="Nada acá." />
         )}
-      </main>
+      </section>
       {selected && <BookSheet book={selected} onClose={() => setSelected(null)} />}
-    </>
+    </main>
   );
 }

@@ -1,16 +1,3 @@
-const translations: Record<string, string> = {
-  fiction: "Ficción",
-  "short stories": "Cuentos",
-  novel: "Novela",
-  poetry: "Poesía",
-  essays: "Ensayo",
-  "science fiction": "Ciencia ficción",
-  fantasy: "Fantasía",
-  mystery: "Misterio",
-  biography: "Biografía",
-  history: "Historia",
-};
-
 function fold(value: string): string {
   return value
     .normalize("NFD")
@@ -19,42 +6,63 @@ function fold(value: string): string {
     .trim();
 }
 
-export function cleanGenre(values: unknown): string | null {
-  if (!Array.isArray(values)) return null;
-  for (const subject of values) {
-    if (typeof subject !== "string") continue;
-    const base = subject.split(/ -- | \/ /)[0].trim();
-    const key = fold(base);
-    if (
-      !key ||
-      key.length > 24 ||
-      /\d|century|chronology|criticism|accessible book|protected daisy|in library|lending library|large type|staff picks|translation|language|buenos aires|argentina/.test(
-        key,
-      )
-    )
-      continue;
-    if (["general", "literature", "fiction", "fiction, general"].includes(key)) continue;
-    const translated = translations[key] ?? `${base[0].toUpperCase()}${base.slice(1)}`;
-    if (translated.length <= 24) return translated;
-  }
+/* Spec 6.2. Catalog subjects are mostly noise (places, periods, criticism,
+   library flags, languages), so only known genre names are kept and shown in
+   Spanish. Specific genres win over the generic "Novela". */
+const specificGenres: Array<[string, string[]]> = [
+  ["Cuentos", ["short stories", "cuentos"]],
+  ["Poesía", ["poetry", "poems", "poesia"]],
+  ["Ensayo", ["essays", "ensayos", "ensayo"]],
+  ["Ciencia ficción", ["science fiction", "ciencia ficcion"]],
+  ["Fantasía", ["fantasy", "fantasy fiction", "fantasia"]],
+  ["Misterio", ["mystery", "mystery fiction", "detective and mystery stories", "misterio"]],
+  ["Biografía", ["biography", "autobiography", "biografia", "autobiografia"]],
+  ["Historia", ["history", "historia"]],
+  ["Realismo mágico", ["magic realism", "magic realism (literature)", "realismo magico"]],
+  ["Terror", ["horror", "horror fiction", "terror"]],
+  ["Teatro", ["drama", "teatro"]],
+  ["Filosofía", ["philosophy", "filosofia"]],
+];
+const genericGenres: Array<[string, string[]]> = [
+  ["Novela", ["novel", "novels", "novela", "novelas"]],
+];
+
+function subjectParts(values: unknown): string[] {
+  if (!Array.isArray(values)) return [];
+  return values
+    .filter((value): value is string => typeof value === "string")
+    .flatMap((value) => value.split(/ -- | \/ /))
+    .map(fold);
+}
+
+function firstMatch(parts: string[], genres: Array<[string, string[]]>): string | null {
+  for (const part of parts)
+    for (const [label, names] of genres) if (names.includes(part)) return label;
   return null;
+}
+
+export function cleanGenre(values: unknown): string | null {
+  const parts = subjectParts(values);
+  return firstMatch(parts, specificGenres) ?? firstMatch(parts, genericGenres);
 }
 
 export function plainText(value: unknown): string | null {
   if (typeof value !== "string") return null;
-  const text = value
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&(?:nbsp|amp|quot|#39);/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return text || null;
+  return cleanText(value.replace(/<[^>]*>/g, " ").replace(/&(?:nbsp|amp|quot|#39);/g, " ")) || null;
+}
+
+/* Catalog text arrives in mixed Unicode forms (Open Library often sends
+   decomposed accents); store and compare composed text only. */
+export function cleanText(value: string): string {
+  return value.normalize("NFC").replace(/\s+/g, " ").trim();
 }
 
 export function firstAuthors(value: unknown): string {
   if (!Array.isArray(value)) return "";
-  const authors = value.filter(
-    (item): item is string => typeof item === "string" && item.trim().length > 0,
-  );
+  const authors = value
+    .filter((item): item is string => typeof item === "string")
+    .map(cleanText)
+    .filter(Boolean);
   return authors.length === 2 ? authors.join(", ") : (authors[0] ?? "");
 }
 

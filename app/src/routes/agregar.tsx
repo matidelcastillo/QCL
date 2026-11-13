@@ -5,136 +5,139 @@ import { Barcode } from "lucide-react";
 import type { Book, CatalogBook } from "../domain/types";
 import { normalizeIsbn } from "../domain/isbn";
 import { duplicate } from "../data/library";
+import { searchCatalog } from "../data/catalog";
 import { useBooks } from "../data/use-books";
 import { useSession } from "../data/session-context";
+import { BrandHeader, ScreenHeading } from "../components/brand-header";
 import { BookRow } from "../components/book-row";
 import { BookSheet } from "../components/book-sheet";
-import { LoadingRows, LoadError } from "../components/feedback";
+import { buttonClass } from "../components/button";
+import { EmptyState, LoadError, LoadingRows } from "../components/feedback";
 import { ManualSheet } from "../components/manual-sheet";
 import { Scanner } from "../components/scanner";
 
 export const Route = createFileRoute("/agregar")({ component: Add });
 
-async function search(query: string, isbn?: string): Promise<CatalogBook[]> {
-  const params = new URLSearchParams(isbn ? { isbn } : { q: query });
-  const response = await fetch(`/api/libros?${params}`);
-  if (!response.ok) throw new Error("catalog_search_failed");
-  const data = (await response.json()) as { results: CatalogBook[] };
-  return data.results;
-}
+const DEBOUNCE_MS = 350;
+const MIN_QUERY = 3;
+
+type Overlay =
+  | { kind: "book"; book: Book | CatalogBook }
+  | { kind: "manual"; isbn: string | null }
+  | { kind: "scanner" }
+  | null;
 
 function Add() {
   const { user } = useSession();
   const books = useBooks(user?.id);
   const [query, setQuery] = useState("");
-  const [debounced, setDebounced] = useState("");
-  const [selected, setSelected] = useState<Book | CatalogBook | null>(null);
-  const [scanner, setScanner] = useState(false);
-  const [manual, setManual] = useState(false);
-  const [manualIsbn, setManualIsbn] = useState<string | null>(null);
+  const [term, setTerm] = useState("");
+  const [overlay, setOverlay] = useState<Overlay>(null);
   const [scanError, setScanError] = useState("");
   useEffect(() => {
-    const timer = setTimeout(() => setDebounced(query.trim()), 350);
+    const timer = setTimeout(() => setTerm(query.trim()), DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [query]);
-  const isbn = normalizeIsbn(debounced);
+  const isbn = normalizeIsbn(term);
   const results = useQuery({
-    queryKey: ["catalog", isbn ?? debounced],
-    queryFn: () => search(debounced, isbn ?? undefined),
-    enabled: debounced.length > 2,
-    staleTime: 300_000,
+    queryKey: ["catalog", isbn ?? term],
+    queryFn: () => searchCatalog(isbn ? { isbn } : { q: term }),
+    enabled: term.length >= MIN_QUERY,
+    staleTime: 5 * 60 * 1000,
   });
 
-  async function found(value: string) {
-    setScanner(false);
+  async function scanned(code: string) {
+    setOverlay(null);
     setScanError("");
     try {
-      const matches = await search(value, value);
-      if (matches[0]) setSelected(matches[0]);
-      else {
-        setManualIsbn(value);
-        setManual(true);
-      }
+      const [first] = await searchCatalog({ isbn: code });
+      setOverlay(first ? { kind: "book", book: first } : { kind: "manual", isbn: code });
     } catch {
-      setScanError("No pudimos buscar.");
+      setScanError("Revisá la conexión.");
     }
   }
 
   return (
-    <main className="page">
-      <h1 className="screen-title">Agregar</h1>
-      <div className="form-stack">
+    <main className="page-pb-nav">
+      <BrandHeader />
+      <ScreenHeading>Agregar</ScreenHeading>
+      <div className="stack app-gutter">
         <input
           className="qc-auth-email-input"
           type="search"
           enterKeyHint="search"
           placeholder="Título, autor o ISBN"
-          aria-label="Buscar libro"
+          aria-label="Buscar"
+          autoComplete="off"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-        <div className="action-row">
-          <button className="primary-button qc-press" onClick={() => setScanner(true)}>
-            <Barcode size={24} strokeWidth={2} /> Escanear
+        <div className="qc-button-row">
+          <button
+            type="button"
+            className={buttonClass("primary")}
+            onClick={() => setOverlay({ kind: "scanner" })}
+          >
+            <Barcode size={24} strokeWidth={2} aria-hidden="true" />
+            Escanear
           </button>
           <button
-            className="secondary-button qc-press"
-            onClick={() => {
-              setManualIsbn(null);
-              setManual(true);
-            }}
+            type="button"
+            className={buttonClass("secondary")}
+            onClick={() => setOverlay({ kind: "manual", isbn: null })}
           >
             A mano
           </button>
         </div>
+        {scanError && (
+          <p className="error-text" role="alert">
+            {scanError}
+          </p>
+        )}
       </div>
-      {scanError && (
-        <p className="error-text" role="alert">
-          {scanError}
-        </p>
+      {term.length >= MIN_QUERY && (
+        <section className="feed app-gutter">
+          {results.isPending ? (
+            <LoadingRows count={3} />
+          ) : results.isError ? (
+            <LoadError retry={() => void results.refetch()} />
+          ) : results.data.length > 0 ? (
+            <div className="content-fade">
+              {results.data.map((book) => (
+                <BookRow
+                  key={`${book.source}:${book.externalId}`}
+                  book={book}
+                  saved={duplicate(books.data ?? [], book)}
+                  onOpen={() => setOverlay({ kind: "book", book })}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState text="No está.">
+              <button
+                type="button"
+                className={buttonClass("secondary")}
+                onClick={() => setOverlay({ kind: "manual", isbn })}
+              >
+                Cargalo a mano
+              </button>
+            </EmptyState>
+          )}
+        </section>
       )}
-      {debounced.length > 2 &&
-        (results.isLoading ? (
-          <LoadingRows count={3} />
-        ) : results.isError ? (
-          <LoadError retry={() => void results.refetch()} />
-        ) : results.data?.length ? (
-          results.data.map((book) => (
-            <BookRow
-              key={`${book.source}:${book.externalId}`}
-              book={book}
-              saved={duplicate(books.data ?? [], book)}
-              onClick={() => setSelected(book)}
-            />
-          ))
-        ) : (
-          <div className="empty-state">
-            <span>No está.</span>
-            <button
-              className="secondary-button"
-              onClick={() => {
-                setManualIsbn(isbn);
-                setManual(true);
-              }}
-            >
-              Cargalo a mano
-            </button>
-          </div>
-        ))}
-      {scanner && (
-        <Scanner onClose={() => setScanner(false)} onFound={(value) => void found(value)} />
+      {overlay?.kind === "scanner" && (
+        <Scanner onClose={() => setOverlay(null)} onFound={(code) => void scanned(code)} />
       )}
-      {manual && (
+      {overlay?.kind === "manual" && (
         <ManualSheet
-          isbn={manualIsbn}
-          onClose={() => setManual(false)}
-          onSaved={(book) => {
-            setManual(false);
-            setSelected(book);
-          }}
+          isbn={overlay.isbn}
+          onClose={() => setOverlay(null)}
+          onSaved={(book) => setOverlay({ kind: "book", book })}
         />
       )}
-      {selected && <BookSheet book={selected} onClose={() => setSelected(null)} />}
+      {overlay?.kind === "book" && (
+        <BookSheet book={overlay.book} onClose={() => setOverlay(null)} />
+      )}
     </main>
   );
 }

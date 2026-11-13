@@ -1,5 +1,6 @@
 import { normalizeIsbn } from "../domain/isbn";
 import {
+  cleanText,
   cleanGenre,
   firstAuthors,
   identity,
@@ -72,7 +73,7 @@ function googleBooks(data: unknown): CatalogBook[] {
       : null;
     return [
       {
-        title: info.title.trim(),
+        title: cleanText(info.title),
         author: firstAuthors(info.authors),
         isbn,
         coverUrl: googleCover(info),
@@ -105,7 +106,7 @@ function openLibraryBooks(data: unknown): CatalogBook[] {
       : null;
     return [
       {
-        title: doc.title.trim(),
+        title: cleanText(doc.title),
         author: firstAuthors(doc.author_name),
         isbn,
         coverUrl: openLibraryCover(doc, isbn),
@@ -129,63 +130,13 @@ async function openLibrary(query: string, isbn: string | null): Promise<SourceRe
   params.set(isbn ? "isbn" : "q", query);
   const search = await getJson(`https://openlibrary.org/search.json?${params}`);
   let books = openLibraryBooks(search.data);
-  if (
-    !isbn &&
-    books.length &&
-    search.data &&
-    typeof search.data === "object" &&
-    "docs" in search.data &&
-    Array.isArray(search.data.docs)
-  ) {
-    const exact = books.find((book) => identity(book.title) === identity(query) && book.author);
-    const doc = (search.data.docs as OpenDoc[]).find(
-      (candidate) =>
-        candidate.title === exact?.title && firstAuthors(candidate.author_name) === exact?.author,
-    );
-    if (exact && doc && Array.isArray(doc.isbn)) {
-      const candidates = [
-        ...new Set(
-          doc.isbn
-            .map((value: unknown) => normalizeIsbn(String(value)))
-            .filter((value): value is string => Boolean(value)),
-        ),
-      ].slice(0, 20);
-      const checked = await Promise.all(
-        candidates.map(async (value) => {
-          const url = allowedCoverUrl(
-            `https://books.google.com/books/content?vid=ISBN${value}&printsec=frontcover&img=1&zoom=1`,
-          );
-          return url && (await fetchCover(url)) ? { isbn: value, coverUrl: url.toString() } : null;
-        }),
-      );
-      const valid = checked.filter((item): item is { isbn: string; coverUrl: string } =>
-        Boolean(item),
-      );
-      const editions = await Promise.all(
-        valid.slice(0, 8).map(async (item) => {
-          const result = await getJson(`https://openlibrary.org/isbn/${item.isbn}.json`);
-          const data = result.data as { languages?: Array<{ key?: string }> } | null;
-          return {
-            item,
-            spanish:
-              data?.languages?.some((language) => language.key === "/languages/spa") ?? false,
-          };
-        }),
-      );
-      const usable = editions.find((edition) => edition.spanish)?.item ?? valid[0];
-      if (usable)
-        books = books.map((book) =>
-          book === exact ? { ...book, isbn: usable.isbn, coverUrl: usable.coverUrl } : book,
-        );
-    }
-  }
   if (isbn) {
     const edition = await getJson(`https://openlibrary.org/isbn/${isbn}.json`);
     const doc = edition.data as OpenDoc | null;
     if (doc && typeof doc.title === "string") {
       books = [
         {
-          title: doc.title,
+          title: cleanText(doc.title),
           author: books[0]?.author ?? "",
           isbn,
           coverUrl:
@@ -245,7 +196,12 @@ export function mergeBooks(query: string, groups: CatalogBook[][]): CatalogBook[
       const merged = {
         ...previous,
         ...preferred,
-        coverUrl: preferred.coverUrl ?? previous.coverUrl ?? book.coverUrl,
+        /* Spec 6.1: Open Library cover first, then Google. */
+        coverUrl:
+          [previous, book].find((item) => item.source === "openlibrary" && item.coverUrl)
+            ?.coverUrl ??
+          previous.coverUrl ??
+          book.coverUrl,
         isbn: preferred.isbn ?? previous.isbn ?? book.isbn,
         genre: preferred.genre ?? previous.genre ?? book.genre,
         synopsis: preferred.synopsis ?? previous.synopsis ?? book.synopsis,
@@ -263,6 +219,58 @@ export function mergeBooks(query: string, groups: CatalogBook[][]): CatalogBook[
   return mergedBooks.sort((a, b) => rank(b, query) - rank(a, query)).slice(0, 20);
 }
 
+/* Covers of the first results are checked before answering, so the list
+   does not open on a broken or placeholder cover. Budget per request stays
+   under the Workers subrequest limit: each cover check follows up to two
+   Open Library redirects. */
+const VERIFIED_RESULTS = 3;
+const EDITION_COVER_TRIES = 3;
+
+type Edition = {
+  covers?: unknown;
+  languages?: Array<{ key?: unknown }>;
+  isbn_13?: unknown;
+  isbn_10?: unknown;
+};
+
+async function coverPasses(raw: string | null): Promise<boolean> {
+  const url = raw ? allowedCoverUrl(raw) : null;
+  return Boolean(url && (await fetchCover(url)));
+}
+
+function editionIsbn(edition: Edition): string | null {
+  const values = [edition.isbn_13, edition.isbn_10].flatMap((list) =>
+    Array.isArray(list) ? list : [],
+  );
+  return values.map((value) => normalizeIsbn(String(value))).find(Boolean) ?? null;
+}
+
+/* Spec 6.1: Open Library by cover id, then by edition (Spanish first). */
+async function editionCover(book: CatalogBook): Promise<CatalogBook | null> {
+  if (book.source !== "openlibrary" || !/^\/works\/OL\d+W$/.test(book.externalId)) return null;
+  const { data } = await getJson(
+    `https://openlibrary.org${book.externalId}/editions.json?limit=50&fields=covers,languages,isbn_13,isbn_10`,
+  );
+  const entries = (data as { entries?: Edition[] } | null)?.entries ?? [];
+  const spanish = (edition: Edition) =>
+    edition.languages?.some((language) => language.key === "/languages/spa") ?? false;
+  const candidates = entries
+    .filter((edition) => Array.isArray(edition.covers) && Number(edition.covers[0]) > 0)
+    .sort((a, b) => Number(spanish(b)) - Number(spanish(a)))
+    .slice(0, EDITION_COVER_TRIES);
+  for (const edition of candidates) {
+    const coverUrl = `https://covers.openlibrary.org/b/id/${Number((edition.covers as unknown[])[0])}-L.jpg?default=false`;
+    if (await coverPasses(coverUrl))
+      return { ...book, coverUrl, isbn: editionIsbn(edition) ?? book.isbn };
+  }
+  return null;
+}
+
+async function withVerifiedCover(book: CatalogBook): Promise<CatalogBook> {
+  if (await coverPasses(book.coverUrl)) return book;
+  return (await editionCover(book)) ?? { ...book, coverUrl: null };
+}
+
 export async function searchCatalog(
   query: string,
   rawIsbn?: string | null,
@@ -270,8 +278,10 @@ export async function searchCatalog(
   const isbn = rawIsbn ? normalizeIsbn(rawIsbn) : null;
   const results = await Promise.all([openLibrary(query, isbn), google(query, isbn)]);
   if (results.every((result) => !result.ok)) throw new Error("catalog_unavailable");
-  return mergeBooks(
+  const merged = mergeBooks(
     query,
     results.map((result) => result.books),
   );
+  const verified = await Promise.all(merged.slice(0, VERIFIED_RESULTS).map(withVerifiedCover));
+  return [...verified, ...merged.slice(VERIFIED_RESULTS)];
 }
