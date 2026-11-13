@@ -1,129 +1,85 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { toast } from "sonner";
-import { BookCard } from "@/components/book-card";
-import { BookSheet } from "@/components/book-sheet";
-import { StatusTabs } from "@/components/status-tabs";
-import { useAuth } from "@/lib/auth-session";
-import {
-  BRAND_HEADER_PADDING,
-  brandSubtitleStyle,
-  brandTitleStyle,
-} from "@/lib/brand-header-style";
-import { BOOK_COLUMNS } from "@/lib/books";
-import { getSupabase } from "@/lib/supabase";
-import type { Book, BookStatus } from "@/lib/types";
+import type { Book, BookStatus } from "../domain/types";
+import { useSession } from "../data/session-context";
+import { useBooks } from "../data/use-books";
+import { useProfileName } from "../data/use-profile-name";
+import { BrandHeader } from "../components/brand-header";
+import { BookRow } from "../components/book-row";
+import { BookSheet } from "../components/book-sheet";
+import { EmptyState, LoadError, LoadingRows } from "../components/feedback";
+import { buttonClass } from "../components/button";
 
-const FONT = "'Plus Jakarta Sans', Helvetica, Arial, sans-serif";
+type Filter = "todos" | BookStatus;
+const filters: Array<[Filter, string]> = [
+  ["todos", "Todos"],
+  ["quiero", "Quiero"],
+  ["lei", "Leí"],
+];
 
 export const Route = createFileRoute("/")({
-  component: MisLibros,
+  validateSearch: (search: Record<string, unknown>): { f?: BookStatus } =>
+    search.f === "quiero" || search.f === "lei" ? { f: search.f } : {},
+  component: Home,
 });
 
-function MisLibros() {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const [filter, setFilter] = useState<"todos" | BookStatus>("todos");
+/* QC routes/index.tsx home: brand header, filter tabs row, feed. */
+function Home() {
+  const { user } = useSession();
+  const { f } = Route.useSearch();
+  const navigate = useNavigate();
+  const filter: Filter = f ?? "todos";
   const [selected, setSelected] = useState<Book | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const booksQuery = useQuery({
-    queryKey: ["books", user?.id],
-    enabled: Boolean(user?.id),
-    queryFn: async () => {
-      const { data, error } = await getSupabase()
-        .from("books")
-        .select(BOOK_COLUMNS)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as Book[];
-    },
-  });
-
-  const books = booksQuery.data ?? [];
-  const visible = filter === "todos" ? books : books.filter((book) => book.status === filter);
-  const subtitle =
-    books.length === 0
-      ? "Sin libros."
-      : `${books.length} ${books.length === 1 ? "libro" : "libros"}.`;
-
-  async function refresh() {
-    await queryClient.invalidateQueries({ queryKey: ["books", user?.id] });
-  }
-
-  async function saveBook(
-    book: Book,
-    values: { title: string; author: string; status: BookStatus; read_at: string | null },
-  ) {
-    setBusy(true);
-    try {
-      const { error } = await getSupabase().from("books").update(values).eq("id", book.id);
-      if (error) throw error;
-      toast.success("Guardado.");
-      setSelected(null);
-      await refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo guardar.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function removeBook(book: Book) {
-    setBusy(true);
-    try {
-      const { error } = await getSupabase().from("books").delete().eq("id", book.id);
-      if (error) throw error;
-      toast.success("Listo.");
-      setSelected(null);
-      await refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo sacar.");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const books = useBooks(user?.id);
+  const name = useProfileName(user?.id).data?.trim();
+  const visible = (books.data ?? []).filter((book) => filter === "todos" || book.status === filter);
 
   return (
-    <main className="qcl-page page-pb-nav">
-      <header style={{ padding: BRAND_HEADER_PADDING, paddingLeft: 0, paddingRight: 0 }}>
-        <div className="app-brand-header-row">
-          <h1
-            className="app-brand-title"
-            style={{ ...brandTitleStyle(FONT, "#0A0A0A"), margin: 0 }}
-          >
-            <span style={{ color: "#E8624A" }}>que carajo</span> <span>leer</span>
-          </h1>
-        </div>
-        <p style={{ ...brandSubtitleStyle(FONT, "#C0BCB6"), margin: 0 }}>{subtitle}</p>
-      </header>
-
-      <StatusTabs value={filter} onChange={setFilter} />
-
-      {booksQuery.isError ? (
-        <p className="qcl-empty">No se pudieron cargar.</p>
-      ) : visible.length === 0 ? (
-        <p className="qcl-empty">{books.length === 0 ? "Agregá el primero." : "Nada acá."}</p>
-      ) : (
-        <ul className="qcl-book-list">
-          {visible.map((book) => (
-            <li key={book.id}>
-              <BookCard book={book} onSelect={setSelected} />
-            </li>
+    <main className="page-pb-nav">
+      <BrandHeader heading subtitle={name ? `Wendía ${name}` : undefined} />
+      <div className="filter-row app-gutter">
+        <div className="filter-tabs" role="group" aria-label="Filtrar">
+          {filters.map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className="filter-tab"
+              aria-pressed={filter === value}
+              onClick={() =>
+                void navigate({
+                  to: "/",
+                  search: value === "todos" ? {} : { f: value },
+                  replace: true,
+                })
+              }
+            >
+              {label}
+            </button>
           ))}
-        </ul>
-      )}
-
-      {selected ? (
-        <BookSheet
-          book={selected}
-          busy={busy}
-          onClose={() => setSelected(null)}
-          onSave={(values) => saveBook(selected, values)}
-          onRemove={() => removeBook(selected)}
-        />
-      ) : null}
+        </div>
+      </div>
+      <section className="feed app-gutter">
+        {books.isPending ? (
+          <LoadingRows count={5} />
+        ) : books.isError ? (
+          <LoadError retry={() => void books.refetch()} />
+        ) : visible.length > 0 ? (
+          <div key={filter} className="content-fade">
+            {visible.map((book) => (
+              <BookRow key={book.id} book={book} onOpen={() => setSelected(book)} />
+            ))}
+          </div>
+        ) : filter === "todos" ? (
+          <EmptyState text="Nada todavía." art>
+            <Link to="/agregar" className={buttonClass("primary")}>
+              Agregar
+            </Link>
+          </EmptyState>
+        ) : (
+          <EmptyState key={filter} text="Nada acá." />
+        )}
+      </section>
+      {selected && <BookSheet book={selected} onClose={() => setSelected(null)} />}
     </main>
   );
 }

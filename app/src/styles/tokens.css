@@ -1,0 +1,280 @@
+/*
+ * QCL tokens. Every value is copied from QC (read-only reference):
+ * QC/src/styles.css unless another file is cited. Same names, same values.
+ * --qcl-* aliases name QC literals that QC only writes inline (TSX/CSS).
+ */
+:root {
+  /* QC styles.css l. 36-40, 180-218: color. */
+  --bg: #f5f0eb;
+  --background: #f5f0eb;
+  --black: #0a0a0a;
+  --foreground: #0a0a0a;
+  --white: #ffffff;
+  --gray-light: #e8e3dc;
+  --gray-text: #6b6560;
+  --primary: oklch(0.6606 0.1714 32.12);
+  --muted-foreground: oklch(0.52 0.02 60);
+  --rule: oklch(0.9 0.005 70);
+  --destructive: oklch(0.62 0.21 25);
+  --ring: oklch(0.68 0.21 35);
+
+  /* QC routes/index.tsx l. 131-135 (LIGHT_C). */
+  --qcl-orange: #e8624a;
+  --qcl-meta-gray: #888888;
+  --qcl-separator-muted: #c0bcb6;
+  /* QC routes/index.tsx l. ~2697: drawer backdrop. */
+  --qcl-backdrop: rgba(0, 0, 0, 0.5);
+  /* QC routes/index.tsx l. 391-397: shimmerStyle. */
+  --qcl-shimmer: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.06) 25%,
+    rgba(0, 0, 0, 0.11) 50%,
+    rgba(0, 0, 0, 0.06) 75%
+  );
+  --qcl-shimmer-duration: 1.5s;
+  --qcl-shimmer-radius: 10px;
+  /* QC styles.css l. 2110 (.qcba-geo-spin): spin loop. */
+  --qcl-spin-duration: 1s;
+
+  /* QC styles.css l. 42-44: type. */
+  --font-body: "Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* QC styles.css l. 68-81: type ramp. */
+  --text-display-xl: 2.125rem;
+  --leading-display-xl: 2.5rem;
+  --text-heading-l: 1.75rem;
+  --leading-heading-l: 2.125rem;
+  --text-heading-m: 1.5rem;
+  --leading-heading-m: 1.875rem;
+  --text-section: 1.25rem;
+  --leading-section: 1.625rem;
+  --text-body-qcba: 1rem;
+  --leading-body-qcba: 1.5rem;
+  --text-caption: 0.8125rem;
+  --leading-caption: 1.125rem;
+  --text-micro-qcba: 0.75rem;
+  --leading-micro-qcba: 1rem;
+
+  /* QC lib/brand-header-style.ts l. 7-16: brand header. */
+  --qcl-brand-title-size: 26px;
+  --qcl-brand-title-weight: 800;
+  --qcl-brand-title-tracking: -0.03em;
+  --qcl-brand-title-leading: 1.1;
+  /* QC lib/brand-header-style.ts brandSubtitleStyle (color C.muted light = --qcl-separator-muted). */
+  --qcl-brand-subtitle-size: 21px;
+  --qcl-brand-subtitle-weight: 600;
+  --qcl-brand-subtitle-tracking: -0.01em;
+  --qcl-brand-subtitle-leading: 1.2;
+  --qcl-brand-subtitle-gap: 4px;
+  /* QC routes/index.tsx l. 835-851 "Ahora no": low-hierarchy text action. */
+  --qcl-text-action-weight: 700;
+  /* QC routes/index.tsx l. 1796-1815 ("Agendaste.") and l. 1907-1925 (filter tabs). */
+  --qcl-heading-weight: 800;
+  --qcl-heading-weight-idle: 700;
+  --qcl-heading-tracking: -0.02em;
+  --qcl-heading-min-h: 40px;
+  --qcl-heading-leading: 1;
+  /* QC components/home/HomeFeedback.tsx: LoadError / empty / Reintentar. */
+  --qcl-feedback-title-size: 22px;
+  --qcl-feedback-title-leading: 1.2;
+  --qcl-feedback-text-size: 15px;
+  --qcl-feedback-text-leading: 1.5;
+  --qcl-feedback-icon-size: 40px;
+  --qcl-feedback-pad-block: 40px;
+  --qcl-empty-pad-top: 48px;
+  --qcl-empty-size: 140px;
+  --qcl-button-pad-block: 15px;
+  --qcl-button-pad-inline: 28px;
+  --qcl-button-size: 15px;
+  --qcl-button-weight: 800;
+
+  /* QC styles.css l. 84-91: spacing. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  /* QC routes/index.tsx l. 148 (S.page): home header, tabs and feed inset. */
+  --qcl-page-px: 20px;
+
+  /* QC styles.css l. 168-178: app chrome. */
+  --app-viewport-max: 430px;
+  --filter-gap: 10px;
+  --nav-height: 60px;
+  --nav-radius: 40px;
+  --nav-inline-padding: 8px;
+  --nav-hit-size: 44px;
+  --nav-icon-size: 26px;
+  --nav-active-color: #ffffff;
+  --nav-inactive-color: rgba(255, 255, 255, 0.55);
+  /* QC routes/index.tsx l. 3225-3247: nav wrapper and button padding. */
+  --qcl-nav-btn-inline: 14px;
+  --qcl-nav-fade: 0.2s;
+
+  /* QC styles.css l. 304-327: page and drawer geometry. */
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --bottom-nav-h: 3.75rem;
+  --page-pb-nav: calc(var(--bottom-nav-h) + 40px + var(--safe-bottom));
+  --drawer-max-h: 88dvh;
+  --drawer-radius: 24px;
+  --drawer-side-pad: 20px;
+  --drawer-viewport-inset: 20px;
+  --drawer-viewport-max: calc(
+    var(--app-viewport-max) - var(--drawer-viewport-inset) - var(--drawer-viewport-inset)
+  );
+  --drawer-top-pad: 20px;
+  --drawer-bottom-pad: calc(20px + var(--safe-bottom));
+  /* QC routes/index.tsx l. ~2755-2770: drawer handle; l. ~2700: backdrop fade. */
+  --qcl-handle-w: 40px;
+  --qcl-handle-h: 4px;
+  --qcl-handle-radius: 2px;
+  --qcl-backdrop-fade: 0.25s;
+
+  /* QC styles.css: radii. */
+  --radius-card: 16px;
+  --radius-sm: 6px;
+
+  /* QC styles.css l. 359-382: motion. */
+  --ease-press: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-fade: ease-out;
+  --dur-press: 0.14s;
+  --dur-base: 0.15s;
+  --dur-fade: 0.28s;
+  --dur-enter: 0.36s;
+  --dur-drawer: 0.35s;
+  --dur-bounce: 0.45s;
+  --dur-glow: 2.5s;
+  --press-card-scale: 0.985;
+  --press-button-scale: 0.96;
+  /* QC styles.css l. 2161-2200: image reveal and drawer body entrance. */
+  --qcl-image-fade: 0.32s;
+  --qcl-body-enter: 0.28s;
+  --qcl-body-enter-delay: 70ms;
+  --qcl-body-enter-offset: 8px;
+  /* QC styles.css l. 2488-2504: heartPop. */
+  --qcl-heart-pop-up: 1.35;
+  --qcl-heart-pop-down: 0.9;
+
+  /* QC styles.css l. 392-465: glass and media tokens. */
+  --glass-bg: rgba(255, 255, 255, 0.42);
+  --glass-border: rgba(255, 255, 255, 0.62);
+  --glass-shine: rgba(255, 255, 255, 0.2);
+  --glass-depth: rgba(10, 10, 10, 0.1);
+  --glass-ambient: 0 8px 24px rgba(10, 10, 10, 0.12), 0 2px 6px rgba(10, 10, 10, 0.08);
+  --glass-blur: 18px;
+  --glass-saturate: 145%;
+  --glass-bg-solid: #f5f0eb;
+  --glass-gradient-angle: 70deg;
+  --glass-orange-gradient: linear-gradient(
+    var(--glass-gradient-angle),
+    rgba(232, 98, 74, 0.9) 0%,
+    rgba(241, 114, 92, 0.9) 100%
+  );
+  --media-card-shadow-compact:
+    0 2px 4px rgba(10, 10, 10, 0.1), 0 8px 14px -8px rgba(10, 10, 10, 0.28);
+  --filter-action-icon-size: 24px;
+  --drawer-cta-gap: var(--space-6);
+  --media-title-size: 22px;
+  --media-title-weight: 800;
+  --media-title-leading: 1.2;
+  --media-title-tracking: -0.02em;
+  --media-hook-leading: 1.55;
+  --media-hook-tracking: 0.02em;
+  --drawer-title-size: var(--media-title-size);
+  --drawer-title-leading: var(--media-title-leading);
+  --drawer-title-tracking: var(--media-title-tracking);
+  --drawer-title-meta-gap: var(--space-2);
+  --drawer-meta-size: 14px;
+  --drawer-meta-weight: 600;
+  --drawer-meta-content-gap: var(--space-2);
+  --drawer-description-size: var(--drawer-meta-size);
+  --drawer-description-leading: var(--media-hook-leading);
+  --drawer-action-edge-gap: var(--space-6);
+  --drawer-description-bottom-gap: var(--drawer-action-edge-gap);
+  --drawer-hero-content-gap: var(--space-5);
+  --drawer-cta-font-size: 13px;
+  --drawer-cta-font-weight: 700;
+  --drawer-cta-padding-y: 14px;
+
+  /* QC styles.css l. 513-519 (.glass-orange) and l. 2809-2875 (materials). */
+  --qcl-glass-orange-bg: rgba(232, 98, 74, 0.85);
+  --qcl-glass-orange-border: rgba(255, 255, 255, 0.35);
+  --qcl-glass-orange-shine: rgba(255, 255, 255, 0.22);
+  --qcl-glass-orange-depth: rgba(0, 0, 0, 0.12);
+  --qcl-nav-gradient: linear-gradient(
+    180deg,
+    rgba(241, 114, 92, 0.9) 0%,
+    rgba(232, 98, 74, 0.9) 100%
+  );
+  --qcl-pill-gradient: linear-gradient(
+    180deg,
+    rgba(241, 114, 92, 0.72) 0%,
+    rgba(232, 98, 74, 0.72) 100%
+  );
+  --qcl-glass-white-bg: rgba(255, 255, 255, 0.62);
+  --qcl-glass-white-border: rgba(255, 255, 255, 0.78);
+  --qcl-glass-white-shine: rgba(255, 255, 255, 0.3);
+  --qcl-glass-white-depth: rgba(10, 10, 10, 0.08);
+  --qcl-glass-white-solid: rgba(255, 255, 255, 0.94);
+  --qcl-white-gradient: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(255, 255, 255, 0.56) 100%
+  );
+  --qcl-sheen: linear-gradient(
+    var(--glass-gradient-angle),
+    rgba(255, 255, 255, 0) 45%,
+    rgba(255, 255, 255, 0.22) 100%
+  );
+  --qcl-sheen-nav: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0) 55%
+  );
+  --qcl-sheen-white: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.34) 0%,
+    rgba(255, 255, 255, 0) 55%
+  );
+  /* QC styles.css l. 2884-2935: nav halo and ripple. */
+  --qcl-halo: radial-gradient(circle, rgba(232, 98, 74, 0.35) 0%, rgba(232, 98, 74, 0) 70%);
+  --qcl-halo-blur: 6px;
+  --qcl-halo-idle-scale: 0.6;
+  --qcl-ripple-size: 8px;
+  --qcl-ripple-color: rgba(255, 255, 255, 0.55);
+  --qcl-ripple-scale: 9;
+  --qcl-ripple-opacity: 0.35;
+  --qcl-ripple-out: 0.5s;
+  --qcl-ripple-in: 0.05s;
+  --qcl-ripple-clip-transition: 220ms;
+  /* QC styles.css l. 689-780: flat borders. */
+  --qcl-border-orange: rgba(232, 98, 74, 0.2);
+  --qcl-border-dark: rgba(10, 10, 10, 0.28);
+  --qcl-border-white: rgba(255, 255, 255, 0.82);
+  --qcl-hairline: 1px;
+  --qcl-drawer-action-gap: 6px;
+  --qcl-drawer-action-label-size: 9px;
+  --qcl-drawer-choice-pad: 6px;
+  --qcl-drawer-cta-pad-inline: 10px;
+  /* QC styles.css l. 2396-2400: .qc-people-row. */
+  --qcl-row-min: 56px;
+  --qcl-row-block: 10px;
+  /* QC styles.css l. 793-798: .event-drawer-description clamp. */
+  --qcl-description-lines: 4;
+  --qcl-title-lines: 2;
+
+  /* Only value with no QC equivalent: a book cover's physical ratio. */
+  --qcl-cover-ratio: 2 / 3;
+}
+
+/* QC styles.css l. 223-227. */
+@media (min-width: 431px) {
+  :root {
+    --app-viewport-max: 390px;
+  }
+}

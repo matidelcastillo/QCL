@@ -1,0 +1,903 @@
+/*
+ * QCL shared classes. Each block replicates the QC class of the same name
+ * (QC/src/styles.css line cited) or the inline recipe of the QC component
+ * cited. Values come only from tokens.css.
+ */
+
+/* Base: QC styles.css l. 267-275 and l. 564-568. */
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior: none;
+}
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+:focus-visible {
+  outline: var(--qcl-hairline) solid var(--ring);
+  outline-offset: var(--space-1);
+}
+::selection {
+  background: var(--qcl-orange);
+  color: var(--white);
+}
+
+/* Root wrapper: QC routes/__root.tsx + .safe-area-top (styles.css l. 651). */
+.app-frame {
+  width: 100%;
+  max-width: var(--app-viewport-max);
+  min-height: 100dvh;
+  margin-inline: auto;
+}
+.safe-area-top {
+  padding-top: var(--safe-top);
+}
+.page-pb-nav {
+  padding-bottom: var(--page-pb-nav);
+}
+/* QC routes/index.tsx: header, tabs and feed share S.page. */
+.app-gutter {
+  padding-inline: var(--qcl-page-px);
+}
+
+/* Brand header: QC routes/index.tsx l. 1779-1786 + lib/brand-header-style.ts. */
+.app-brand-header {
+  padding: var(--space-6) var(--space-5) var(--space-5);
+}
+.app-brand-title {
+  margin: 0;
+  min-width: 0;
+  color: var(--black);
+  font-size: var(--qcl-brand-title-size);
+  font-weight: var(--qcl-brand-title-weight);
+  letter-spacing: var(--qcl-brand-title-tracking);
+  line-height: var(--qcl-brand-title-leading);
+}
+.app-brand-accent {
+  color: var(--qcl-orange);
+}
+/* QC lib/brand-header-style.ts brandSubtitleStyle, used in routes/index.tsx l. 1786. */
+.app-brand-subtitle {
+  display: -webkit-box;
+  margin: var(--qcl-brand-subtitle-gap) 0 0;
+  overflow: hidden;
+  color: var(--qcl-separator-muted);
+  font-size: var(--qcl-brand-subtitle-size);
+  font-weight: var(--qcl-brand-subtitle-weight);
+  letter-spacing: var(--qcl-brand-subtitle-tracking);
+  line-height: var(--qcl-brand-subtitle-leading);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* QC routes/index.tsx l. 835-851 ("Ahora no"): text-only secondary action. */
+.text-action {
+  display: block;
+  margin: var(--space-3) auto 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--qcl-separator-muted);
+  font-family: inherit;
+  font-size: var(--text-caption);
+  font-weight: var(--qcl-text-action-weight);
+  cursor: pointer;
+}
+
+/* Screen heading: QC routes/index.tsx l. 1796-1815 ("Agendaste."). */
+.screen-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--qcl-heading-min-h);
+}
+.screen-title {
+  margin: 0;
+  color: var(--qcl-orange);
+  font-size: var(--text-heading-l);
+  font-weight: var(--qcl-heading-weight);
+  letter-spacing: var(--qcl-heading-tracking);
+}
+
+/* Filter tabs: QC routes/index.tsx l. 1896-1940 (Hoy. / Cerca. / Gratis.). */
+.filter-tabs {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: var(--filter-gap);
+}
+.filter-tab {
+  padding: 0;
+  border: 0;
+  background: none;
+  outline: none;
+  color: var(--qcl-separator-muted);
+  font-size: var(--text-heading-l);
+  font-weight: var(--qcl-heading-weight-idle);
+  letter-spacing: var(--qcl-heading-tracking);
+  line-height: var(--qcl-heading-leading);
+  white-space: nowrap;
+  transition: color var(--dur-base) var(--ease-fade);
+}
+.filter-tab[aria-pressed="true"] {
+  color: var(--qcl-orange);
+  font-weight: var(--qcl-heading-weight);
+}
+.filter-tab:focus-visible {
+  outline: var(--qcl-hairline) solid var(--ring);
+}
+
+/* Content cross-fade: QC .qcba-content-fade, --dur-fade. */
+.content-fade {
+  animation: contentFade var(--dur-fade) var(--ease-fade) both;
+}
+
+/* List row: QC styles.css l. 2396-2400 (.qc-people-row). */
+.qc-people-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--qcl-row-min);
+  padding: var(--qcl-row-block) 0;
+  border: 0;
+  border-bottom: var(--qcl-hairline) solid var(--gray-light);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+.row-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-self: flex-start;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.row-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--qcl-title-lines);
+  color: var(--foreground);
+  font-size: var(--text-body-qcba);
+  font-weight: 700;
+  line-height: var(--leading-body-qcba);
+}
+.row-author {
+  overflow: hidden;
+  color: var(--gray-text);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  line-height: var(--leading-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.row-meta {
+  color: var(--qcl-meta-gray);
+  font-size: var(--text-micro-qcba);
+  line-height: var(--leading-micro-qcba);
+}
+.row-separator {
+  color: var(--qcl-separator-muted);
+}
+.row-status {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: var(--nav-hit-size);
+  height: var(--nav-hit-size);
+  color: var(--qcl-orange);
+}
+
+/* Press states: QC styles.css l. 2597-2611. */
+.qc-press {
+  transition: transform var(--dur-press) var(--ease-press);
+}
+.qc-press:active {
+  transform: scale(var(--press-button-scale));
+}
+.qc-press-card {
+  transition: transform var(--dur-press) var(--ease-press);
+}
+.qc-press-card:active {
+  transform: scale(var(--press-card-scale));
+}
+
+/* Cover. Fallback = QC "Imagen no disponible" (routes/index.tsx l. ~2788). */
+.cover {
+  flex: 0 0 auto;
+  width: var(--space-12);
+  aspect-ratio: var(--qcl-cover-ratio);
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+.cover-large {
+  width: calc(var(--space-12) * 2.5);
+  border-radius: var(--radius-card);
+  box-shadow: var(--media-card-shadow-compact);
+}
+.cover-fallback {
+  background: linear-gradient(135deg, var(--gray-light), var(--bg));
+}
+
+/* Image reveal: QC styles.css l. 2161-2180. */
+.qc-card-image,
+.drawer-media-fade {
+  opacity: 0;
+  transition: opacity var(--qcl-image-fade) var(--ease-fade);
+}
+.qc-card-image.is-loaded,
+.drawer-media-fade.is-loaded {
+  opacity: 1;
+}
+
+/* Skeleton: QC routes/index.tsx l. 391-397 (shimmerStyle). */
+.shimmer {
+  background-image: var(--qcl-shimmer);
+  background-size: 200% 100%;
+  border-radius: var(--qcl-shimmer-radius);
+  animation: shimmer var(--qcl-shimmer-duration) infinite;
+}
+.shimmer-line {
+  width: 65%;
+  height: var(--space-4);
+}
+.shimmer-line-short {
+  width: 40%;
+  height: var(--space-3);
+}
+
+/* Feedback: QC components/home/HomeFeedback.tsx (LoadError) and
+   routes/index.tsx l. 2405-2440 (empty state). */
+.qc-feedback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--qcl-feedback-pad-block) var(--space-3);
+  text-align: center;
+}
+.qc-feedback-icon {
+  margin-bottom: var(--space-3);
+  color: var(--qcl-separator-muted);
+}
+.qc-feedback-title {
+  margin: 0 0 var(--space-2);
+  color: var(--black);
+  font-size: var(--qcl-feedback-title-size);
+  font-weight: 800;
+  letter-spacing: var(--qcl-heading-tracking);
+  line-height: var(--qcl-feedback-title-leading);
+}
+.qc-feedback-text {
+  margin: 0 0 var(--space-5);
+  color: var(--qcl-meta-gray);
+  font-size: var(--qcl-feedback-text-size);
+  font-weight: 600;
+  line-height: var(--qcl-feedback-text-leading);
+}
+.qc-empty {
+  padding: var(--qcl-empty-pad-top) 0 var(--space-6);
+}
+.qc-empty-art {
+  width: var(--qcl-empty-size);
+  height: var(--qcl-empty-size);
+  margin-bottom: var(--space-3);
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+.qc-loader {
+  display: flex;
+  justify-content: center;
+  padding: var(--qcl-empty-pad-top) 0 var(--space-6);
+  color: var(--qcl-separator-muted);
+}
+.spin {
+  animation: spin var(--qcl-spin-duration) linear infinite;
+}
+
+/* Glass: QC styles.css l. 469-519. */
+.glass {
+  background: var(--glass-bg);
+  border: var(--qcl-hairline) solid var(--glass-border);
+  box-shadow:
+    var(--glass-ambient),
+    inset 0 var(--qcl-hairline) 0 var(--glass-shine),
+    inset 0 calc(var(--qcl-hairline) * -1) 0 var(--glass-depth);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+.glass-orange {
+  --glass-bg: var(--qcl-glass-orange-bg);
+  --glass-border: var(--qcl-glass-orange-border);
+  --glass-shine: var(--qcl-glass-orange-shine);
+  --glass-depth: var(--qcl-glass-orange-depth);
+  --glass-bg-solid: var(--qcl-orange);
+}
+/* QC styles.css l. 2809-2880. */
+.glass-orange-treatment {
+  position: relative;
+  overflow: hidden;
+  background: var(--glass-orange-gradient);
+}
+.glass-orange-nav-material {
+  --glass-gradient-angle: 180deg;
+  --glass-orange-gradient: var(--qcl-nav-gradient);
+}
+.glass-orange-pill-material {
+  --glass-orange-gradient: var(--qcl-pill-gradient);
+}
+.glass-white-treatment {
+  --glass-bg: var(--qcl-glass-white-bg);
+  --glass-border: var(--qcl-glass-white-border);
+  --glass-shine: var(--qcl-glass-white-shine);
+  --glass-depth: var(--qcl-glass-white-depth);
+  --glass-bg-solid: var(--qcl-glass-white-solid);
+  position: relative;
+  overflow: hidden;
+  background: var(--qcl-white-gradient);
+}
+.sheen-top::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--qcl-sheen);
+  pointer-events: none;
+}
+.glass-orange-nav-material.sheen-top::before {
+  background: var(--qcl-sheen-nav);
+}
+.glass-white-treatment.sheen-top::before {
+  background: var(--qcl-sheen-white);
+}
+.glass-blur-in {
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+/* Buttons: QC components/home/HomeFeedback.tsx ("Reintentar") recipe.
+   Orange = navbar material, white = .glass-white-treatment (SYSTEM.md). */
+.qc-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--qcl-button-pad-block) var(--qcl-button-pad-inline);
+  border-radius: var(--radius-card);
+  font-size: var(--qcl-button-size);
+  font-weight: var(--qcl-button-weight);
+  text-decoration: none;
+}
+.qc-button-primary {
+  color: var(--white);
+}
+.qc-button-secondary {
+  color: var(--black);
+}
+.qc-button-block {
+  width: 100%;
+}
+.qc-button-row {
+  display: flex;
+  gap: var(--drawer-cta-gap);
+}
+.qc-button-row > * {
+  flex: 1;
+}
+
+/* Bottom nav: QC routes/index.tsx l. 3220-3315 + styles.css l. 2349-2940. */
+.app-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  z-index: 50;
+  width: 100%;
+  max-width: var(--app-viewport-max);
+  padding: var(--space-3) var(--space-5) calc(var(--space-3) + var(--safe-bottom));
+  background: transparent;
+  transform: translateX(-50%);
+  transition: opacity var(--qcl-nav-fade);
+}
+.app-nav.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.app-bottom-nav {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: var(--nav-height);
+  padding: 0 var(--nav-inline-padding);
+  overflow: hidden;
+  border-radius: var(--nav-radius);
+}
+.qcba-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--nav-hit-size);
+  min-height: var(--nav-hit-size);
+  padding: var(--space-2) var(--qcl-nav-btn-inline);
+  border: none;
+  background: none;
+  color: var(--nav-inactive-color);
+  transition: transform var(--dur-press) var(--ease-press);
+}
+.qcba-nav-btn:active {
+  transform: scale(var(--press-button-scale));
+}
+.qcba-nav-btn[aria-current="page"] {
+  color: var(--nav-active-color);
+}
+.qcba-nav-btn:focus-visible {
+  outline: none;
+}
+.qcba-nav-btn:focus-visible .nav-ripple-clip {
+  transform: scale(1.06);
+}
+.nav-ripple-clip {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--nav-hit-size);
+  height: var(--nav-hit-size);
+  overflow: hidden;
+  border-radius: var(--nav-radius);
+  transition: transform var(--qcl-ripple-clip-transition) var(--ease-bounce);
+}
+.nav-ripple-clip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: var(--qcl-ripple-size);
+  height: var(--qcl-ripple-size);
+  margin: auto;
+  border-radius: 50%;
+  background: var(--qcl-ripple-color);
+  opacity: 0;
+  transform: scale(0);
+  transition:
+    transform var(--qcl-ripple-out) var(--ease-fade),
+    opacity var(--qcl-ripple-out) var(--ease-fade);
+  pointer-events: none;
+}
+.nav-ripple-clip:active::after {
+  opacity: var(--qcl-ripple-opacity);
+  transform: scale(var(--qcl-ripple-scale));
+  transition:
+    transform var(--qcl-ripple-in) linear,
+    opacity var(--qcl-ripple-in) linear;
+}
+.nav-icon-halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--qcl-halo);
+  filter: blur(var(--qcl-halo-blur));
+  opacity: 0;
+  transform: scale(var(--qcl-halo-idle-scale));
+  transition:
+    opacity var(--dur-bounce) var(--ease-bounce),
+    transform var(--dur-bounce) var(--ease-bounce);
+  pointer-events: none;
+}
+.nav-icon-halo.active {
+  opacity: 1;
+  transform: scale(1);
+}
+.nav-icon {
+  position: relative;
+  width: var(--nav-icon-size);
+  height: var(--nav-icon-size);
+}
+
+/* Bottom sheet: QC routes/index.tsx l. 2690-2760 + styles.css l. 331. */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--qcl-backdrop);
+  opacity: 0;
+  transition: opacity var(--qcl-backdrop-fade);
+}
+.drawer-backdrop.is-visible {
+  opacity: 1;
+}
+.drawer-surface {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  width: calc(100% - var(--drawer-viewport-inset) - var(--drawer-viewport-inset));
+  max-width: var(--drawer-viewport-max);
+  max-height: var(--drawer-max-h);
+  overflow: hidden;
+  border-radius: var(--drawer-radius) var(--drawer-radius) 0 0;
+  background-color: var(--bg);
+  outline: none;
+  transform: translateX(-50%) translateY(100%);
+  transition: transform var(--dur-drawer) var(--ease-press);
+  will-change: transform;
+}
+.drawer-surface.is-visible {
+  transform: translateX(-50%) translateY(0);
+}
+.drawer-handle-zone {
+  flex-shrink: 0;
+  padding: var(--space-3) 0;
+  cursor: grab;
+  touch-action: none;
+}
+.drawer-handle {
+  width: var(--qcl-handle-w);
+  height: var(--qcl-handle-h);
+  margin: 0 auto;
+  border-radius: var(--qcl-handle-radius);
+  background: var(--gray-light);
+}
+/* QC routes/index.tsx l. 2870-2885 (scrollable body) + styles.css l. 2193. */
+.drawer-body {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--drawer-side-pad) var(--drawer-bottom-pad);
+}
+.drawer-body-enter {
+  animation: drawerBodyEnter var(--qcl-body-enter) var(--ease-enter) var(--qcl-body-enter-delay)
+    backwards;
+}
+.drawer-hero-book {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--drawer-hero-content-gap);
+}
+.drawer-centered {
+  text-align: center;
+}
+.drawer-centered .drawer-meta {
+  justify-content: center;
+}
+
+/* Drawer text: QC styles.css l. 658-689 and l. 793. */
+.drawer-title {
+  margin: 0 0 var(--drawer-title-meta-gap);
+  color: var(--black);
+  font-size: var(--drawer-title-size);
+  font-weight: var(--media-title-weight);
+  letter-spacing: var(--drawer-title-tracking);
+  line-height: var(--drawer-title-leading);
+}
+.drawer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--drawer-meta-content-gap);
+  color: var(--qcl-meta-gray);
+  font-size: var(--drawer-meta-size);
+  font-weight: var(--drawer-meta-weight);
+}
+.drawer-meta-separator {
+  color: var(--qcl-separator-muted);
+}
+.drawer-description {
+  margin: 0 0 var(--drawer-description-bottom-gap);
+  color: var(--black);
+  font-size: var(--drawer-description-size);
+  font-weight: var(--drawer-meta-weight);
+  line-height: var(--drawer-description-leading);
+  letter-spacing: 0;
+}
+.event-drawer-description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--qcl-description-lines);
+}
+
+/* Drawer CTAs: QC styles.css l. 689-705. */
+.drawer-cta {
+  padding: var(--drawer-cta-padding-y) var(--qcl-drawer-cta-pad-inline);
+  border-radius: var(--radius-card);
+  font-size: var(--drawer-cta-font-size);
+  font-weight: var(--drawer-cta-font-weight);
+}
+.drawer-cta-flat {
+  border: var(--qcl-hairline) solid var(--qcl-border-dark);
+  background: transparent;
+  box-shadow: none;
+  color: var(--black);
+}
+.drawer-cta-destructive {
+  color: var(--destructive);
+}
+
+/* Action dock: QC styles.css l. 706-740; routes/index.tsx l. 2918-3010. */
+.drawer-action-dock {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  min-height: var(--nav-height);
+  margin-bottom: calc(var(--drawer-action-edge-gap) + var(--safe-bottom));
+  padding: 0 var(--nav-inline-padding);
+  border: var(--qcl-hairline) solid var(--qcl-border-orange);
+  border-radius: var(--nav-radius);
+}
+.drawer-action {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 0 0 var(--nav-hit-size);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--qcl-drawer-action-gap);
+  width: var(--nav-hit-size);
+  height: var(--nav-hit-size);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--black);
+  text-decoration: none;
+}
+.drawer-action-icon {
+  width: var(--filter-action-icon-size);
+  height: var(--filter-action-icon-size);
+}
+.drawer-action[aria-pressed="true"] {
+  color: var(--qcl-orange);
+}
+.drawer-action-label {
+  color: var(--qcl-meta-gray);
+  font-size: var(--qcl-drawer-action-label-size);
+  font-weight: 500;
+  letter-spacing: var(--media-hook-tracking);
+  line-height: 1;
+}
+.heart-pop {
+  animation: heartPop var(--dur-bounce) var(--ease-bounce);
+}
+
+/* Choice dock: QC styles.css l. 741-771. */
+.drawer-choice-dock {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  height: var(--space-12);
+  overflow: hidden;
+  border: var(--qcl-hairline) solid var(--qcl-border-orange);
+  border-radius: var(--nav-radius);
+  background: transparent;
+}
+.drawer-choice {
+  min-width: 0;
+  height: 100%;
+  padding: 0 var(--qcl-drawer-choice-pad);
+  border: 0;
+  border-left: var(--qcl-hairline) solid var(--qcl-border-orange);
+  background: transparent;
+  color: var(--black);
+  font-size: var(--drawer-cta-font-size);
+  font-weight: 800;
+  letter-spacing: var(--media-hook-tracking);
+}
+.drawer-choice:first-child {
+  border-left: 0;
+}
+.drawer-choice-active {
+  color: var(--qcl-orange);
+}
+.drawer-choice-destructive {
+  color: var(--destructive);
+}
+
+/* Inputs: QC styles.css l. 2454-2467 (.qc-auth-email-input). */
+.qc-auth-email-input {
+  width: 100%;
+  padding-block: var(--space-2);
+  padding-inline: var(--space-2);
+  border: 0;
+  border-bottom: var(--qcl-hairline) solid var(--qcl-orange);
+  border-radius: 0;
+  background: transparent;
+  color: var(--gray-text);
+  font-family: var(--font-body);
+  font-size: var(--text-body-qcba);
+  font-weight: 500;
+  outline: none;
+}
+.qc-auth-email-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+/* Layout helpers built only from QC spacing tokens. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.stack-loose {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.error-text {
+  margin: 0;
+  color: var(--destructive);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}
+
+/* Auth screen: QC routes/auth.tsx (centered column on --bg). */
+.auth-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+}
+.auth-panel {
+  width: 100%;
+}
+.auth-panel .app-brand-header {
+  text-align: center;
+}
+
+/* Vos counters: QC type ramp --text-display-xl / --text-caption. */
+.count-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+.count-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: var(--nav-hit-size);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.count-number {
+  color: var(--qcl-orange);
+  font-size: var(--text-display-xl);
+  font-weight: 800;
+  line-height: var(--leading-display-xl);
+}
+.count-label,
+.section-label {
+  margin: 0;
+  color: var(--gray-text);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}
+
+/* Scanner: video radius --radius-card, guide = .media-pill-flat border. */
+.scanner-frame {
+  position: relative;
+}
+.scanner-video {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-card);
+}
+.scanner-guide {
+  position: absolute;
+  inset: 35% var(--space-5);
+  border: var(--qcl-hairline) solid var(--qcl-border-white);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+.scanner-note {
+  margin: 0;
+  color: var(--qcl-meta-gray);
+  font-size: var(--qcl-feedback-text-size);
+  font-weight: 600;
+}
+
+@keyframes drawerBodyEnter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--qcl-body-enter-offset));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes contentFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes heartPop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(var(--qcl-heart-pop-up));
+  }
+  60% {
+    transform: scale(var(--qcl-heart-pop-down));
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* QC styles.css l. 486-505 and l. 2540-2590. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--glass-bg-solid);
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+@supports not ((backdrop-filter: blur()) or (-webkit-backdrop-filter: blur())) {
+  .glass {
+    background: var(--glass-bg-solid);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* Home rows under the brand header: QC routes/index.tsx l. 1896-1905
+   (tabs row) and l. 1740-1760 (feed starts S.l below). */
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.feed {
+  padding-top: var(--space-4);
+}

@@ -1,129 +1,117 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { toast } from "sonner";
-import {
-  BRAND_HEADER_PADDING,
-  brandSubtitleStyle,
-  brandTitleStyle,
-} from "@/lib/brand-header-style";
-import { getSupabase } from "@/lib/supabase";
+import { browserSupabase } from "../data/supabase";
+import { BrandHeader } from "../components/brand-header";
+import { buttonClass } from "../components/button";
 
-const FONT = "'Plus Jakarta Sans', Helvetica, Arial, sans-serif";
+export const Route = createFileRoute("/entrar")({ component: Enter });
 
-export const Route = createFileRoute("/entrar")({
-  component: Entrar,
-});
-
-function friendlyAuthError(message: string): string {
-  const text = message.toLowerCase();
-  if (text.includes("invalid login")) return "Email o contraseña mal.";
-  if (text.includes("already registered") || text.includes("already been registered")) {
-    return "Esa cuenta ya existe.";
-  }
-  if (text.includes("password")) return "Mínimo 6 caracteres.";
-  if (text.includes("email")) return "Revisá el email.";
-  if (text.includes("rate") || text.includes("too many")) return "Esperá un toque.";
-  return "No se pudo. Probá de nuevo.";
+function errorMessage(message: string) {
+  if (/already registered|already exists|user already/i.test(message))
+    return "Ese email ya tiene cuenta.";
+  if (/invalid login|invalid credentials|password/i.test(message))
+    return "Email o contraseña incorrectos.";
+  return "Revisá la conexión.";
 }
 
-function Entrar() {
+function Enter() {
+  const navigate = useNavigate();
   const [mode, setMode] = useState<"entrar" | "crear">("entrar");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-
-  async function handleSubmit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
-    if (busy) return;
     setBusy(true);
-    const supabase = getSupabase();
+    setError("");
     try {
-      if (mode === "entrar") {
-        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: { data: { name: name.trim() } },
-        });
-        if (error) throw error;
-        if (!data.session) {
-          toast.error("Cuenta creada. No se pudo entrar.");
-        }
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Error";
-      toast.error(friendlyAuthError(message));
+      const client = browserSupabase();
+      const result =
+        mode === "entrar"
+          ? await client.auth.signInWithPassword({ email, password })
+          : await client.auth.signUp({ email, password, options: { data: { name: name.trim() } } });
+      if (result.error) throw result.error;
+      if (!result.data.session) throw new Error("signup_requires_confirmation");
+      await navigate({ to: "/" });
+    } catch (cause) {
+      setError(errorMessage(cause instanceof Error ? cause.message : ""));
     } finally {
       setBusy(false);
     }
   }
-
   return (
-    <main className="qcl-page">
-      <header style={{ padding: BRAND_HEADER_PADDING, paddingLeft: 0, paddingRight: 0 }}>
-        <div className="app-brand-header-row">
-          <h1
-            className="app-brand-title"
-            style={{ ...brandTitleStyle(FONT, "#0A0A0A"), margin: 0 }}
-          >
-            <span style={{ color: "#E8624A" }}>que carajo</span> <span>leer</span>
-          </h1>
-        </div>
-        <p style={{ ...brandSubtitleStyle(FONT, "#C0BCB6"), margin: 0 }}>
-          {mode === "entrar" ? "Entrá." : "Creá tu cuenta."}
-        </p>
-      </header>
-
-      <form className="qcl-form" onSubmit={(event) => void handleSubmit(event)}>
-        {mode === "crear" ? (
-          <label className="qcl-field">
-            <span>Nombre</span>
+    <main className="auth-screen">
+      <div className="auth-panel">
+        <BrandHeader heading />
+        <div className="stack app-gutter">
+          <div className="drawer-choice-dock" role="group" aria-label="Acceso">
+            {(
+              [
+                ["entrar", "Entrar"],
+                ["crear", "Crear cuenta"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={`drawer-choice${mode === value ? " drawer-choice-active" : ""}`}
+                aria-pressed={mode === value}
+                onClick={() => {
+                  setMode(value);
+                  setError("");
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <form className="stack" onSubmit={(event) => void submit(event)}>
+            {mode === "crear" && (
+              <input
+                className="qc-auth-email-input"
+                type="text"
+                placeholder="Nombre"
+                aria-label="Nombre"
+                autoComplete="name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                required
+              />
+            )}
             <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              autoComplete="name"
+              className="qc-auth-email-input"
+              type="email"
+              placeholder="Email"
+              aria-label="Email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
             />
-          </label>
-        ) : null}
-        <label className="qcl-field">
-          <span>Email</span>
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
-            required
-          />
-        </label>
-        <label className="qcl-field">
-          <span>Contraseña</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete={mode === "entrar" ? "current-password" : "new-password"}
-            minLength={6}
-            required
-          />
-        </label>
-        <button type="submit" className="qcl-primary-btn" disabled={busy}>
-          {mode === "entrar" ? "Entrar" : "Crear cuenta"}
-        </button>
-      </form>
-
-      <p className="qcl-switch">
-        {mode === "entrar" ? "¿No tenés cuenta?" : "¿Ya tenés cuenta?"}{" "}
-        <button
-          type="button"
-          className="qcl-text-btn"
-          onClick={() => setMode(mode === "entrar" ? "crear" : "entrar")}
-        >
-          {mode === "entrar" ? "Crear" : "Entrar"}
-        </button>
-      </p>
+            <input
+              className="qc-auth-email-input"
+              type="password"
+              placeholder="Contraseña"
+              aria-label="Contraseña"
+              autoComplete={mode === "entrar" ? "current-password" : "new-password"}
+              minLength={mode === "crear" ? 6 : undefined}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+            {error && (
+              <p className="error-text" role="alert">
+                {error}
+              </p>
+            )}
+            <button type="submit" className={buttonClass("primary", true)} disabled={busy}>
+              {mode === "entrar" ? "Entrar" : "Crear cuenta"}
+            </button>
+          </form>
+        </div>
+      </div>
     </main>
   );
 }
