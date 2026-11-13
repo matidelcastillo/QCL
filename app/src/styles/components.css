@@ -75,6 +75,33 @@ button:disabled {
 .app-brand-accent {
   color: var(--qcl-orange);
 }
+/* QC lib/brand-header-style.ts brandSubtitleStyle, used in routes/index.tsx l. 1786. */
+.app-brand-subtitle {
+  display: -webkit-box;
+  margin: var(--qcl-brand-subtitle-gap) 0 0;
+  overflow: hidden;
+  color: var(--qcl-separator-muted);
+  font-size: var(--qcl-brand-subtitle-size);
+  font-weight: var(--qcl-brand-subtitle-weight);
+  letter-spacing: var(--qcl-brand-subtitle-tracking);
+  line-height: var(--qcl-brand-subtitle-leading);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* QC routes/index.tsx l. 835-851 ("Ahora no"): text-only secondary action. */
+.text-action {
+  display: block;
+  margin: var(--space-3) auto 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--qcl-separator-muted);
+  font-family: inherit;
+  font-size: var(--text-caption);
+  font-weight: var(--qcl-text-action-weight);
+  cursor: pointer;
+}
 
 /* Screen heading: QC routes/index.tsx l. 1796-1815 ("Agendaste."). */
 .screen-heading {

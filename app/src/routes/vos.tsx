@@ -1,15 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import type { Book } from "../domain/types";
-import { profileName } from "../data/library";
 import { signOut } from "../data/auth-actions";
 import { useSession } from "../data/session-context";
 import { useBooks } from "../data/use-books";
 import { BrandHeader, ScreenHeading } from "../components/brand-header";
 import { BookRow } from "../components/book-row";
 import { BookSheet } from "../components/book-sheet";
-import { buttonClass } from "../components/button";
 import { LoadError, LoadingRows } from "../components/feedback";
 
 export const Route = createFileRoute("/vos")({ component: Profile });
@@ -18,11 +15,6 @@ function Profile() {
   const { user } = useSession();
   const navigate = useNavigate();
   const books = useBooks(user?.id);
-  const profile = useQuery({
-    queryKey: ["profile", user?.id],
-    queryFn: () => profileName(user!.id),
-    enabled: Boolean(user),
-  });
   const [selected, setSelected] = useState<Book | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -49,7 +41,7 @@ function Profile() {
   return (
     <main className="page-pb-nav">
       <BrandHeader />
-      <ScreenHeading>{profile.data || "Vos"}</ScreenHeading>
+      <ScreenHeading>Tu racconto</ScreenHeading>
       <div className="stack-loose app-gutter feed">
         {books.isPending ? (
           <LoadingRows count={2} />
@@ -61,18 +53,18 @@ function Profile() {
               <button
                 type="button"
                 className="count-block qc-press"
-                onClick={() => void navigate({ to: "/", search: { f: "quiero" } })}
+                onClick={() => void navigate({ to: "/", search: { f: "lei" } })}
               >
-                <span className="count-number">{want}</span>
-                <span className="count-label">Quiero</span>
+                <span className="count-number">{read.length}</span>
+                <span className="count-label">Leíste</span>
               </button>
               <button
                 type="button"
                 className="count-block qc-press"
-                onClick={() => void navigate({ to: "/", search: { f: "lei" } })}
+                onClick={() => void navigate({ to: "/", search: { f: "quiero" } })}
               >
-                <span className="count-number">{read.length}</span>
-                <span className="count-label">Leí</span>
+                <span className="count-number">{want}</span>
+                <span className="count-label">Querés leer</span>
               </button>
             </div>
             {latest && (
@@ -85,7 +77,7 @@ function Profile() {
         )}
         <button
           type="button"
-          className={buttonClass("secondary", true)}
+          className="text-action qc-press"
           disabled={busy}
           onClick={() => void leave()}
         >
