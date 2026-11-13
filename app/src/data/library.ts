@@ -1,4 +1,4 @@
-import type { Book, BookStatus, CatalogBook } from "../domain/types";
+import type { Book, BookStatus, CatalogBook, SharedBook } from "../domain/types";
 import { today } from "../domain/date";
 import { identity } from "../domain/metadata";
 import { coverCandidate } from "../domain/cover-url";
@@ -40,7 +40,7 @@ export type NewBook = Pick<
   | "synopsis"
 > & { coverUrl: string | null };
 
-export function toNewBook(book: Book | CatalogBook): NewBook {
+export function toNewBook(book: Book | CatalogBook | SharedBook): NewBook {
   return {
     title: book.title,
     author: book.author,

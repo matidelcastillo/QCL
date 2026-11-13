@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, Heart, Share2 } from "lucide-react";
-import type { Book, BookStatus, CatalogBook } from "../domain/types";
+import type { Book, BookStatus, CatalogBook, SharedBook } from "../domain/types";
 import { today } from "../domain/date";
 import {
   duplicate,
@@ -26,7 +26,13 @@ function glowMs(): number {
    hero, .drawer-title, .drawer-meta, .drawer-description, .drawer-action-dock.
    The 16:9 photo hero becomes a centered 2:3 cover (benchmark: Goodreads /
    StoryGraph book page). */
-export function BookSheet({ book, onClose }: { book: Book | CatalogBook; onClose: () => void }) {
+export function BookSheet({
+  book,
+  onClose,
+}: {
+  book: Book | CatalogBook | SharedBook;
+  onClose: () => void;
+}) {
   const { user } = useSession();
   const queryClient = useQueryClient();
   const queryKey = ["books", user?.id];

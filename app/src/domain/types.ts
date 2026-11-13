@@ -27,3 +27,11 @@ export type CatalogBook = Pick<
   source: "openlibrary" | "google";
   externalId: string;
 };
+
+/* Row of public.most_read_books(): one shared book, counts only, no identities. */
+export type SharedBook = Omit<CatalogBook, "source" | "externalId"> & {
+  source: Book["source"];
+  externalId: string | null;
+  leiCount: number;
+  quieroCount: number;
+};

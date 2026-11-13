@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgregarRouteImport } from './routes/agregar'
 import { Route as EntrarRouteImport } from './routes/entrar'
+import { Route as GiladaRouteImport } from './routes/gilada'
 import { Route as VosRouteImport } from './routes/vos'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +30,11 @@ const EntrarRoute = EntrarRouteImport.update({
   path: '/entrar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GiladaRoute = GiladaRouteImport.update({
+  id: '/gilada',
+  path: '/gilada',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VosRoute = VosRouteImport.update({
   id: '/vos',
   path: '/vos',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agregar': typeof AgregarRoute
   '/entrar': typeof EntrarRoute
+  '/gilada': typeof GiladaRoute
   '/vos': typeof VosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agregar': typeof AgregarRoute
   '/entrar': typeof EntrarRoute
+  '/gilada': typeof GiladaRoute
   '/vos': typeof VosRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,22 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/agregar': typeof AgregarRoute
   '/entrar': typeof EntrarRoute
+  '/gilada': typeof GiladaRoute
   '/vos': typeof VosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/agregar' | '/entrar' | '/vos'
+  fullPaths: '/' | '/agregar' | '/entrar' | '/gilada' | '/vos'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/agregar' | '/entrar' | '/vos'
-  id: '__root__' | '/' | '/agregar' | '/entrar' | '/vos'
+  to: '/' | '/agregar' | '/entrar' | '/gilada' | '/vos'
+  id: '__root__' | '/' | '/agregar' | '/entrar' | '/gilada' | '/vos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgregarRoute: typeof AgregarRoute
   EntrarRoute: typeof EntrarRoute
+  GiladaRoute: typeof GiladaRoute
   VosRoute: typeof VosRoute
 }
 
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EntrarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/gilada': {
+      id: '/gilada'
+      path: '/gilada'
+      fullPath: '/gilada'
+      preLoaderRoute: typeof GiladaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/vos': {
       id: '/vos'
       path: '/vos'
@@ -106,6 +123,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgregarRoute: AgregarRoute,
   EntrarRoute: EntrarRoute,
+  GiladaRoute: GiladaRoute,
   VosRoute: VosRoute,
 }
 export const routeTree = rootRouteImport
