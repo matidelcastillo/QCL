@@ -144,11 +144,3 @@ export async function profileName(ownerId: string): Promise<string> {
   if (error) throw error;
   return data.name ?? "";
 }
-
-export async function saveProfileName(ownerId: string, name: string): Promise<void> {
-  const { error } = await browserSupabase()
-    .from("profiles")
-    .update({ name: name.trim() })
-    .eq("id", ownerId);
-  if (error) throw error;
-}

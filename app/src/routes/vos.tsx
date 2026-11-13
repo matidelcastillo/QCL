@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, type FormEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import type { Book } from "../domain/types";
-import { profileName, saveProfileName } from "../data/library";
+import { profileName } from "../data/library";
 import { signOut } from "../data/auth-actions";
 import { useSession } from "../data/session-context";
 import { useBooks } from "../data/use-books";
@@ -17,18 +17,15 @@ export const Route = createFileRoute("/vos")({ component: Profile });
 function Profile() {
   const { user } = useSession();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const books = useBooks(user?.id);
   const profile = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: () => profileName(user!.id),
     enabled: Boolean(user),
   });
-  const [name, setName] = useState("");
   const [selected, setSelected] = useState<Book | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  useEffect(() => setName(profile.data ?? ""), [profile.data]);
 
   const library = books.data ?? [];
   const want = library.filter((book) => book.status === "quiero").length;
@@ -36,21 +33,6 @@ function Profile() {
   const latest = read
     .filter((book) => book.read_at)
     .sort((a, b) => (b.read_at ?? "").localeCompare(a.read_at ?? ""))[0];
-
-  async function save(event: FormEvent) {
-    event.preventDefault();
-    if (!user) return;
-    setBusy(true);
-    setError("");
-    try {
-      await saveProfileName(user.id, name);
-      await queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
-    } catch {
-      setError("No pudimos guardar.");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function leave() {
     setBusy(true);
@@ -101,23 +83,6 @@ function Profile() {
             )}
           </>
         )}
-        <form className="stack" onSubmit={(event) => void save(event)}>
-          <input
-            className="qc-auth-email-input"
-            aria-label="Nombre"
-            placeholder="Nombre"
-            autoComplete="name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
-          <button
-            type="submit"
-            className={buttonClass("primary", true)}
-            disabled={busy || name.trim() === (profile.data ?? "")}
-          >
-            Guardar
-          </button>
-        </form>
         <button
           type="button"
           className={buttonClass("secondary", true)}
