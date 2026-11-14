@@ -4,7 +4,11 @@ import { allowedCoverUrl, fetchCover } from "./cover";
 
 /* Bump when the CatalogBook shape or cleaning rules change, so cached
    responses from an older worker are not served. */
-const CATALOG_SCHEMA = "3";
+const CATALOG_SCHEMA = "4";
+
+/* Worker bindings. GOOGLE_BOOKS_API_KEY is a secret; without it Google Books
+   is called keyless (shared quota). */
+export type Env = { GOOGLE_BOOKS_API_KEY?: string };
 
 const json = (body: unknown, status = 200, cache = "no-store") =>
   new Response(JSON.stringify(body), {
@@ -12,7 +16,7 @@ const json = (body: unknown, status = 200, cache = "no-store") =>
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": cache },
   });
 
-export async function apiResponse(request: Request): Promise<Response | null> {
+export async function apiResponse(request: Request, env: Env = {}): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.pathname !== "/api/libros" && url.pathname !== "/api/tapa") return null;
   if (request.method !== "GET") return json({ error: "Método no permitido." }, 405);
@@ -34,7 +38,7 @@ export async function apiResponse(request: Request): Promise<Response | null> {
     if (hit) return hit;
     let results;
     try {
-      results = await searchCatalog(query, isbn);
+      results = await searchCatalog(query, isbn, env.GOOGLE_BOOKS_API_KEY);
     } catch (error) {
       /* Errors are never cached: the next search retries the providers. */
       return error instanceof CatalogUnavailable

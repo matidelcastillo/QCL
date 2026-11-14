@@ -75,3 +75,18 @@ test("one provider answering still returns results", async () => {
   expect(openLibrary?.status).toBe(200);
   expect(((await openLibrary?.json()) as { results: unknown[] }).results.length).toBeGreaterThan(0);
 });
+
+test("Google Books gets the key only when the secret is set", async () => {
+  const googleUrls: string[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.startsWith("https://www.googleapis.com/")) googleUrls.push(url);
+    return new Response("", { status: 404 });
+  }) as typeof fetch;
+  await apiResponse(new Request(`${base}/api/libros?q=mafalda`), {
+    GOOGLE_BOOKS_API_KEY: "test-key",
+  });
+  await apiResponse(new Request(`${base}/api/libros?q=mafalda`));
+  expect(new URL(googleUrls[0]).searchParams.get("key")).toBe("test-key");
+  expect(new URL(googleUrls[1]).searchParams.has("key")).toBe(false);
+});

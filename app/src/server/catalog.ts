@@ -162,12 +162,17 @@ async function openLibrary(query: string, isbn: string | null): Promise<SourceRe
   return { ok: search.ok, books };
 }
 
-async function google(query: string, isbn: string | null): Promise<SourceResult> {
+async function google(
+  query: string,
+  isbn: string | null,
+  key: string | undefined,
+): Promise<SourceResult> {
   const params = new URLSearchParams({
     q: isbn ? `isbn:${isbn}` : query,
     printType: "books",
     maxResults: "20",
   });
+  if (key) params.set("key", key);
   const result = await getJson(`https://www.googleapis.com/books/v1/volumes?${params}`);
   return { ok: result.ok, books: googleBooks(result.data) };
 }
@@ -282,9 +287,10 @@ export class CatalogUnavailable extends Error {
 export async function searchCatalog(
   query: string,
   rawIsbn?: string | null,
+  googleKey?: string,
 ): Promise<CatalogBook[]> {
   const isbn = rawIsbn ? normalizeIsbn(rawIsbn) : null;
-  const results = await Promise.all([openLibrary(query, isbn), google(query, isbn)]);
+  const results = await Promise.all([openLibrary(query, isbn), google(query, isbn, googleKey)]);
   if (results.every((result) => !result.ok)) throw new CatalogUnavailable();
   const merged = mergeBooks(
     query,
