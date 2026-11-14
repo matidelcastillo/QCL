@@ -46,7 +46,7 @@ async function getJson(url: string): Promise<{ ok: boolean; data: unknown }> {
       signal: AbortSignal.timeout(8000),
       headers: { accept: "application/json" },
     });
-    if (!response.ok) return { ok: response.status === 429, data: null };
+    if (!response.ok) return { ok: false, data: null };
     return { ok: true, data: await response.json() };
   } catch {
     return { ok: false, data: null };
@@ -271,13 +271,21 @@ async function withVerifiedCover(book: CatalogBook): Promise<CatalogBook> {
   return (await editionCover(book)) ?? { ...book, coverUrl: null };
 }
 
+/* Throws CatalogUnavailable only when every provider failed (429, 5xx,
+   network); one provider answering is enough to return results. */
+export class CatalogUnavailable extends Error {
+  constructor() {
+    super("catalog_unavailable");
+  }
+}
+
 export async function searchCatalog(
   query: string,
   rawIsbn?: string | null,
 ): Promise<CatalogBook[]> {
   const isbn = rawIsbn ? normalizeIsbn(rawIsbn) : null;
   const results = await Promise.all([openLibrary(query, isbn), google(query, isbn)]);
-  if (results.every((result) => !result.ok)) throw new Error("catalog_unavailable");
+  if (results.every((result) => !result.ok)) throw new CatalogUnavailable();
   const merged = mergeBooks(
     query,
     results.map((result) => result.books),

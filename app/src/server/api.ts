@@ -1,5 +1,5 @@
 import { normalizeIsbn } from "../domain/isbn";
-import { searchCatalog } from "./catalog";
+import { CatalogUnavailable, searchCatalog } from "./catalog";
 import { allowedCoverUrl, fetchCover } from "./cover";
 
 /* Bump when the CatalogBook shape or cleaning rules change, so cached
@@ -32,21 +32,22 @@ export async function apiResponse(request: Request): Promise<Response | null> {
     const key = new Request(cacheUrl.toString(), { method: "GET" });
     const hit = await cache?.match(key);
     if (hit) return hit;
+    let results;
     try {
-      const response = json(
-        { results: await searchCatalog(query, isbn) },
-        200,
-        "public, max-age=3600",
-      );
-      try {
-        await cache?.put(key, response.clone());
-      } catch {
-        /* Cache is best effort. */
-      }
-      return response;
-    } catch {
-      return json({ error: "No se pudo buscar." }, 502);
+      results = await searchCatalog(query, isbn);
+    } catch (error) {
+      /* Errors are never cached: the next search retries the providers. */
+      return error instanceof CatalogUnavailable
+        ? json({ error: "Catálogo no disponible." }, 503)
+        : json({ error: "No se pudo buscar." }, 502);
     }
+    const response = json({ results }, 200, "public, max-age=3600");
+    try {
+      await cache?.put(key, response.clone());
+    } catch {
+      /* Cache is best effort. */
+    }
+    return response;
   }
   const coverUrl = allowedCoverUrl(url.searchParams.get("u") ?? "");
   if (!coverUrl) return json({ error: "Tapa inválida." }, 400);

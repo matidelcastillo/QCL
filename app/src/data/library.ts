@@ -14,18 +14,23 @@ export async function listBooks(ownerId: string): Promise<Book[]> {
   return (data ?? []) as Book[];
 }
 
-/* Same book = same ISBN, or same normalized title + author when there is no ISBN. */
+/* Same book = same ISBN, or same normalized title + author (identity(),
+   mirrored in SQL by private.book_identity) whether or not either side has
+   an ISBN. */
 export function duplicate(
   books: Book[],
   candidate: { title: string; author: string; isbn?: string | null },
 ): Book | undefined {
-  if (candidate.isbn) return books.find((book) => book.isbn === candidate.isbn);
+  const title = identity(candidate.title);
+  const author = identity(candidate.author);
   return books.find(
     (book) =>
-      identity(book.title) === identity(candidate.title) &&
-      identity(book.author) === identity(candidate.author),
+      (candidate.isbn && book.isbn === candidate.isbn) ||
+      (identity(book.title) === title && identity(book.author) === author),
   );
 }
+
+const UNIQUE_VIOLATION = "23505";
 
 export type NewBook = Pick<
   Book,
@@ -106,6 +111,11 @@ export async function ensureBook(
     })
     .select("*")
     .single();
+  if (error?.code === UNIQUE_VIOLATION) {
+    /* books_owner_isbn_unique: another tab saved it first. */
+    const saved = duplicate(await listBooks(ownerId), input);
+    if (saved) return saved;
+  }
   if (error) throw error;
   return data as Book;
 }

@@ -6,7 +6,10 @@ import { buttonClass } from "../components/button";
 
 export const Route = createFileRoute("/entrar")({ component: Enter });
 
+const NEEDS_CONFIRMATION = "signup_requires_confirmation";
+
 function errorMessage(message: string) {
+  if (message === NEEDS_CONFIRMATION) return "Revisá tu mail.";
   if (/already registered|already exists|user already/i.test(message))
     return "Ese email ya tiene cuenta.";
   if (/invalid login|invalid credentials|password/i.test(message))
@@ -33,7 +36,7 @@ function Enter() {
           ? await client.auth.signInWithPassword({ email, password })
           : await client.auth.signUp({ email, password, options: { data: { name: name.trim() } } });
       if (result.error) throw result.error;
-      if (!result.data.session) throw new Error("signup_requires_confirmation");
+      if (!result.data.session) throw new Error(NEEDS_CONFIRMATION);
       await navigate({ to: "/" });
     } catch (cause) {
       setError(errorMessage(cause instanceof Error ? cause.message : ""));
