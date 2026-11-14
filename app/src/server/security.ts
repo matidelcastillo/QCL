@@ -1,6 +1,6 @@
 // Security headers for every worker response.
 // Covers come through /api/tapa (same origin), so img-src only needs 'self'.
-// The camera stream (BarcodeDetector / bundled ZXing) needs no CSP source.
+// The barcode reader (zxing-wasm, .wasm from 'self') needs 'wasm-unsafe-eval'.
 const SUPABASE_ORIGIN = "https://mdytuysdombxyydqnsmj.supabase.co";
 
 type ElementHandler = {
@@ -23,7 +23,7 @@ export const STATIC_HEADERS: Record<string, string> = {
 export function contentSecurityPolicy(nonce: string) {
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}'`,
+    `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval'`,
     "style-src 'self' https://fonts.googleapis.com",
     "font-src https://fonts.gstatic.com",
     "img-src 'self' data:",

@@ -19,7 +19,8 @@ describe("security", () => {
   test("csp allows only app origins", () => {
     const csp = contentSecurityPolicy("abc");
     expect(csp).toContain("connect-src 'self' https://mdytuysdombxyydqnsmj.supabase.co");
-    expect(csp).toContain("script-src 'self' 'nonce-abc'");
-    expect(csp).not.toContain("unsafe");
+    expect(csp).toContain("script-src 'self' 'nonce-abc' 'wasm-unsafe-eval'");
+    expect(csp).not.toContain("'unsafe-inline'");
+    expect(csp).not.toContain("'unsafe-eval'");
   });
 });

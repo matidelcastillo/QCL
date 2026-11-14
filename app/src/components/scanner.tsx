@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BarcodeFormat, BrowserMultiFormatReader, DecodeHintType } from "@zxing/library";
 import { Flashlight, FlashlightOff, X, ZoomIn } from "lucide-react";
 import { normalizeIsbn } from "../domain/isbn";
+import { guideCrop } from "../domain/scan-crop";
+import { preloadReader, readIsbn } from "./barcode-reader";
 import { buttonClass } from "./button";
 import { Sheet } from "./sheet";
 
-type Detector = { detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue: string }>> };
-type DetectorConstructor = new (options: { formats: string[] }) => Detector;
 type CameraCapabilities = MediaTrackCapabilities & {
   torch?: boolean;
   zoom?: { min: number; max: number };
+  focusMode?: string[];
 };
+
+const SCAN_INTERVAL_MS = 120;
 
 export function Scanner({
   onClose,
@@ -20,9 +22,9 @@ export function Scanner({
   onFound: (isbn: string) => void;
 }) {
   const video = useRef<HTMLVideoElement>(null);
+  const guide = useRef<HTMLSpanElement>(null);
   const stream = useRef<MediaStream | null>(null);
-  const codeReader = useRef<BrowserMultiFormatReader | null>(null);
-  const frame = useRef<number | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const accepted = useRef(false);
   const [manual, setManual] = useState("");
   const [noCamera, setNoCamera] = useState(false);
@@ -35,8 +37,7 @@ export function Scanner({
   onFoundRef.current = onFound;
 
   const stop = useCallback(() => {
-    if (frame.current != null) cancelAnimationFrame(frame.current);
-    codeReader.current?.reset();
+    if (timer.current != null) clearTimeout(timer.current);
     stream.current?.getTracks().forEach((track) => track.stop());
     stream.current = null;
   }, []);
@@ -55,57 +56,75 @@ export function Scanner({
 
   useEffect(() => {
     let alive = true;
-    async function start() {
-      try {
-        const media = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
-          audio: false,
-        });
-        if (!alive) {
-          media.getTracks().forEach((track) => track.stop());
-          return;
-        }
-        stream.current = media;
-        const element = video.current;
-        if (!element) return;
-        element.srcObject = media;
-        await element.play();
-        const track = media.getVideoTracks()[0];
-        const caps = track.getCapabilities?.() as CameraCapabilities | undefined;
-        setCanTorch(Boolean(caps?.torch));
-        setCanZoom(Boolean(caps?.zoom));
-        const NativeDetector = (window as Window & { BarcodeDetector?: DetectorConstructor })
-          .BarcodeDetector;
-        if (NativeDetector) {
-          const detector = new NativeDetector({ formats: ["ean_13", "ean_8", "upc_a"] });
-          const scan = async () => {
-            if (!alive || accepted.current) return;
-            try {
-              for (const result of await detector.detect(element)) found(result.rawValue);
-            } catch {
-              /* Keep scanning. */
-            }
-            frame.current = requestAnimationFrame(() => void scan());
-          };
-          frame.current = requestAnimationFrame(() => void scan());
-        } else {
-          const hints = new Map([
-            [
-              DecodeHintType.POSSIBLE_FORMATS,
-              [BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A],
-            ],
-          ]);
-          const reader = new BrowserMultiFormatReader(hints);
-          codeReader.current = reader;
-          await reader.decodeFromVideoElementContinuously(element, (result) => {
-            if (result) found(result.getText());
-          });
-        }
-      } catch {
-        if (alive) setNoCamera(true);
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+
+    /* Decodes only the guide area, then schedules the next frame. */
+    async function scan(element: HTMLVideoElement) {
+      const box = guide.current;
+      if (!alive || accepted.current) return;
+      if (context && box && element.videoWidth > 0) {
+        const crop = guideCrop(
+          { width: element.videoWidth, height: element.videoHeight },
+          element.getBoundingClientRect(),
+          box.getBoundingClientRect(),
+        );
+        canvas.width = crop.width;
+        canvas.height = crop.height;
+        context.drawImage(
+          element,
+          crop.x,
+          crop.y,
+          crop.width,
+          crop.height,
+          0,
+          0,
+          crop.width,
+          crop.height,
+        );
+        const isbn = await readIsbn(context.getImageData(0, 0, crop.width, crop.height));
+        if (isbn) found(isbn);
       }
+      if (alive && !accepted.current)
+        timer.current = setTimeout(() => void scan(element).catch(noReader), SCAN_INTERVAL_MS);
     }
-    void start();
+
+    function noReader() {
+      if (alive) setNoCamera(true);
+    }
+
+    async function start() {
+      preloadReader();
+      const media = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+        audio: false,
+      });
+      if (!alive) {
+        media.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      stream.current = media;
+      const track = media.getVideoTracks()[0];
+      const caps = track.getCapabilities?.() as CameraCapabilities | undefined;
+      /* Continuous autofocus where the browser exposes it (Android); iOS focuses on its own. */
+      if (caps?.focusMode?.includes("continuous"))
+        await track
+          .applyConstraints({ advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet] })
+          .catch(() => undefined);
+      setCanTorch(Boolean(caps?.torch));
+      setCanZoom(Boolean(caps?.zoom));
+      const element = video.current;
+      if (!element) return;
+      element.srcObject = media;
+      await element.play();
+      await scan(element);
+    }
+
+    start().catch(noReader);
     return () => {
       alive = false;
       stop();
@@ -151,7 +170,7 @@ export function Scanner({
               autoPlay
               aria-label="Cámara"
             />
-            <span className="scanner-guide" aria-hidden="true" />
+            <span ref={guide} className="scanner-guide" aria-hidden="true" />
           </div>
         )}
         <div className="drawer-action-dock">
