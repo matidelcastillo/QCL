@@ -9,4 +9,10 @@ export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
+  /* Worker bindings (secrets) are read from the workerd runtime module. */
+  vite: {
+    environments: {
+      ssr: { build: { rollupOptions: { external: ["cloudflare:workers"] } } },
+    },
+  },
 });

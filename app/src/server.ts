@@ -1,3 +1,4 @@
+import { env as bindings } from "cloudflare:workers";
 import { apiResponse, type Env } from "./server/api";
 import { httpsRedirect, secure } from "./server/security";
 
@@ -7,7 +8,9 @@ type Entry = {
 let entry: Promise<Entry> | undefined;
 
 async function handle(request: Request, env: Env, context: unknown) {
-  const api = await apiResponse(request, env);
+  /* Nitro calls this entry with the request only, so worker bindings
+     (secrets) come from cloudflare:workers, not from the fetch arguments. */
+  const api = await apiResponse(request, bindings as Env);
   if (api) return api;
   entry ??= import("@tanstack/react-start/server-entry").then(
     (module) => (module.default ?? module) as Entry,

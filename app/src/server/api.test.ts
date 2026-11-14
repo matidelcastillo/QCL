@@ -90,3 +90,16 @@ test("Google Books gets the key only when the secret is set", async () => {
   expect(new URL(googleUrls[0]).searchParams.get("key")).toBe("test-key");
   expect(new URL(googleUrls[1]).searchParams.has("key")).toBe(false);
 });
+
+test("an ISBN typed in q uses the ISBN lookup with country", async () => {
+  const googleUrls: string[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.startsWith("https://www.googleapis.com/")) googleUrls.push(url);
+    return new Response("", { status: 404 });
+  }) as typeof fetch;
+  await apiResponse(new Request(`${base}/api/libros?q=84-7189-314-2`));
+  const params = new URL(googleUrls[0]).searchParams;
+  expect(params.get("q")).toBe("isbn:9788471893147");
+  expect(params.get("country")).toBe("AR");
+});

@@ -46,9 +46,14 @@ async function getJson(url: string): Promise<{ ok: boolean; data: unknown }> {
       signal: AbortSignal.timeout(8000),
       headers: { accept: "application/json" },
     });
-    if (!response.ok) return { ok: false, data: null };
+    if (!response.ok) {
+      /* Host and status only: the query string can carry the API key. */
+      console.warn(`catalog ${new URL(url).host} ${response.status}`);
+      return { ok: false, data: null };
+    }
     return { ok: true, data: await response.json() };
-  } catch {
+  } catch (error) {
+    console.warn(`catalog ${new URL(url).host} ${error instanceof Error ? error.name : "error"}`);
     return { ok: false, data: null };
   }
 }
@@ -171,6 +176,9 @@ async function google(
     q: isbn ? `isbn:${isbn}` : query,
     printType: "books",
     maxResults: "20",
+    /* Workers egress has no usable geolocation and Books API refuses
+       geo-restricted requests without a country. */
+    country: "AR",
   });
   if (key) params.set("key", key);
   const result = await getJson(`https://www.googleapis.com/books/v1/volumes?${params}`);
@@ -185,6 +193,9 @@ function rank(book: CatalogBook, query: string): number {
   for (const word of q.split(" ")) if (word && content.includes(word)) score += 2;
   if (book.coverUrl) score += 2;
   if (book.isbn) score += 1;
+  /* Same ISBN can come back in several scripts (Google lists an Arabic
+     record for a Spanish edition); keep the one written in Latin script. */
+  if (title) score += 1;
   return score;
 }
 

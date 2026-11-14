@@ -38,3 +38,21 @@ test("catalog keeps the Open Library cover over Google's", () => {
   };
   expect(mergeBooks("Ficciones", [[openLibrary], [google]])[0].coverUrl).toBe(openLibrary.coverUrl);
 });
+
+test("same ISBN in another script keeps the Latin-script record", () => {
+  const arabic: CatalogBook = {
+    ...base,
+    title: "الأمير الصغير",
+    author: "سانت أكزوبري",
+    source: "google",
+    externalId: "g-ar",
+  };
+  const latin: CatalogBook = {
+    ...base,
+    title: "El princiito",
+    source: "google",
+    externalId: "g-es",
+  };
+  const [book] = mergeBooks(base.isbn!, [[], [arabic, latin]]);
+  expect(book.title).toBe("El princiito");
+});

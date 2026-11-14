@@ -4,7 +4,7 @@ import { allowedCoverUrl, fetchCover } from "./cover";
 
 /* Bump when the CatalogBook shape or cleaning rules change, so cached
    responses from an older worker are not served. */
-const CATALOG_SCHEMA = "4";
+const CATALOG_SCHEMA = "5";
 
 /* Worker bindings. GOOGLE_BOOKS_API_KEY is a secret; without it Google Books
    is called keyless (shared quota). */
@@ -22,9 +22,11 @@ export async function apiResponse(request: Request, env: Env = {}): Promise<Resp
   if (request.method !== "GET") return json({ error: "Método no permitido." }, 405);
   if (url.pathname === "/api/libros") {
     const isbnInput = url.searchParams.get("isbn");
-    const isbn = isbnInput ? normalizeIsbn(isbnInput) : null;
-    if (isbnInput && !isbn) return json({ error: "ISBN inválido." }, 400);
-    const query = (isbn ?? url.searchParams.get("q") ?? "").trim();
+    if (isbnInput && !normalizeIsbn(isbnInput)) return json({ error: "ISBN inválido." }, 400);
+    /* A typed ISBN in q gets the ISBN lookup too (Google needs isbn:). */
+    const text = (url.searchParams.get("q") ?? "").trim();
+    const isbn = normalizeIsbn(isbnInput ?? text);
+    const query = isbn ?? text;
     if (!query) return json({ results: [] }, 200, "public, max-age=3600");
     if (query.length > 200) return json({ error: "Búsqueda muy larga." }, 400);
     const cache =
