@@ -159,7 +159,7 @@ export function Scanner({
 
   return (
     <Sheet onClose={onClose} label="Escanear">
-      <div className="drawer-body drawer-body-enter stack">
+      <div className="drawer-body drawer-body-enter stack scanner-body">
         {noCamera ? (
           <p className="scanner-note">Sin cámara. Escribí el ISBN.</p>
         ) : (
@@ -174,6 +174,37 @@ export function Scanner({
             />
             <span ref={guide} className="scanner-guide" aria-hidden="true" />
           </div>
+        )}
+        <form
+          className="scanner-manual"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const isbn = normalizeIsbn(manual);
+            if (isbn) found(isbn);
+            else setError("ISBN inválido.");
+          }}
+        >
+          <input
+            className="qc-auth-email-input"
+            inputMode="numeric"
+            enterKeyHint="search"
+            placeholder="ISBN"
+            aria-label="ISBN"
+            autoComplete="off"
+            value={manual}
+            onChange={(event) => {
+              setManual(event.target.value);
+              setError("");
+            }}
+          />
+          <button type="submit" className={buttonClass("primary")}>
+            Buscar
+          </button>
+        </form>
+        {error && (
+          <p className="error-text" role="alert">
+            {error}
+          </p>
         )}
         <div className="drawer-action-dock">
           {canTorch && (
@@ -205,37 +236,6 @@ export function Scanner({
             <X className="drawer-action-icon" strokeWidth={2} aria-hidden="true" />
           </button>
         </div>
-        <form
-          className="stack"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const isbn = normalizeIsbn(manual);
-            if (isbn) found(isbn);
-            else setError("ISBN inválido.");
-          }}
-        >
-          <input
-            className="qc-auth-email-input"
-            inputMode="numeric"
-            enterKeyHint="search"
-            placeholder="ISBN"
-            aria-label="ISBN"
-            autoComplete="off"
-            value={manual}
-            onChange={(event) => {
-              setManual(event.target.value);
-              setError("");
-            }}
-          />
-          <button type="submit" className={buttonClass("primary", true)}>
-            Buscar
-          </button>
-          {error && (
-            <p className="error-text" role="alert">
-              {error}
-            </p>
-          )}
-        </form>
       </div>
     </Sheet>
   );

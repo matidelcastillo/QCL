@@ -270,6 +270,9 @@
 
   /* Only value with no QC equivalent: a book cover's physical ratio. */
   --qcl-cover-ratio: 2 / 3;
+  /* Scanner camera: 4:3 landscape, at most 40% of the visible viewport. */
+  --qcl-scanner-ratio: 4 / 3;
+  --qcl-scanner-max-h: 40dvh;
 }
 
 /* QC styles.css l. 223-227. */

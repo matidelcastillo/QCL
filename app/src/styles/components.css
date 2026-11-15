@@ -809,10 +809,28 @@ button:disabled {
 .scanner-frame {
   position: relative;
 }
+/* Landscape frame (barcodes are horizontal) capped by viewport height, so
+   camera, ISBN row and dock fit a phone without scrolling. */
 .scanner-video {
   display: block;
   width: 100%;
+  aspect-ratio: var(--qcl-scanner-ratio);
+  max-height: var(--qcl-scanner-max-h);
   border-radius: var(--radius-card);
+  object-fit: cover;
+}
+.scanner-manual {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.scanner-manual .qc-auth-email-input {
+  flex: 1;
+  min-width: 0;
+}
+/* .drawer-body already pads the bottom (safe area included). */
+.scanner-body .drawer-action-dock {
+  margin-bottom: 0;
 }
 .scanner-guide {
   position: absolute;
