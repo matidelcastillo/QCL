@@ -178,6 +178,40 @@
   --media-card-shadow-compact:
     0 2px 4px rgba(10, 10, 10, 0.1), 0 8px 14px -8px rgba(10, 10, 10, 0.28);
   --filter-action-icon-size: 24px;
+  --filter-action-icon-offset-y: 2px;
+  --drawer-control-visual-size: 40px;
+  --timeline-day-gap: var(--space-4);
+  --timeline-label-card-gap: var(--space-4);
+  --timeline-card-gap: var(--space-6);
+  --media-card-light-wash: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.28) 0%,
+    rgba(255, 255, 255, 0.16) 8%,
+    rgba(255, 255, 255, 0.08) 24%,
+    rgba(255, 255, 255, 0.02) 52%,
+    rgba(255, 255, 255, 0) 82%
+  );
+  --media-card-depth-wash: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.92) 0%,
+    rgba(0, 0, 0, 0.72) 6%,
+    rgba(0, 0, 0, 0.46) 18%,
+    rgba(0, 0, 0, 0.18) 42%,
+    rgba(0, 0, 0, 0) 72%
+  );
+  /* QC routes/index.tsx l. 166 (R.cardSm) and l. 2260-2370: events grid tile. */
+  --qcl-tile-radius: 14px;
+  --qcl-tile-inset: 14px;
+  --qcl-tile-title-size: 19px;
+  --qcl-tile-title-leading: 1.05;
+  --qcl-tile-title-tracking: -0.025em;
+  --qcl-tile-marker-size: 32px;
+  --qcl-tile-marker-inset: 10px;
+  --qcl-tile-marker-icon: 17px;
+  /* QC styles.css l. 2198-2212: cardEnter stagger. */
+  --qcl-card-enter-offset: 12px;
+  --qcl-card-enter-step: 45ms;
+  --qcl-card-enter-cap: 12;
   --drawer-cta-gap: var(--space-6);
   --media-title-size: 22px;
   --media-title-weight: 800;

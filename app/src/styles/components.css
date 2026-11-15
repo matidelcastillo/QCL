@@ -841,6 +841,16 @@ button:disabled {
     transform: translateY(0);
   }
 }
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--qcl-card-enter-offset));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 @keyframes contentFade {
   from {
     opacity: 0;
@@ -902,12 +912,121 @@ button:disabled {
 }
 
 /* Home rows under the brand header: QC routes/index.tsx l. 1896-1905
-   (tabs row) and l. 1740-1760 (feed starts S.l below). */
+   (tabs row); the feed starts 32px below, like QC's timeline (topPad) and
+   grid (padding 32px top). */
 .filter-row {
   display: flex;
   align-items: center;
   gap: var(--space-1);
 }
 .feed {
-  padding-top: var(--space-4);
+  padding-top: var(--space-8);
+}
+
+/* View toggle: QC routes/index.tsx l. 1941-1968 + styles.css .filter-action-icon. */
+.filter-action-icon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--drawer-control-visual-size);
+  height: var(--drawer-control-visual-size);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--qcl-orange);
+}
+.filter-action-glyph {
+  display: flex;
+}
+.filter-action-icon svg {
+  width: var(--filter-action-icon-size);
+  height: var(--filter-action-icon-size);
+  transform: translateY(var(--filter-action-icon-offset-y));
+}
+
+/* Feed groups: QC AgendaTimeline day label (routes/index.tsx l. 3610-3640):
+   heading-size orange label, lowercase, not sticky, gaps from the timeline
+   tokens; the last group owns no bottom gap. */
+.feed-group:not(:last-child) {
+  margin-bottom: var(--timeline-day-gap);
+}
+.feed-group-label {
+  margin: 0;
+  padding-bottom: var(--timeline-label-card-gap);
+  color: var(--qcl-orange);
+  font-size: var(--text-heading-l);
+  font-weight: var(--qcl-heading-weight);
+  letter-spacing: var(--qcl-heading-tracking);
+  line-height: var(--qcl-heading-leading);
+}
+
+/* Grid: QC events grid (routes/index.tsx l. 2235-2380), two columns. */
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--timeline-card-gap);
+}
+.book-tile {
+  position: relative;
+  display: block;
+  aspect-ratio: var(--qcl-cover-ratio);
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--qcl-tile-radius);
+  background: var(--black);
+  color: var(--white);
+  text-align: left;
+}
+.cover-tile {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+.media-card-treatment-compact {
+  box-shadow: var(--media-card-shadow-compact);
+}
+.media-card-surface {
+  position: absolute;
+  inset: 0;
+  background: var(--media-card-light-wash), var(--media-card-depth-wash);
+  pointer-events: none;
+}
+.book-tile-status {
+  position: absolute;
+  top: var(--qcl-tile-marker-inset);
+  right: var(--qcl-tile-marker-inset);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: var(--qcl-tile-marker-size);
+  height: var(--qcl-tile-marker-size);
+  border: var(--qcl-hairline) solid var(--qcl-border-white);
+  border-radius: 50%;
+}
+.book-tile-status svg {
+  width: var(--qcl-tile-marker-icon);
+  height: var(--qcl-tile-marker-icon);
+}
+.book-tile-title {
+  position: absolute;
+  right: var(--qcl-tile-inset);
+  bottom: var(--qcl-tile-inset);
+  left: var(--qcl-tile-inset);
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--qcl-tile-title-size);
+  font-weight: var(--qcl-heading-weight);
+  line-height: var(--qcl-tile-title-leading);
+  letter-spacing: var(--qcl-tile-title-tracking);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+/* QC .qcba-card-enter: `backwards` so the press transform is free after. */
+.card-enter {
+  animation: cardEnter var(--dur-enter) var(--ease-enter) backwards;
+  animation-delay: calc(min(var(--i, 0), var(--qcl-card-enter-cap)) * var(--qcl-card-enter-step));
 }

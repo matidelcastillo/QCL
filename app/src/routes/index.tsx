@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { LayoutGrid, List } from "lucide-react";
 import { useState } from "react";
+import { groupByGenre } from "../domain/genre";
 import type { Book, BookStatus } from "../domain/types";
 import { useSession } from "../data/session-context";
 import { useBooks } from "../data/use-books";
@@ -7,10 +9,12 @@ import { useProfileName } from "../data/use-profile-name";
 import { BrandHeader } from "../components/brand-header";
 import { BookRow } from "../components/book-row";
 import { BookSheet } from "../components/book-sheet";
+import { BookTile } from "../components/book-tile";
 import { EmptyState, LoadError, LoadingRows } from "../components/feedback";
 import { buttonClass } from "../components/button";
 
 type Filter = "todos" | BookStatus;
+type View = "list" | "grid";
 const filters: Array<[Filter, string]> = [
   ["todos", "Todos"],
   ["quiero", "Quiero"],
@@ -23,13 +27,16 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-/* QC routes/index.tsx home: brand header, filter tabs row, feed. */
+/* QC routes/index.tsx home: brand header, filter tabs row with the view
+   toggle (l. 1941-1968, not persisted, like QC), feed grouped by genre the
+   way QC groups the feed by day (AgendaTimeline l. 3536-3640). */
 function Home() {
   const { user } = useSession();
   const { f } = Route.useSearch();
   const navigate = useNavigate();
   const filter: Filter = f ?? "todos";
   const [selected, setSelected] = useState<Book | null>(null);
+  const [view, setView] = useState<View>("list");
   const books = useBooks(user?.id);
   const name = useProfileName(user?.id).data?.trim();
   const visible = (books.data ?? []).filter((book) => filter === "todos" || book.status === filter);
@@ -57,6 +64,17 @@ function Home() {
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          className="filter-action-icon"
+          aria-label={view === "list" ? "Ver libros en grilla" : "Ver libros en lista"}
+          title={view === "list" ? "Ver libros en grilla" : "Ver libros en lista"}
+          onClick={() => setView((current) => (current === "list" ? "grid" : "list"))}
+        >
+          <span key={view} className="content-fade filter-action-glyph">
+            {view === "list" ? <LayoutGrid aria-hidden="true" /> : <List aria-hidden="true" />}
+          </span>
+        </button>
       </div>
       <section className="feed app-gutter">
         {books.isPending ? (
@@ -64,9 +82,27 @@ function Home() {
         ) : books.isError ? (
           <LoadError retry={() => void books.refetch()} />
         ) : visible.length > 0 ? (
-          <div key={filter} className="content-fade">
-            {visible.map((book) => (
-              <BookRow key={book.id} book={book} onOpen={() => setSelected(book)} />
+          <div key={`${filter}-${view}`} className="content-fade">
+            {groupByGenre(visible).map(([genre, items]) => (
+              <section key={genre} className="feed-group" aria-label={genre}>
+                <h2 className="feed-group-label">{genre.toLowerCase()}</h2>
+                {view === "grid" ? (
+                  <div className="book-grid">
+                    {items.map((book, index) => (
+                      <BookTile
+                        key={book.id}
+                        book={book}
+                        index={index}
+                        onOpen={() => setSelected(book)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  items.map((book) => (
+                    <BookRow key={book.id} book={book} onOpen={() => setSelected(book)} />
+                  ))
+                )}
+              </section>
             ))}
           </div>
         ) : filter === "todos" ? (

@@ -1,49 +1,9 @@
-function fold(value: string): string {
+export function fold(value: string): string {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
-}
-
-/* Spec 6.2. Catalog subjects are mostly noise (places, periods, criticism,
-   library flags, languages), so only known genre names are kept and shown in
-   Spanish. Specific genres win over the generic "Novela". */
-const specificGenres: Array<[string, string[]]> = [
-  ["Cuentos", ["short stories", "cuentos"]],
-  ["Poesía", ["poetry", "poems", "poesia"]],
-  ["Ensayo", ["essays", "ensayos", "ensayo"]],
-  ["Ciencia ficción", ["science fiction", "ciencia ficcion"]],
-  ["Fantasía", ["fantasy", "fantasy fiction", "fantasia"]],
-  ["Misterio", ["mystery", "mystery fiction", "detective and mystery stories", "misterio"]],
-  ["Biografía", ["biography", "autobiography", "biografia", "autobiografia"]],
-  ["Historia", ["history", "historia"]],
-  ["Realismo mágico", ["magic realism", "magic realism (literature)", "realismo magico"]],
-  ["Terror", ["horror", "horror fiction", "terror"]],
-  ["Teatro", ["drama", "teatro"]],
-  ["Filosofía", ["philosophy", "filosofia"]],
-];
-const genericGenres: Array<[string, string[]]> = [
-  ["Novela", ["novel", "novels", "novela", "novelas"]],
-];
-
-function subjectParts(values: unknown): string[] {
-  if (!Array.isArray(values)) return [];
-  return values
-    .filter((value): value is string => typeof value === "string")
-    .flatMap((value) => value.split(/ -- | \/ /))
-    .map(fold);
-}
-
-function firstMatch(parts: string[], genres: Array<[string, string[]]>): string | null {
-  for (const part of parts)
-    for (const [label, names] of genres) if (names.includes(part)) return label;
-  return null;
-}
-
-export function cleanGenre(values: unknown): string | null {
-  const parts = subjectParts(values);
-  return firstMatch(parts, specificGenres) ?? firstMatch(parts, genericGenres);
 }
 
 export function plainText(value: unknown): string | null {

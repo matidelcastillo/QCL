@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Check, Heart, Trash2 } from "lucide-react";
 import type { Book, BookStatus, CatalogBook, SharedBook } from "../domain/types";
 import { today } from "../domain/date";
+import { knownGenre } from "../domain/genre";
 import {
   duplicate,
   ensureBook,
@@ -40,6 +41,7 @@ export function BookSheet({
   const [error, setError] = useState("");
   const [popped, setPopped] = useState<BookStatus | null>(null);
   const cover = "cover_url" in book ? book.cover_url : book.coverUrl;
+  const genre = knownGenre(book.genre);
 
   async function choose(status: BookStatus) {
     if (!user || busy || saved?.status === status) return;
@@ -99,14 +101,14 @@ export function BookSheet({
     <Sheet onClose={onClose} label={book.title}>
       <div className="drawer-body drawer-body-enter drawer-centered">
         <div className="drawer-hero-book">
-          <BookCover url={cover} isbn={book.isbn} large />
+          <BookCover url={cover} isbn={book.isbn} size="large" />
         </div>
         <h2 className="drawer-title">{book.title}</h2>
-        {(book.author || book.genre) && (
+        {(book.author || genre) && (
           <div className="drawer-meta">
             {book.author && <span>{book.author}</span>}
-            {book.author && book.genre && <span className="drawer-meta-separator"> · </span>}
-            {book.genre && <span>{book.genre}</span>}
+            {book.author && genre && <span className="drawer-meta-separator"> · </span>}
+            {genre && <span>{genre}</span>}
           </div>
         )}
         <div className="drawer-action-dock">

@@ -5,7 +5,7 @@ import { findCover } from "./cover-search";
 
 /* Bump when the CatalogBook shape or cleaning rules change, so cached
    responses from an older worker are not served. */
-const CATALOG_SCHEMA = "5";
+const CATALOG_SCHEMA = "6";
 
 /* Worker bindings. GOOGLE_BOOKS_API_KEY is a secret; without it Google Books
    is called keyless (shared quota). CATALOG_LIMIT is the Workers rate limiter

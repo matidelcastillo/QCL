@@ -1,15 +1,18 @@
 import { useState } from "react";
 import { coverParams } from "../domain/cover-url";
 
-/* Cover served through /api/tapa. Reveal = QC .qc-card-image / .drawer-media-fade. */
+type CoverSize = "row" | "large" | "tile";
+
+/* Cover served through /api/tapa. Reveal = QC .qc-card-image / .drawer-media-fade.
+   Sizes: row thumbnail, sheet hero (large), grid tile (fills its card). */
 export function BookCover({
   url,
   isbn,
-  large = false,
+  size = "row",
 }: {
   url?: string | null;
   isbn?: string | null;
-  large?: boolean;
+  size?: CoverSize;
 }) {
   const [failed, setFailed] = useState(false);
   const params = coverParams(url, isbn);
@@ -17,10 +20,13 @@ export function BookCover({
   /* The 2:3 slot always renders with the fallback fill; the image fades in
      over it, so a slow or missing cover never collapses the row. */
   return (
-    <span aria-hidden="true" className={`cover cover-fallback${large ? " cover-large" : ""}`}>
+    <span
+      aria-hidden="true"
+      className={`cover cover-fallback${size === "row" ? "" : ` cover-${size}`}`}
+    >
       {candidate && !failed && (
         <img
-          className={`cover-image ${large ? "drawer-media-fade" : "qc-card-image"}`}
+          className={`cover-image ${size === "large" ? "drawer-media-fade" : "qc-card-image"}`}
           src={`/api/tapa?${params}`}
           alt=""
           decoding="async"
