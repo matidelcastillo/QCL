@@ -72,7 +72,7 @@ function Home() {
         ) : filter === "todos" ? (
           <EmptyState text="Nada todavía." art>
             <Link to="/agregar" className={buttonClass("primary")}>
-              Agregar
+              Buscar
             </Link>
           </EmptyState>
         ) : (

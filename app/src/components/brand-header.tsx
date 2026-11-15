@@ -11,7 +11,7 @@ export function BrandHeader({
   return (
     <header className="app-brand-header">
       <Title className="app-brand-title">
-        <span className="app-brand-accent">que carajo</span> leer
+        <span className="app-brand-accent">que carajo</span> lees
       </Title>
       {subtitle && <p className="app-brand-subtitle">{subtitle}</p>}
     </header>

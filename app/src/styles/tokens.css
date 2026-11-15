@@ -192,10 +192,7 @@
   --drawer-meta-size: 14px;
   --drawer-meta-weight: 600;
   --drawer-meta-content-gap: var(--space-2);
-  --drawer-description-size: var(--drawer-meta-size);
-  --drawer-description-leading: var(--media-hook-leading);
   --drawer-action-edge-gap: var(--space-6);
-  --drawer-description-bottom-gap: var(--drawer-action-edge-gap);
   --drawer-hero-content-gap: var(--space-5);
   --drawer-cta-font-size: 13px;
   --drawer-cta-font-weight: 700;
@@ -264,9 +261,6 @@
   /* QC styles.css l. 2396-2400: .qc-people-row. */
   --qcl-row-min: 56px;
   --qcl-row-block: 10px;
-  /* QC styles.css l. 793-798: .event-drawer-description clamp. */
-  --qcl-description-lines: 4;
-  --qcl-title-lines: 2;
 
   /* Only value with no QC equivalent: a book cover's physical ratio. */
   --qcl-cover-ratio: 2 / 3;

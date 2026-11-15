@@ -13,7 +13,6 @@ import { BookRow } from "../components/book-row";
 import { BookSheet } from "../components/book-sheet";
 import { buttonClass } from "../components/button";
 import { EmptyState, LoadError, LoadingRows } from "../components/feedback";
-import { ManualSheet } from "../components/manual-sheet";
 import { Scanner } from "../components/scanner";
 
 export const Route = createFileRoute("/agregar")({ component: Add });
@@ -21,11 +20,7 @@ export const Route = createFileRoute("/agregar")({ component: Add });
 const DEBOUNCE_MS = 350;
 const MIN_QUERY = 3;
 
-type Overlay =
-  | { kind: "book"; book: Book | CatalogBook }
-  | { kind: "manual"; isbn: string | null }
-  | { kind: "scanner" }
-  | null;
+type Overlay = { kind: "book"; book: Book | CatalogBook } | { kind: "scanner" } | null;
 
 function Add() {
   const { user } = useSession();
@@ -51,7 +46,8 @@ function Add() {
     setScanError("");
     try {
       const [first] = await searchCatalog({ isbn: code });
-      setOverlay(first ? { kind: "book", book: first } : { kind: "manual", isbn: code });
+      if (first) setOverlay({ kind: "book", book: first });
+      else setScanError("No está.");
     } catch {
       setScanError("Revisá la conexión.");
     }
@@ -60,35 +56,26 @@ function Add() {
   return (
     <main className="page-pb-nav">
       <BrandHeader />
-      <ScreenHeading>Agregar</ScreenHeading>
+      <ScreenHeading>Buscar</ScreenHeading>
       <div className="stack app-gutter">
         <input
           className="qc-auth-email-input"
           type="search"
           enterKeyHint="search"
-          placeholder="Título, autor o ISBN"
+          placeholder="Tipeá título o autor"
           aria-label="Buscar"
           autoComplete="off"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-        <div className="qc-button-row">
-          <button
-            type="button"
-            className={buttonClass("primary")}
-            onClick={() => setOverlay({ kind: "scanner" })}
-          >
-            <Barcode size={24} strokeWidth={2} aria-hidden="true" />
-            Escanear
-          </button>
-          <button
-            type="button"
-            className={buttonClass("secondary")}
-            onClick={() => setOverlay({ kind: "manual", isbn: null })}
-          >
-            A mano
-          </button>
-        </div>
+        <button
+          type="button"
+          className={buttonClass("primary", true)}
+          onClick={() => setOverlay({ kind: "scanner" })}
+        >
+          <Barcode size={24} strokeWidth={2} aria-hidden="true" />
+          Escanear
+        </button>
         {scanError && (
           <p className="error-text" role="alert">
             {scanError}
@@ -113,27 +100,12 @@ function Add() {
               ))}
             </div>
           ) : (
-            <EmptyState text="No está.">
-              <button
-                type="button"
-                className={buttonClass("secondary")}
-                onClick={() => setOverlay({ kind: "manual", isbn })}
-              >
-                Cargalo a mano
-              </button>
-            </EmptyState>
+            <EmptyState text="No está." />
           )}
         </section>
       )}
       {overlay?.kind === "scanner" && (
         <Scanner onClose={() => setOverlay(null)} onFound={(code) => void scanned(code)} />
-      )}
-      {overlay?.kind === "manual" && (
-        <ManualSheet
-          isbn={overlay.isbn}
-          onClose={() => setOverlay(null)}
-          onSaved={(book) => setOverlay({ kind: "book", book })}
-        />
       )}
       {overlay?.kind === "book" && (
         <BookSheet book={overlay.book} onClose={() => setOverlay(null)} />

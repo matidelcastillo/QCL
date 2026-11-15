@@ -23,7 +23,7 @@ function glowMs(): number {
 }
 
 /* Book sheet = QC event drawer (routes/index.tsx l. 2690-3010): handle,
-   hero, .drawer-title, .drawer-meta, .drawer-description, .drawer-action-dock.
+   hero, .drawer-title, .drawer-meta, .drawer-action-dock (no synopsis shown).
    The 16:9 photo hero becomes a centered 2:3 cover (benchmark: Goodreads /
    StoryGraph book page). */
 export function BookSheet({
@@ -127,9 +127,6 @@ export function BookSheet({
             {book.author && book.genre && <span className="drawer-meta-separator"> · </span>}
             {book.genre && <span>{book.genre}</span>}
           </div>
-        )}
-        {book.synopsis && (
-          <p className="drawer-description event-drawer-description">{book.synopsis}</p>
         )}
         <div className="drawer-action-dock">
           <button

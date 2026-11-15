@@ -18,7 +18,7 @@ function Gilada() {
   return (
     <main className="page-pb-nav">
       <BrandHeader />
-      <ScreenHeading>Que anda leyendo la gilada</ScreenHeading>
+      <ScreenHeading>Que lee la gilada</ScreenHeading>
       <section className="feed app-gutter">
         {shared.isPending ? (
           <LoadingRows count={3} />

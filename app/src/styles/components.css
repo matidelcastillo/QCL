@@ -173,15 +173,15 @@ button:disabled {
   gap: var(--space-1);
   min-width: 0;
 }
+/* Title and author: one line each, ellipsis (benchmark: Literal / Fable rows). */
 .row-title {
-  display: -webkit-box;
   overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: var(--qcl-title-lines);
   color: var(--foreground);
   font-size: var(--text-body-qcba);
   font-weight: 700;
   line-height: var(--leading-body-qcba);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .row-author {
   overflow: hidden;
@@ -404,13 +404,6 @@ button:disabled {
 .qc-button-block {
   width: 100%;
 }
-.qc-button-row {
-  display: flex;
-  gap: var(--drawer-cta-gap);
-}
-.qc-button-row > * {
-  flex: 1;
-}
 
 /* Bottom nav: QC routes/index.tsx l. 3220-3315 + styles.css l. 2349-2940. */
 .app-nav {
@@ -611,20 +604,6 @@ button:disabled {
 }
 .drawer-meta-separator {
   color: var(--qcl-separator-muted);
-}
-.drawer-description {
-  margin: 0 0 var(--drawer-description-bottom-gap);
-  color: var(--black);
-  font-size: var(--drawer-description-size);
-  font-weight: var(--drawer-meta-weight);
-  line-height: var(--drawer-description-leading);
-  letter-spacing: 0;
-}
-.event-drawer-description {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: var(--qcl-description-lines);
 }
 
 /* Drawer CTAs: QC styles.css l. 689-705. */
