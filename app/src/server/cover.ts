@@ -1,8 +1,11 @@
-/* Accepted cover sources. */
+/* Accepted cover sources: Open Library and Google Books first, then the
+   ISBN image paths of Casa del Libro (Spanish editions) and Amazon. */
 const hosts = new Set([
   "covers.openlibrary.org",
   "books.google.com",
   "books.googleusercontent.com",
+  "imagessl.casadellibro.com",
+  "m.media-amazon.com",
 ]);
 /* Open Library serves every cover through a redirect to its Internet Archive
    storage (archive.org, then ia<N>.us.archive.org); only those hops are added. */

@@ -14,6 +14,15 @@ export function normalizeIsbn(value: string): string | null {
   return null;
 }
 
+/* ISBN-10 form of a 978 ISBN-13 (979 has none). */
+export function isbn10(isbn: string): string | null {
+  if (!/^978\d{10}$/.test(isbn)) return null;
+  const body = isbn.slice(3, 12);
+  const sum = [...body].reduce((total, digit, index) => total + Number(digit) * (10 - index), 0);
+  const check = (11 - (sum % 11)) % 11;
+  return `${body}${check === 10 ? "X" : check}`;
+}
+
 function isbn13(firstTwelve: string): string {
   const sum = [...firstTwelve].reduce(
     (total, digit, index) => total + Number(digit) * (index % 2 === 0 ? 1 : 3),

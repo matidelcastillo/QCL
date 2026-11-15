@@ -1,7 +1,7 @@
 import type { Book, BookStatus, CatalogBook, SharedBook } from "../domain/types";
 import { today } from "../domain/date";
+import { coverParams } from "../domain/cover-url";
 import { identity } from "../domain/metadata";
-import { coverCandidate } from "../domain/cover-url";
 import { browserSupabase } from "./supabase";
 
 export async function listBooks(ownerId: string): Promise<Book[]> {
@@ -76,12 +76,12 @@ export function pendingBook(ownerId: string, input: NewBook, status: BookStatus)
   };
 }
 
-/* Only a cover that passed /api/tapa validation is stored. */
-async function validatedCover(url: string | null, isbn: string | null): Promise<string | null> {
-  const candidate = coverCandidate(url, isbn);
-  if (!candidate) return null;
-  const params = new URLSearchParams({ u: candidate });
-  if (isbn) params.set("isbn", isbn);
+/* Only a cover that passed /api/tapa validation is stored; the server falls
+   back to other sources by ISBN, then to another edition by title + author. */
+async function validatedCover(input: NewBook): Promise<string | null> {
+  const params = coverParams(input.coverUrl, input.isbn);
+  params.set("t", input.title.trim());
+  if (input.author.trim()) params.set("a", input.author.trim());
   try {
     const response = await fetch(`/api/tapa?${params}`);
     return response.ok ? response.headers.get("x-qcl-cover-url") : null;
@@ -109,7 +109,7 @@ export async function ensureBook(
       author: input.author.trim(),
       status,
       read_at: status === "lei" ? today() : null,
-      cover_url: await validatedCover(coverUrl, input.isbn),
+      cover_url: await validatedCover(input),
     })
     .select("*")
     .single();

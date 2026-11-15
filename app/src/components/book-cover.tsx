@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { coverCandidate } from "../domain/cover-url";
+import { coverParams } from "../domain/cover-url";
 
 /* Cover served through /api/tapa. Reveal = QC .qc-card-image / .drawer-media-fade. */
 export function BookCover({
@@ -12,9 +12,8 @@ export function BookCover({
   large?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
-  const candidate = coverCandidate(url, isbn);
-  const params = new URLSearchParams({ u: candidate ?? "" });
-  if (isbn) params.set("isbn", isbn);
+  const params = coverParams(url, isbn);
+  const candidate = params.size > 0;
   /* The 2:3 slot always renders with the fallback fill; the image fades in
      over it, so a slow or missing cover never collapses the row. */
   return (

@@ -1,6 +1,7 @@
 import { normalizeIsbn } from "../domain/isbn";
 import { CatalogUnavailable, searchCatalog } from "./catalog";
-import { allowedCoverUrl, fetchCover } from "./cover";
+import { allowedCoverUrl } from "./cover";
+import { findCover } from "./cover-search";
 
 /* Bump when the CatalogBook shape or cleaning rules change, so cached
    responses from an older worker are not served. */
@@ -65,19 +66,16 @@ export async function apiResponse(request: Request, env: Env = {}): Promise<Resp
     }
     return response;
   }
-  const coverUrl = allowedCoverUrl(url.searchParams.get("u") ?? "");
-  if (!coverUrl) return json({ error: "Tapa inválida." }, 400);
-  let image = await fetchCover(coverUrl);
-  if (!image) {
-    const isbn = normalizeIsbn(url.searchParams.get("isbn") ?? "");
-    const fallback =
-      isbn &&
-      allowedCoverUrl(
-        `https://books.google.com/books/content?vid=ISBN${isbn}&printsec=frontcover&img=1&zoom=1`,
-      );
-    if (fallback) image = await fetchCover(fallback);
-  }
-  if (!image) return json({ error: "Tapa no encontrada." }, 404);
+  const raw = url.searchParams.get("u");
+  const coverUrl = raw ? allowedCoverUrl(raw) : null;
+  if (raw && !coverUrl) return json({ error: "Tapa inválida." }, 400);
+  const isbn = normalizeIsbn(url.searchParams.get("isbn") ?? "");
+  const title = (url.searchParams.get("t") ?? "").trim().slice(0, 200);
+  const author = (url.searchParams.get("a") ?? "").trim().slice(0, 200);
+  if (!coverUrl && !isbn && !title) return json({ error: "Tapa inválida." }, 400);
+  const image = await findCover({ url: coverUrl, isbn, title, author });
+  /* A miss is cached for a day so a cover-less row does not re-run the chain. */
+  if (!image) return json({ error: "Tapa no encontrada." }, 404, "public, max-age=86400");
   return new Response(image.bytes as BodyInit, {
     headers: {
       "content-type": image.type,
