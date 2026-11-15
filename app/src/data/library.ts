@@ -95,8 +95,10 @@ export async function ensureBook(
   input: NewBook,
   status: BookStatus,
 ): Promise<Book> {
+  /* Already saved: keep the row, but honor the Quiero/Leí just chosen. */
   const existing = duplicate(await listBooks(ownerId), input);
-  if (existing) return existing;
+  if (existing)
+    return existing.status === status ? existing : setBookStatus(ownerId, existing.id, status);
   const { coverUrl, ...fields } = input;
   const { data, error } = await browserSupabase()
     .from("books")
@@ -114,7 +116,7 @@ export async function ensureBook(
   if (error?.code === UNIQUE_VIOLATION) {
     /* books_owner_isbn_unique: another tab saved it first. */
     const saved = duplicate(await listBooks(ownerId), input);
-    if (saved) return saved;
+    if (saved) return saved.status === status ? saved : setBookStatus(ownerId, saved.id, status);
   }
   if (error) throw error;
   return data as Book;

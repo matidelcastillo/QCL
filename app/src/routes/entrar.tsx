@@ -78,6 +78,7 @@ function Enter() {
                 placeholder="Nombre"
                 aria-label="Nombre"
                 autoComplete="name"
+                maxLength={80}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 required

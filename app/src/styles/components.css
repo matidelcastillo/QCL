@@ -225,10 +225,17 @@ button:disabled {
 
 /* Cover. Fallback = QC "Imagen no disponible" (routes/index.tsx l. ~2788). */
 .cover {
+  display: block;
   flex: 0 0 auto;
   width: var(--space-12);
   aspect-ratio: var(--qcl-cover-ratio);
+  overflow: hidden;
   border-radius: var(--radius-sm);
+}
+.cover-image {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 .cover-large {

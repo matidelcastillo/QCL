@@ -89,7 +89,9 @@ export function Scanner({
         timer.current = setTimeout(() => void scan(element).catch(noReader), SCAN_INTERVAL_MS);
     }
 
+    /* No camera or no decoder: release the camera and fall back to typing. */
     function noReader() {
+      stop();
       if (alive) setNoCamera(true);
     }
 

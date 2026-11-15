@@ -103,3 +103,16 @@ test("an ISBN typed in q uses the ISBN lookup with country", async () => {
   expect(params.get("q")).toBe("isbn:9788471893147");
   expect(params.get("country")).toBe("AR");
 });
+
+test("cache key ignores extra params and rate limit stops provider calls", async () => {
+  let providerCalls = 0;
+  globalThis.fetch = (async () => {
+    providerCalls += 1;
+    return new Response("", { status: 404 });
+  }) as unknown as typeof fetch;
+  const limited = await apiResponse(new Request(`${base}/api/libros?q=Rayuela&cb=123`), {
+    CATALOG_LIMIT: { limit: async () => ({ success: false }) },
+  });
+  expect(limited?.status).toBe(429);
+  expect(providerCalls).toBe(0);
+});

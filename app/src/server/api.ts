@@ -7,8 +7,12 @@ import { allowedCoverUrl, fetchCover } from "./cover";
 const CATALOG_SCHEMA = "5";
 
 /* Worker bindings. GOOGLE_BOOKS_API_KEY is a secret; without it Google Books
-   is called keyless (shared quota). */
-export type Env = { GOOGLE_BOOKS_API_KEY?: string };
+   is called keyless (shared quota). CATALOG_LIMIT is the Workers rate limiter
+   declared in wrangler.jsonc. */
+export type Env = {
+  GOOGLE_BOOKS_API_KEY?: string;
+  CATALOG_LIMIT?: { limit: (options: { key: string }) => Promise<{ success: boolean }> };
+};
 
 const json = (body: unknown, status = 200, cache = "no-store") =>
   new Response(JSON.stringify(body), {
@@ -24,7 +28,7 @@ export async function apiResponse(request: Request, env: Env = {}): Promise<Resp
     const isbnInput = url.searchParams.get("isbn");
     if (isbnInput && !normalizeIsbn(isbnInput)) return json({ error: "ISBN inválido." }, 400);
     /* A typed ISBN in q gets the ISBN lookup too (Google needs isbn:). */
-    const text = (url.searchParams.get("q") ?? "").trim();
+    const text = (url.searchParams.get("q") ?? "").trim().replace(/\s+/g, " ").toLowerCase();
     const isbn = normalizeIsbn(isbnInput ?? text);
     const query = isbn ?? text;
     if (!query) return json({ results: [] }, 200, "public, max-age=3600");
@@ -33,11 +37,17 @@ export async function apiResponse(request: Request, env: Env = {}): Promise<Resp
       typeof caches !== "undefined"
         ? (caches as unknown as { default?: Cache }).default
         : undefined;
-    const cacheUrl = new URL(url);
+    /* Key on the normalized search only: extra params cannot skip the cache. */
+    const cacheUrl = new URL("/api/libros", url.origin);
+    cacheUrl.searchParams.set(isbn ? "isbn" : "q", query);
     cacheUrl.searchParams.set("schema", CATALOG_SCHEMA);
     const key = new Request(cacheUrl.toString(), { method: "GET" });
     const hit = await cache?.match(key);
     if (hit) return hit;
+    /* Only cache misses reach the providers, so only they spend the limit. */
+    const client = request.headers.get("cf-connecting-ip") ?? "local";
+    const allowed = (await env.CATALOG_LIMIT?.limit({ key: client }))?.success ?? true;
+    if (!allowed) return json({ error: "Muchas búsquedas. Probá en un rato." }, 429);
     let results;
     try {
       results = await searchCatalog(query, isbn, env.GOOGLE_BOOKS_API_KEY);

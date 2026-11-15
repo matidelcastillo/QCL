@@ -67,6 +67,7 @@ export function ManualSheet({
           className="qc-auth-email-input"
           placeholder="Título"
           aria-label="Título"
+          maxLength={500}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           required
@@ -75,6 +76,7 @@ export function ManualSheet({
           className="qc-auth-email-input"
           placeholder="Autor"
           aria-label="Autor"
+          maxLength={500}
           value={author}
           onChange={(event) => setAuthor(event.target.value)}
         />

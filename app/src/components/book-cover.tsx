@@ -13,21 +13,25 @@ export function BookCover({
 }) {
   const [failed, setFailed] = useState(false);
   const candidate = coverCandidate(url, isbn);
-  const size = large ? "cover cover-large" : "cover";
-  if (!candidate || failed) return <div aria-hidden="true" className={`${size} cover-fallback`} />;
-  const params = new URLSearchParams({ u: candidate });
+  const params = new URLSearchParams({ u: candidate ?? "" });
   if (isbn) params.set("isbn", isbn);
+  /* The 2:3 slot always renders with the fallback fill; the image fades in
+     over it, so a slow or missing cover never collapses the row. */
   return (
-    <img
-      className={`${size} ${large ? "drawer-media-fade" : "qc-card-image"}`}
-      src={`/api/tapa?${params}`}
-      alt=""
-      decoding="async"
-      ref={(image) => {
-        if (image?.complete && image.naturalWidth) image.classList.add("is-loaded");
-      }}
-      onLoad={(event) => event.currentTarget.classList.add("is-loaded")}
-      onError={() => setFailed(true)}
-    />
+    <span aria-hidden="true" className={`cover cover-fallback${large ? " cover-large" : ""}`}>
+      {candidate && !failed && (
+        <img
+          className={`cover-image ${large ? "drawer-media-fade" : "qc-card-image"}`}
+          src={`/api/tapa?${params}`}
+          alt=""
+          decoding="async"
+          ref={(image) => {
+            if (image?.complete && image.naturalWidth) image.classList.add("is-loaded");
+          }}
+          onLoad={(event) => event.currentTarget.classList.add("is-loaded")}
+          onError={() => setFailed(true)}
+        />
+      )}
+    </span>
   );
 }
