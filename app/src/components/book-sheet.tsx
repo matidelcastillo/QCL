@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Heart, Share2 } from "lucide-react";
+import { Check, Heart, Trash2 } from "lucide-react";
 import type { Book, BookStatus, CatalogBook, SharedBook } from "../domain/types";
 import { today } from "../domain/date";
 import {
@@ -17,13 +17,10 @@ import { sessionEpoch } from "../data/session-epoch";
 import { BookCover } from "./book-cover";
 import { Sheet } from "./sheet";
 
-function glowMs(): number {
-  const value = getComputedStyle(document.documentElement).getPropertyValue("--dur-glow").trim();
-  return parseFloat(value) * (value.endsWith("ms") ? 1 : 1000);
-}
-
 /* Book sheet = QC event drawer (routes/index.tsx l. 2690-3010): handle,
    hero, .drawer-title, .drawer-meta, .drawer-action-dock (no synopsis shown).
+   Dock: Quiero, Leí and, for a saved book, Quitar (confirmed in a
+   .drawer-choice-dock below).
    The 16:9 photo hero becomes a centered 2:3 cover (benchmark: Goodreads /
    StoryGraph book page). */
 export function BookSheet({
@@ -41,7 +38,6 @@ export function BookSheet({
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
   const [popped, setPopped] = useState<BookStatus | null>(null);
   const cover = "cover_url" in book ? book.cover_url : book.coverUrl;
 
@@ -99,21 +95,6 @@ export function BookSheet({
     }
   }
 
-  async function share() {
-    const text = book.author ? `${book.title}, ${book.author}` : book.title;
-    if (navigator.share) {
-      await navigator.share({ title: book.title, text, url: location.origin }).catch(() => {});
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(`${text} ${location.origin}`);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), glowMs());
-    } catch {
-      setError("No pudimos copiar.");
-    }
-  }
-
   return (
     <Sheet onClose={onClose} label={book.title}>
       <div className="drawer-body drawer-body-enter drawer-centered">
@@ -160,40 +141,34 @@ export function BookSheet({
             />
             <span className="drawer-action-label">LEÍ</span>
           </button>
-          <button
-            type="button"
-            className="drawer-action"
-            aria-label="Compartir"
-            onClick={() => void share()}
-          >
-            <Share2 className="drawer-action-icon" strokeWidth={2} aria-hidden="true" />
-            <span className="drawer-action-label">{copied ? "COPIADO" : "COMPARTIR"}</span>
-          </button>
-        </div>
-        {saved &&
-          (confirming ? (
-            <div className="drawer-choice-dock">
-              <button type="button" className="drawer-choice" onClick={() => setConfirming(false)}>
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className="drawer-choice drawer-choice-destructive"
-                disabled={busy}
-                onClick={() => void remove()}
-              >
-                Quitar
-              </button>
-            </div>
-          ) : (
+          {saved && (
             <button
               type="button"
-              className="drawer-cta drawer-cta-flat drawer-cta-destructive qc-button-block qc-press"
+              className="drawer-action drawer-action-destructive"
+              aria-label="Quitar"
+              aria-pressed={confirming}
               onClick={() => setConfirming(true)}
             >
-              Quitar de mis libros
+              <Trash2 className="drawer-action-icon" strokeWidth={2} aria-hidden="true" />
+              <span className="drawer-action-label">QUITAR</span>
             </button>
-          ))}
+          )}
+        </div>
+        {saved && confirming && (
+          <div className="drawer-choice-dock">
+            <button type="button" className="drawer-choice" onClick={() => setConfirming(false)}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="drawer-choice drawer-choice-destructive"
+              disabled={busy}
+              onClick={() => void remove()}
+            >
+              Quitar
+            </button>
+          </div>
+        )}
         {error && (
           <p className="error-text" role="alert">
             {error}

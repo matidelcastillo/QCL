@@ -2,8 +2,12 @@ import { Check, Heart } from "lucide-react";
 import type { Book, CatalogBook } from "../domain/types";
 import { BookCover } from "./book-cover";
 
-/* Row = QC .qc-people-row (editorial row, no card). Cover left, copy right,
-   status indicator right (benchmark: StoryGraph / Literal library lists). */
+/* Row = QC .qc-people-row (editorial row, no card). Cover left, status right,
+   and always three one-line rows: title, author, "N pág. · año" (benchmark:
+   Literal / Fable / StoryGraph lists). A missing line keeps its space so
+   every row has the same shape; genre stays in the book sheet. */
+export const EMPTY_LINE = "\u00a0";
+
 export function BookRow({
   book,
   saved,
@@ -23,18 +27,17 @@ export function BookRow({
       <BookCover url={cover} isbn={book.isbn} />
       <span className="row-copy">
         <span className="row-title">{book.title}</span>
-        {book.author && <span className="row-author">{book.author}</span>}
-        {meta.length > 0 && (
-          <span className="row-meta">
-            {meta.map((part, index) => (
-              <span key={part}>
-                {index > 0 && <span className="row-separator"> · </span>}
-                {part}
-              </span>
-            ))}
-          </span>
-        )}
-        {book.genre && <span className="row-meta">{book.genre}</span>}
+        <span className="row-author">{book.author || EMPTY_LINE}</span>
+        <span className="row-meta">
+          {meta.length > 0
+            ? meta.map((part, index) => (
+                <span key={part}>
+                  {index > 0 && <span className="row-separator"> · </span>}
+                  {part}
+                </span>
+              ))
+            : EMPTY_LINE}
+        </span>
       </span>
       {stored && (
         <span className="row-status" aria-label={stored.status === "quiero" ? "Quiero" : "Leí"}>

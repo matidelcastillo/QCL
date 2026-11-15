@@ -173,7 +173,7 @@ button:disabled {
   gap: var(--space-1);
   min-width: 0;
 }
-/* Title and author: one line each, ellipsis (benchmark: Literal / Fable rows). */
+/* Title, author and meta: one line each, ellipsis (benchmark: Literal / Fable rows). */
 .row-title {
   overflow: hidden;
   color: var(--foreground);
@@ -193,9 +193,12 @@ button:disabled {
   white-space: nowrap;
 }
 .row-meta {
+  overflow: hidden;
   color: var(--qcl-meta-gray);
   font-size: var(--text-micro-qcba);
   line-height: var(--leading-micro-qcba);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .row-separator {
   color: var(--qcl-separator-muted);
@@ -565,7 +568,14 @@ button:disabled {
   flex: 0 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 var(--drawer-side-pad) var(--drawer-bottom-pad);
+  /* Bottom 0: the last block owns the bottom space (QC routes/index.tsx
+     l. 2883-2886), so the sheet never stacks two bottom paddings. */
+  padding: 0 var(--drawer-side-pad);
+}
+/* Last secondary block (destructive CTA, confirm dock, error) closes the
+   sheet with QC's --drawer-bottom-pad (safe area included). */
+.drawer-body > :last-child:not(.drawer-action-dock) {
+  margin-bottom: var(--drawer-bottom-pad);
 }
 .drawer-body-enter {
   animation: drawerBodyEnter var(--qcl-body-enter) var(--ease-enter) var(--qcl-body-enter-delay)
@@ -606,23 +616,6 @@ button:disabled {
   color: var(--qcl-separator-muted);
 }
 
-/* Drawer CTAs: QC styles.css l. 689-705. */
-.drawer-cta {
-  padding: var(--drawer-cta-padding-y) var(--qcl-drawer-cta-pad-inline);
-  border-radius: var(--radius-card);
-  font-size: var(--drawer-cta-font-size);
-  font-weight: var(--drawer-cta-font-weight);
-}
-.drawer-cta-flat {
-  border: var(--qcl-hairline) solid var(--qcl-border-dark);
-  background: transparent;
-  box-shadow: none;
-  color: var(--black);
-}
-.drawer-cta-destructive {
-  color: var(--destructive);
-}
-
 /* Action dock: QC styles.css l. 706-740; routes/index.tsx l. 2918-3010. */
 .drawer-action-dock {
   position: relative;
@@ -630,10 +623,17 @@ button:disabled {
   align-items: center;
   justify-content: space-around;
   min-height: var(--nav-height);
+  /* Content → actions: QC --drawer-action-edge-gap (the description's bottom
+     gap in QC); block margins collapse with the meta line above. */
+  margin-top: var(--drawer-action-edge-gap);
   margin-bottom: calc(var(--drawer-action-edge-gap) + var(--safe-bottom));
   padding: 0 var(--nav-inline-padding);
   border: var(--qcl-hairline) solid var(--qcl-border-orange);
   border-radius: var(--nav-radius);
+}
+/* Confirm dock below the actions: QC --drawer-cta-gap. */
+.drawer-action-dock:not(:last-child) {
+  margin-bottom: var(--drawer-cta-gap);
 }
 .drawer-action {
   position: relative;
@@ -658,6 +658,12 @@ button:disabled {
 }
 .drawer-action[aria-pressed="true"] {
   color: var(--qcl-orange);
+}
+/* Remove: QC destructive color (.drawer-choice-destructive), pressed or not. */
+.drawer-action-destructive,
+.drawer-action-destructive[aria-pressed="true"],
+.drawer-action-destructive .drawer-action-label {
+  color: var(--destructive);
 }
 .drawer-action-label {
   color: var(--qcl-meta-gray);
@@ -807,9 +813,9 @@ button:disabled {
   flex: 1;
   min-width: 0;
 }
-/* .drawer-body already pads the bottom (safe area included). */
+/* Scanner body is a .stack: its gap already separates the dock. */
 .scanner-body .drawer-action-dock {
-  margin-bottom: 0;
+  margin-top: 0;
 }
 .scanner-guide {
   position: absolute;

@@ -251,13 +251,11 @@
   --qcl-ripple-clip-transition: 220ms;
   /* QC styles.css l. 689-780: flat borders. */
   --qcl-border-orange: rgba(232, 98, 74, 0.2);
-  --qcl-border-dark: rgba(10, 10, 10, 0.28);
   --qcl-border-white: rgba(255, 255, 255, 0.82);
   --qcl-hairline: 1px;
   --qcl-drawer-action-gap: 6px;
   --qcl-drawer-action-label-size: 9px;
   --qcl-drawer-choice-pad: 6px;
-  --qcl-drawer-cta-pad-inline: 10px;
   /* QC styles.css l. 2396-2400: .qc-people-row. */
   --qcl-row-min: 56px;
   --qcl-row-block: 10px;

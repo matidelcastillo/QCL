@@ -54,5 +54,8 @@ export function secure(response: Response) {
       : new Response(response.body, response);
   for (const [name, value] of Object.entries(STATIC_HEADERS)) out.headers.set(name, value);
   out.headers.set("Content-Security-Policy", contentSecurityPolicy(nonce));
+  /* HTML always revalidates, so a phone never keeps a stale app shell
+     (assets are content-hashed and stay cacheable). */
+  if (isHtml) out.headers.set("Cache-Control", "no-cache");
   return out;
 }

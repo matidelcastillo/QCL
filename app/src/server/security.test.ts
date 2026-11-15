@@ -16,6 +16,16 @@ describe("security", () => {
     expect(res.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
     expect(res.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
   });
+  test("HTML revalidates, other responses keep their caching", () => {
+    const html = secure(new Response("<p></p>", { headers: { "content-type": "text/html" } }));
+    expect(html.headers.get("cache-control")).toBe("no-cache");
+    const json = secure(
+      new Response("{}", {
+        headers: { "content-type": "application/json", "cache-control": "public, max-age=60" },
+      }),
+    );
+    expect(json.headers.get("cache-control")).toBe("public, max-age=60");
+  });
   test("csp allows only app origins", () => {
     const csp = contentSecurityPolicy("abc");
     expect(csp).toContain("connect-src 'self' https://mdytuysdombxyydqnsmj.supabase.co");
