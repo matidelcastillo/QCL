@@ -16,3 +16,10 @@ e1-review.tgz
 !.env.mobile.example
 
 /build
+
+# Local briefs and signing material
+briefs/
+*.p8
+*.p12
+*.mobileprovision
+AuthKey_*.p8
