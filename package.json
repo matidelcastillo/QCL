@@ -4,10 +4,11 @@
   "description": "Capacitor 8 iOS shell for qué carajo lees",
   "scripts": {
     "cap:sync": "cap sync ios",
-    "ios:prepare": "cap sync ios",
+    "ios:prepare": "bun run --cwd app build && bun scripts/write-capacitor-index.mjs && cap sync ios",
     "ios:open": "cap open ios"
   },
   "dependencies": {
+    "@capacitor-mlkit/barcode-scanning": "^8.2.2",
     "@capacitor/app": "^8.1.1",
     "@capacitor/core": "^8.4.2",
     "@capacitor/keyboard": "^8.0.5",

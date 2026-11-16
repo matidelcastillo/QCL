@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { coverParams } from "../domain/cover-url";
+import { apiUrl } from "../data/api-base";
 
 type CoverSize = "row" | "large" | "tile";
 
@@ -27,7 +28,7 @@ export function BookCover({
       {candidate && !failed && (
         <img
           className={`cover-image ${size === "large" ? "drawer-media-fade" : "qc-card-image"}`}
-          src={`/api/tapa?${params}`}
+          src={apiUrl(`/api/tapa?${params}`)}
           alt=""
           decoding="async"
           ref={(image) => {

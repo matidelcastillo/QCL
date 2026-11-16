@@ -5,6 +5,7 @@
     "": {
       "name": "qcl-ios",
       "dependencies": {
+        "@capacitor-mlkit/barcode-scanning": "^8.2.2",
         "@capacitor/app": "^8.1.1",
         "@capacitor/core": "^8.4.2",
         "@capacitor/keyboard": "^8.0.5",
@@ -19,6 +20,8 @@
     },
   },
   "packages": {
+    "@capacitor-mlkit/barcode-scanning": ["@capacitor-mlkit/barcode-scanning@8.2.2", "", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-ifQbo09HDAveFpu89H9jhKbYw1sISdHCpXOi3qJDp/geVuxtJC2GDffBLAL3R6mXNDSjm8jO00AIP2Z1GlV8hQ=="],
+
     "@capacitor/app": ["@capacitor/app@8.1.2", "", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-uKBlsrXH0IdvUn69e/KKYbZ32A06pcrUdG8LWuZ/6y33YMXZXLEEdNSwl+jKS/SrsTWqnePs8EqSWaiQM3mUGA=="],
 
     "@capacitor/assets": ["@capacitor/assets@3.0.5", "", { "dependencies": { "@capacitor/cli": "^5.3.0", "@ionic/utils-array": "2.1.6", "@ionic/utils-fs": "3.1.7", "@trapezedev/project": "^7.0.10", "commander": "8.3.0", "debug": "4.3.4", "fs-extra": "10.1.0", "node-fetch": "2.7.0", "node-html-parser": "5.4.2", "sharp": "0.32.6", "tslib": "2.6.2", "yargs": "17.7.2" }, "bin": { "capacitor-assets": "bin/capacitor-assets" } }, "sha512-ohz/OUq61Y1Fc6aVSt0uDrUdeOA7oTH4pkWDbv/8I3UrPjH7oPkzYhShuDRUjekNp9RBi198VSFdt0CetpEOzw=="],

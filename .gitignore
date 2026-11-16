@@ -12,6 +12,7 @@ e1-review.tgz
 /package-lock.json
 /.env
 /.env.*
+.env-review
 !.env.example
 !.env.mobile.example
 
@@ -23,3 +24,6 @@ briefs/
 *.p12
 *.mobileprovision
 AuthKey_*.p8
+
+# Generated Capacitor web bundle
+/capacitor-web

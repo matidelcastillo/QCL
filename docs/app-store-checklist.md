@@ -2,6 +2,8 @@
 
 Documento de control para no fallar en TestFlight App Review ni en App Review. No cambia el comportamiento de la app. Fuentes: solo documentación oficial de Apple, consultada el 16 de noviembre de 2026 (America/Buenos_Aires). Las [App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) vigentes están actualizadas al 16 de octubre de 2026.
 
+**Estado al 16 de noviembre de 2026 (America/Buenos_Aires).** Worker `qcl` desplegado, versión `37963d81-627c-4ea7-a1bb-25efae2540eb` (`https://qcl.matidelcastillo.workers.dev`). Contacto de la política: `matidelcastillo@gmail.com` (email de la cuenta Cloudflare del usuario; no se usó el mail del agente).
+
 **App:** shell Capacitor 8 (`com.quecarajolees.app`) que carga `https://qcl.matidelcastillo.workers.dev`. Alta por email (Supabase), biblioteca personal, feed de lecturas de otras personas, escáner de ISBN con cámara.
 
 **Leyenda**
@@ -14,7 +16,7 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 
 ---
 
-## 1. Funcionalidad mínima y wrapper web — **Riesgo**
+## 1. Funcionalidad mínima y wrapper web — **Mitigado (riesgo residual)**
 
 **Qué pide Apple.** La app tiene que tener funciones, contenido y UI que la eleven por encima de un sitio web empaquetado. Si no es útil, única o “app-like”, no corresponde al App Store. Salvo catálogos, no debe ser principalmente material de marketing, recortes web, agregadores o una colección de enlaces.
 
@@ -23,7 +25,7 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 - [Guideline 4.2 Minimum Functionality](https://developer.apple.com/app-store/review/guidelines/)
 - [Guideline 4.2.2](https://developer.apple.com/app-store/review/guidelines/)
 
-**En el repo.** El binario iOS es un caparazón delgado: `capacitor.config.ts` apunta `server.url` a la web en vivo; `capacitor-shell/index.html` está casi vacío y redirige a esa URL; los plugins nativos son solo App, Keyboard y StatusBar. La utilidad real (alta, biblioteca, “qué lee la gilada”, escáner ISBN con `getUserMedia` en `app/src/components/scanner.tsx` y `app/src/routes/agregar.tsx`) vive en la web remota, no en UI nativa.
+**En el repo.** El binario iOS empaqueta la UI en `capacitor-web` (ya no hay `server.url` remoto). Las APIs van al worker por HTTPS. Plugins: App, Keyboard, StatusBar y `@capacitor-mlkit/barcode-scanning` (en iOS, con el proyecto en SPM, el plugin no se enlaza y se usa el escáner web). La utilidad real (alta, biblioteca, “qué lee la gilada”, escáner ISBN con `getUserMedia` en `app/src/components/scanner.tsx` y `app/src/routes/agregar.tsx`) vive en la web remota, no en UI nativa.
 
 **Riesgos oficiales relacionados**
 
@@ -35,7 +37,7 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 
 ---
 
-## 2. Eliminación de cuenta en la app (5.1.1(v)) — **Falta**
+## 2. Eliminación de cuenta en la app (5.1.1(v)) — **Hecho en código; falta el secret en el worker**
 
 **Qué pide Apple.** Si la app permite crear cuenta, también debe permitir iniciar la eliminación de esa cuenta *dentro de la app*. La opción tiene que ser fácil de encontrar (en general, en ajustes de cuenta). Tiene que borrar el registro y los datos personales asociados, no solo desactivar. Confirmar la intención está bien; mandar a un flujo de soporte (mail, teléfono, chat) no, salvo industrias muy reguladas. Si hace falta terminar el proceso en la web, el enlace debe ir directo a esa página.
 
@@ -44,11 +46,11 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 - [Guideline 5.1.1(v) Account Sign-In](https://developer.apple.com/app-store/review/guidelines/)
 - [5.1.1(v) — Offering account deletion in your app](https://developer.apple.com/help/app-review/guideline-reference/5-1-1-account-deletion/)
 
-**En el repo.** `app/src/routes/entrar.tsx` crea cuentas con `signUp` (email, contraseña, nombre). En `app/src/routes/vos.tsx` solo está “Salir”, que llama a `signOut` en `app/src/data/auth-actions.ts`. No hay UI, ruta ni API para borrar el usuario de Supabase ni su biblioteca.
+**En el repo.** `entrar.tsx` sigue creando cuentas. En `vos.tsx` está “Eliminar cuenta” con confirmación. `POST /api/cuenta` en el worker verifica el JWT y borra solo a esa persona. Hasta que exista `SUPABASE_SERVICE_ROLE_KEY` en el worker `qcl`, la ruta responde 503.
 
 ---
 
-## 3. Política de privacidad: URL en App Store Connect y enlace en la app — **Falta**
+## 3. Política de privacidad: URL en App Store Connect y enlace en la app — **Hecho en la app; falta cargar la URL en App Store Connect**
 
 **Qué pide Apple.** Toda app debe tener un enlace a su política de privacidad en el campo de metadata de App Store Connect *y* dentro de la app, de forma fácil de encontrar. La política tiene que decir qué datos se recogen, cómo y para qué; que terceros (SDKs, analítica, etc.) den la misma protección; y las reglas de retención/borrado y cómo revocar consentimiento o pedir el borrado. La URL es obligatoria para iOS.
 
@@ -58,7 +60,7 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 - [Manage app privacy](https://developer.apple.com/help/app-store-connect/manage-app-information/manage-app-privacy/)
 - [App privacy — propiedades](https://developer.apple.com/help/app-store-connect/reference/app-information/app-privacy/)
 
-**En el repo.** No hay ruta `/privacidad` (ni equivalente), ni página estática, ni enlace en `/entrar` o `/vos`. Las rutas generadas son `/`, `/agregar`, `/entrar`, `/gilada` y `/vos`. Tampoco hay un HTML de política versionado para publicar.
+**En el repo.** Existe `/privacidad` (`app/src/routes/privacidad.tsx`), enlazada desde Entrar y Vos. URL pública: `https://qcl.matidelcastillo.workers.dev/privacidad`. Falta cargarla en App Store Connect.
 
 ---
 
@@ -87,7 +89,7 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 
 ---
 
-## 6. Privacy manifest (`PrivacyInfo.xcprivacy`) — **Falta**
+## 6. Privacy manifest (`PrivacyInfo.xcprivacy`) — **Cumple**
 
 **Qué pide Apple.** El manifiesto (`PrivacyInfo.xcprivacy`) describe prácticas de privacidad de la app o de un SDK y declara las Required Reason APIs con un motivo aprobado. App Store Connect rechaza manifiestos inválidos. Desde el 1 de mayo de 2024 hay requisitos de manifiesto, firmas y motivos para ciertos SDKs de terceros de uso común; Apple indicó que los motivos requeridos se ampliarían a todo el binario.
 
@@ -98,11 +100,11 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 - [TN3183: Adding required reason API entries](https://developer.apple.com/documentation/technotes/tn3183-adding-required-reason-api-entries-to-your-privacy-manifest)
 - [Reminder: Privacy requirement for app submissions starts May 1](https://developer.apple.com/news/?id=pvszzano)
 
-**En el repo.** No hay ningún `PrivacyInfo.xcprivacy`. Hay que auditar el binario y los paquetes Capacitor/iOS (UserDefaults, marcas de tiempo de archivos, etc.), agregar el manifiesto al target `App` con los motivos aprobados que correspondan, y no incluir claves inválidas.
+**En el repo.** Está `ios/App/App/PrivacyInfo.xcprivacy` en el target `App`, con `NSPrivacyTracking` en falso, tipos de datos (email, nombre, user ID, contenido de usuario) y UserDefaults `CA92.1`. Si al archivar Xcode señala otras Required Reason APIs, hay que sumar el motivo aprobado que corresponda.
 
 ---
 
-## 7. Cuenta demo para revisión — **Falta (App Store Connect)**
+## 7. Cuenta demo para revisión — **Cuenta creada; falta cargarla en App Store Connect**
 
 **Qué pide Apple.** Si hay login, hay que incluir una cuenta demo vigente y dejar el backend encendido, o un modo demo con aprobación previa de Apple que muestre todas las funciones. Las credenciales no pueden vencer antes de la revisión. Lo mismo aplica en la información de revisión (y conviene repetirlo para TestFlight externo).
 
@@ -111,11 +113,11 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 - [Guideline 2.1(a) App Completeness](https://developer.apple.com/app-store/review/guidelines/)
 - [Provide information for a complete review](https://developer.apple.com/help/app-review/before-submitting-for-review/complete-review/)
 
-**En el repo.** `__root.tsx` redirige a `/entrar` si no hay sesión: el revisor no puede ver la app sin cuenta. No hay usuario demo documentado ni modo demo.
+**En el repo.** La app sigue pidiendo sesión (salvo `/entrar` y `/privacidad`). Hay una cuenta demo estable (`3f8qjpxx+revision@mail.grokbot.com`, tres libros). Las credenciales están solo en `.env-review`. Falta cargarlas en App Review Information.
 
 ---
 
-## 8. Purpose string de cámara — **Parcial**
+## 8. Purpose string de cámara — **Cumple**
 
 **Qué pide Apple.** Antes de usar la cámara hay que pedir permiso con un purpose string que describa de forma clara y completa el uso: una oración breve, en voz activa, con el resultado concreto, no un mero “para usar la cámara”.
 
@@ -124,7 +126,7 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 - [Guideline 5.1.1(ii) Permission](https://developer.apple.com/app-store/review/guidelines/)
 - [5.1.1(ii) — Write clear purpose strings](https://developer.apple.com/help/app-review/guideline-reference/5-1-1-purpose-strings/)
 
-**En el repo.** `ios/App/App/Info.plist` define `NSCameraUsageDescription` = `Para escanear el ISBN.` El uso es específico (ISBN), pero no es una oración completa en voz activa como piden los ejemplos oficiales. El escáner está en `app/src/components/scanner.tsx` (`navigator.mediaDevices.getUserMedia`).
+**En el repo.** `NSCameraUsageDescription` quedó en `QCL usa la cámara para escanear el código ISBN del libro.` El escáner web está en `app/src/components/scanner.tsx`; en nativo se intenta `@capacitor-mlkit/barcode-scanning` y si no está disponible se usa el escáner web.
 
 ---
 
@@ -183,21 +185,30 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 
 ---
 
+## Implementado en el repo (16 nov 2026)
+
+- **4.2.** El shell iOS ya no apunta `server.url` a la web en vivo. `webDir` es `capacitor-web` (build estático generado por `bun run ios:prepare`). Las llamadas a `/api/libros`, `/api/tapa`, `/api/genero` y `/api/cuenta` van a `https://qcl.matidelcastillo.workers.dev` cuando la app corre en `capacitor://localhost`. CORS se envía solo a ese origin y solo en esas rutas. El escáner nativo usa `@capacitor-mlkit/barcode-scanning` cuando el plugin está disponible; si no, sigue el escáner web (en este proyecto iOS el plugin no tiene `Package.swift`/SPM, así que en el binario actual cae al escáner web). Queda un riesgo residual de 4.2, menor que un WebView vacío.
+- **5.1.1(v).** En Vos hay “Eliminar cuenta” con confirmación. `POST /api/cuenta` verifica el JWT y borra solo a esa persona (libros, perfil y usuario de Auth) con `SUPABASE_SERVICE_ROLE_KEY` en el worker. El secret todavía no está cargado: sin él la ruta responde 503. Hay que correr `bunx wrangler secret put SUPABASE_SERVICE_ROLE_KEY --name qcl` en `app/` (el valor no va en git ni en el chat).
+- **Privacidad.** Página `/privacidad` en el mismo dominio, enlazada desde Entrar y Vos. Texto con los datos reales de la app. Contacto: `matidelcastillo@gmail.com`. Falta pegar esa URL en App Store Connect.
+- **PrivacyInfo.xcprivacy.** Incluido en el target `App`: sin tracking; email, nombre, user ID y contenido de usuario para funcionalidad de la app; UserDefaults `CA92.1`.
+- **Cuenta demo.** `3f8qjpxx+revision@mail.grokbot.com`, con tres libros. Credenciales solo en `.env-review` (gitignore). Falta cargarlas en App Review Information.
+- **Cámara.** `NSCameraUsageDescription` = `QCL usa la cámara para escanear el código ISBN del libro.`
+- **Notas de revisión.** Ver `docs/app-review-notes.md`.
+- **Auditoría 390×844.** /privacidad, /entrar y /vos (cuenta demo, confirmación de borrado y Cancelar) sin overflow horizontal. La ruta de borrado en el worker sigue en 503 hasta que esté el secret.
+
 ## Resumen rápido
 
 | Ítem | Estado |
 | --- | --- |
-| 4.2 wrapper web / utilidad “app-like” | Riesgo |
-| 5.1.1(v) borrar cuenta en la app | Falta |
-| 5.1.1(i) política de privacidad (URL + enlace in-app) | Falta |
+| 4.2 wrapper web / utilidad “app-like” | Mitigado (riesgo residual) |
+| 5.1.1(v) borrar cuenta en la app | Hecho en código; falta el secret del worker |
+| 5.1.1(i) política de privacidad (URL + enlace in-app) | Hecho en la app; falta la URL en ASC |
 | Etiquetas App Privacy | Falta (ASC) |
 | `ITSAppUsesNonExemptEncryption` | Cumple |
-| `PrivacyInfo.xcprivacy` | Falta |
-| Cuenta demo para revisión | Falta (ASC) |
-| `NSCameraUsageDescription` | Parcial |
+| `PrivacyInfo.xcprivacy` | Cumple |
+| Cuenta demo para revisión | Creada; falta cargarla en ASC |
+| `NSCameraUsageDescription` | Cumple |
 | Ícono 1024 RGB sin alpha | Cumple |
 | Launch screen | Cumple |
 | TestFlight Test Information + primer review externo | Falta (ASC) |
-| Metadata / Support URL / capturas / notas 2.1–2.3 | Falta (ASC) |
-
-Los ítems en **Cumple** no requieren trabajo de producto ahora. Los demás hay que cerrarlos antes de invitar testers externos o enviar a App Review. Este commit no modifica el comportamiento de la app.
+| Metadata / Support URL / capturas / notas 2.1–2.3 | Falta (ASC); hay borrador en `docs/app-review-notes.md` |

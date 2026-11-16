@@ -1,6 +1,8 @@
 # QCL iOS
 
-Shell de Capacitor 8 que carga https://qcl.matidelcastillo.workers.dev
+Shell de Capacitor 8. La UI va empaquetada en la app (`webDir`: `app/.output/public`); las APIs van a https://qcl.matidelcastillo.workers.dev.
+
+Preparar el web shell y sincronizar iOS: `bun run ios:prepare` (desde la raíz del repo).
 
 - Bundle ID: `com.quecarajolees.app`
 - Nombre en el springboard: `QCL` (`qué carajo lees` no entra)

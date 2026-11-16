@@ -1,13 +1,15 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import type { Book } from "../domain/types";
-import { signOut } from "../data/auth-actions";
+import { deleteAccount, signOut } from "../data/auth-actions";
 import { useSession } from "../data/session-context";
 import { useBooks } from "../data/use-books";
 import { BrandHeader, ScreenHeading } from "../components/brand-header";
 import { BookRow } from "../components/book-row";
 import { BookSheet } from "../components/book-sheet";
 import { LoadError, LoadingRows } from "../components/feedback";
+import { Sheet } from "../components/sheet";
+import { buttonClass } from "../components/button";
 
 export const Route = createFileRoute("/vos")({ component: Profile });
 
@@ -18,6 +20,7 @@ function Profile() {
   const [selected, setSelected] = useState<Book | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const library = books.data ?? [];
   const want = library.filter((book) => book.status === "quiero").length;
@@ -35,6 +38,19 @@ function Profile() {
     } catch {
       setError("No pudimos salir.");
       setBusy(false);
+    }
+  }
+
+  async function removeAccount() {
+    setBusy(true);
+    setError("");
+    try {
+      await deleteAccount();
+      await navigate({ to: "/entrar" });
+    } catch {
+      setError("No pudimos eliminar la cuenta.");
+      setBusy(false);
+      setConfirmDelete(false);
     }
   }
 
@@ -83,6 +99,20 @@ function Profile() {
         >
           Salir
         </button>
+        <button
+          type="button"
+          className="text-action qc-press"
+          disabled={busy}
+          onClick={() => {
+            setError("");
+            setConfirmDelete(true);
+          }}
+        >
+          Eliminar cuenta
+        </button>
+        <Link to="/privacidad" className="text-action">
+          Privacidad
+        </Link>
         {error && (
           <p className="error-text" role="alert">
             {error}
@@ -90,6 +120,29 @@ function Profile() {
         )}
       </div>
       {selected && <BookSheet book={selected} onClose={() => setSelected(null)} />}
+      {confirmDelete && (
+        <Sheet onClose={() => !busy && setConfirmDelete(false)} label="Eliminar cuenta">
+          <div className="drawer-body stack">
+            <p className="legal-copy">Se borra tu cuenta y todos tus libros.</p>
+            <button
+              type="button"
+              className={buttonClass("primary", true)}
+              disabled={busy}
+              onClick={() => void removeAccount()}
+            >
+              Eliminar cuenta
+            </button>
+            <button
+              type="button"
+              className="text-action qc-press"
+              disabled={busy}
+              onClick={() => setConfirmDelete(false)}
+            >
+              Cancelar
+            </button>
+          </div>
+        </Sheet>
+      )}
     </main>
   );
 }

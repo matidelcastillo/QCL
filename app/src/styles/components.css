@@ -973,3 +973,16 @@ button:disabled {
   animation: cardEnter var(--dur-enter) var(--ease-enter) backwards;
   animation-delay: calc(min(var(--i, 0), var(--qcl-card-enter-cap)) * var(--qcl-card-enter-step));
 }
+
+/* Privacy page: body copy with existing type tokens. */
+.legal-copy {
+  color: var(--gray-text);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}
+.legal-copy p {
+  margin: 0;
+}
+.legal-copy a {
+  color: inherit;
+}

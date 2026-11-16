@@ -67,7 +67,7 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Para escanear el ISBN.</string>
+	<string>QCL usa la cámara para escanear el código ISBN del libro.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>

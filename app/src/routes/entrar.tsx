@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { browserSupabase } from "../data/supabase";
 import { BrandHeader } from "../components/brand-header";
@@ -114,6 +114,9 @@ function Enter() {
               {mode === "entrar" ? "Entrar" : "Crear cuenta"}
             </button>
           </form>
+          <Link to="/privacidad" className="text-action">
+            Privacidad
+          </Link>
         </div>
       </div>
     </main>

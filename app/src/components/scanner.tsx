@@ -5,6 +5,7 @@ import { guideCrop } from "../domain/scan-crop";
 import { preloadReader, readIsbn } from "./barcode-reader";
 import { buttonClass } from "./button";
 import { Sheet } from "./sheet";
+import { nativeIsbnScannerAvailable, scanIsbnNative, stopNativeScan } from "./native-isbn-scan";
 
 type CameraCapabilities = MediaTrackCapabilities & {
   torch?: boolean;
@@ -33,6 +34,7 @@ export function Scanner({
   const [canZoom, setCanZoom] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [error, setError] = useState("");
+  const [engine, setEngine] = useState<"pending" | "native" | "web" | "manual">("pending");
   const onFoundRef = useRef(onFound);
   onFoundRef.current = onFound;
 
@@ -55,6 +57,36 @@ export function Scanner({
   );
 
   useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      if (!(await nativeIsbnScannerAvailable())) {
+        if (!cancelled) setEngine("web");
+        return;
+      }
+      if (!cancelled) setEngine("native");
+      try {
+        const isbn = await scanIsbnNative();
+        if (cancelled) return;
+        if (isbn) {
+          onFoundRef.current(isbn);
+          return;
+        }
+      } catch {
+        /* Fall back to typing, same as a missing camera. */
+      }
+      if (!cancelled) {
+        setNoCamera(true);
+        setEngine("manual");
+      }
+    })();
+    return () => {
+      cancelled = true;
+      void stopNativeScan();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (engine !== "web") return;
     let alive = true;
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d", { willReadFrequently: true });
@@ -131,7 +163,7 @@ export function Scanner({
       alive = false;
       stop();
     };
-  }, [found, stop]);
+  }, [engine, found, stop]);
 
   async function toggleTorch() {
     const track = stream.current?.getVideoTracks()[0];
@@ -160,8 +192,10 @@ export function Scanner({
   return (
     <Sheet onClose={onClose} label="Escanear">
       <div className="drawer-body drawer-body-enter stack scanner-body">
-        {noCamera ? (
-          <p className="scanner-note">Sin cámara. Escribí el ISBN.</p>
+        {noCamera || engine !== "web" ? (
+          engine !== "pending" && engine !== "native" ? (
+            <p className="scanner-note">Sin cámara. Escribí el ISBN.</p>
+          ) : null
         ) : (
           <div className="scanner-frame">
             <video

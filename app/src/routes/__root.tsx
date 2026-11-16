@@ -85,7 +85,8 @@ function Gate() {
         <LoadingPage />
       </div>
     );
-  if (!user && path !== "/entrar") return <Navigate to="/entrar" />;
+  const publicPath = path === "/entrar" || path === "/privacidad";
+  if (!user && !publicPath) return <Navigate to="/entrar" />;
   if (user && path === "/entrar") return <Navigate to="/" />;
   return (
     <div className="app-frame safe-area-top">

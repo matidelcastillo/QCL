@@ -3,6 +3,7 @@ import { today } from "../domain/date";
 import { coverParams } from "../domain/cover-url";
 import { knownGenre, OTHER_GENRE } from "../domain/genre";
 import { identity } from "../domain/metadata";
+import { apiUrl } from "./api-base";
 import { browserSupabase } from "./supabase";
 
 export async function listBooks(ownerId: string): Promise<Book[]> {
@@ -96,7 +97,7 @@ async function validatedCover(input: NewBook): Promise<string | null> {
   params.set("t", input.title.trim());
   if (input.author.trim()) params.set("a", input.author.trim());
   try {
-    const response = await fetch(`/api/tapa?${params}`);
+    const response = await fetch(apiUrl(`/api/tapa?${params}`));
     return response.ok ? response.headers.get("x-qcl-cover-url") : null;
   } catch {
     return null;
@@ -109,7 +110,7 @@ async function validatedCover(input: NewBook): Promise<string | null> {
 async function classifiedGenre(input: NewBook): Promise<string | null> {
   if (knownGenre(input.genre) || input.genre === OTHER_GENRE) return input.genre;
   try {
-    const response = await fetch("/api/genero", {
+    const response = await fetch(apiUrl("/api/genero"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
