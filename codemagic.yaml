@@ -1,0 +1,103 @@
+workflows:
+  ios-testflight:
+    name: iOS Release to TestFlight
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: "QCL ASC"
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.quecarajolees.app
+      vars:
+        BUNDLE_ID: com.quecarajolees.app
+        XCODE_PROJECT: App.xcodeproj
+        XCODE_SCHEME: App
+      xcode: latest
+    scripts:
+      - name: Install Bun
+        script: |
+          #!/bin/sh
+          set -euo pipefail
+          curl -fsSL https://bun.sh/install | bash
+          echo "PATH=$HOME/.bun/bin:$PATH" >> "$CM_ENV"
+      - name: Install JS dependencies
+        script: |
+          #!/bin/sh
+          set -euo pipefail
+          # The repo is bun-managed (bun.lock at root and in app/; no package-lock.json).
+          bun install --frozen-lockfile
+          bun install --frozen-lockfile --cwd app
+      - name: Build web and sync iOS
+        script: |
+          #!/bin/sh
+          set -euo pipefail
+          bun run ios:prepare
+      - name: Set up code signing settings on Xcode project
+        script: |
+          #!/bin/sh
+          set -euo pipefail
+          xcode-project use-profiles
+      - name: Increment build number from TestFlight
+        script: |
+          #!/bin/sh
+          set -euo pipefail
+          cd "$CM_BUILD_DIR/ios/App"
+          APP_APPLE_ID=$(
+            app-store-connect apps list \
+              --bundle-id-identifier "$BUNDLE_ID" \
+              --strict-match-identifier \
+              --json |
+            python3 -c '
+          import json, sys
+          data = json.load(sys.stdin)
+          apps = data if isinstance(data, list) else data.get("data") or data.get("apps") or []
+          if isinstance(data, dict) and not apps:
+              maybe = data.get("id")
+              if maybe:
+                  apps = [data]
+          apple_id = ""
+          for app in apps:
+              if not isinstance(app, dict):
+                  continue
+              apple_id = str(
+                  app.get("id")
+                  or app.get("appleId")
+                  or (app.get("attributes") or {}).get("appleId")
+                  or ""
+              )
+              if apple_id:
+                  break
+          if apple_id:
+              print(apple_id)
+          '
+          ) || true
+          LATEST_BUILD_NUMBER=0
+          if [ -n "${APP_APPLE_ID:-}" ]; then
+            LATEST_BUILD_NUMBER=$(
+              app-store-connect get-latest-testflight-build-number \
+                --platform IOS \
+                --all-versions \
+                "$APP_APPLE_ID" | awk "/^[0-9]+$/{n=\$0} END{print n+0}"
+            ) || LATEST_BUILD_NUMBER=0
+          fi
+          case "$LATEST_BUILD_NUMBER" in
+            ''|*[!0-9]*) LATEST_BUILD_NUMBER=0 ;;
+          esac
+          NEXT_BUILD=$((LATEST_BUILD_NUMBER + 1))
+          echo "TestFlight latest=$LATEST_BUILD_NUMBER next=$NEXT_BUILD"
+          agvtool new-version -all "$NEXT_BUILD"
+      - name: Build ipa for distribution
+        script: |
+          #!/bin/sh
+          set -euo pipefail
+          cd "$CM_BUILD_DIR/ios/App"
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - ios/App/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
