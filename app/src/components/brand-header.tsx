@@ -3,9 +3,12 @@ export function BrandHeader({ heading = false }: { heading?: boolean }) {
   const Title = heading ? "h1" : "div";
   return (
     <header className="app-brand-header">
-      <Title className="app-brand-title">
-        <span className="app-brand-accent">qué carajo</span> lees
-      </Title>
+      <div className="app-brand">
+        <img className="app-brand-icon" src="/favicon.svg" width={48} height={48} alt="" />
+        <Title className="app-brand-title">
+          <span className="app-brand-accent">qué carajo</span> lees
+        </Title>
+      </div>
     </header>
   );
 }

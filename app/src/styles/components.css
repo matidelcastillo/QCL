@@ -59,9 +59,25 @@ button:disabled {
   padding-inline: var(--qcl-page-px);
 }
 
-/* Brand header: QC routes/index.tsx l. 1779-1786 + lib/brand-header-style.ts. */
+/* Brand header: QC routes/index.tsx l. 1779-1786 + lib/brand-header-style.ts.
+   Title typography is unchanged; the lettermark sits in a token-sized slot. */
 .app-brand-header {
   padding: var(--space-6) var(--space-5) var(--space-5);
+}
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--qcl-brand-icon-gap);
+  min-width: 0;
+}
+.app-brand-icon {
+  display: block;
+  width: var(--qcl-brand-icon-size);
+  height: var(--qcl-brand-icon-size);
+  flex-shrink: 0;
+  border-radius: var(--qcl-brand-icon-radius);
+  overflow: hidden;
+  background: var(--background);
 }
 .app-brand-title {
   margin: 0;
@@ -737,6 +753,9 @@ button:disabled {
 }
 .auth-panel .app-brand-header {
   text-align: center;
+}
+.auth-panel .app-brand {
+  justify-content: center;
 }
 
 /* Vos counters: QC type ramp --text-display-xl / --text-caption. */

@@ -59,6 +59,10 @@
   --qcl-brand-title-weight: 800;
   --qcl-brand-title-tracking: -0.03em;
   --qcl-brand-title-leading: 1.1;
+  /* Brand mark beside the title. No QC equivalent (QC is text-only). */
+  --qcl-brand-icon-size: 48px;
+  --qcl-brand-icon-gap: var(--space-3);
+  --qcl-brand-icon-radius: var(--radius-sm);
   /* QC routes/index.tsx l. 835-851 "Ahora no": low-hierarchy text action. */
   --qcl-text-action-weight: 700;
   /* QC routes/index.tsx l. 1796-1815 ("Agendaste.") and l. 1907-1925 (filter tabs). */
