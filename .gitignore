@@ -6,3 +6,13 @@ e1-browser/.npm-cache/
 e1-browser/e1-browser/.npm-cache/
 .e1-review.tgz
 e1-review.tgz
+
+# Capacitor / iOS (root tooling)
+/node_modules
+/package-lock.json
+/.env
+/.env.*
+!.env.example
+!.env.mobile.example
+
+/build

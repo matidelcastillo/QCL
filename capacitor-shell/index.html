@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>QCL</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #ffffff;
+      }
+    </style>
+    <script>
+      // Thin shell: load the live web app. Keep a same-origin fallback
+      // if the remote URL is ever unset in capacitor.config.
+      if (!window.Capacitor || !window.Capacitor.getServerUrl) {
+        location.replace("https://qcl.matidelcastillo.workers.dev");
+      }
+    </script>
+  </head>
+  <body></body>
+</html>
