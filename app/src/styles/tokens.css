@@ -59,7 +59,8 @@
   --qcl-brand-title-weight: 800;
   --qcl-brand-title-tracking: -0.03em;
   --qcl-brand-title-leading: 1.1;
-  /* Brand mark beside the title. No QC equivalent (QC is text-only). */
+  /* Brand mark beside the title. QC's header is text-only; the tile uses
+     QC's avatar ratio (lockup at 0.86 of the 1024 master, ~55% of the tile). */
   --qcl-brand-icon-size: 48px;
   --qcl-brand-icon-gap: var(--space-3);
   --qcl-brand-icon-radius: var(--radius-sm);
