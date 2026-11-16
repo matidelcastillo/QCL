@@ -59,12 +59,6 @@
   --qcl-brand-title-weight: 800;
   --qcl-brand-title-tracking: -0.03em;
   --qcl-brand-title-leading: 1.1;
-  /* QC lib/brand-header-style.ts brandSubtitleStyle (color C.muted light = --qcl-separator-muted). */
-  --qcl-brand-subtitle-size: 21px;
-  --qcl-brand-subtitle-weight: 600;
-  --qcl-brand-subtitle-tracking: -0.01em;
-  --qcl-brand-subtitle-leading: 1.2;
-  --qcl-brand-subtitle-gap: 4px;
   /* QC routes/index.tsx l. 835-851 "Ahora no": low-hierarchy text action. */
   --qcl-text-action-weight: 700;
   /* QC routes/index.tsx l. 1796-1815 ("Agendaste.") and l. 1907-1925 (filter tabs). */

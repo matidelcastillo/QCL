@@ -5,7 +5,6 @@ import { groupByGenre } from "../domain/genre";
 import type { Book, BookStatus } from "../domain/types";
 import { useSession } from "../data/session-context";
 import { useBooks } from "../data/use-books";
-import { useProfileName } from "../data/use-profile-name";
 import { BrandHeader } from "../components/brand-header";
 import { BookRow } from "../components/book-row";
 import { BookSheet } from "../components/book-sheet";
@@ -40,12 +39,11 @@ function Home() {
   const [selected, setSelected] = useState<Book | null>(null);
   const [view, setView] = useState<View>("list");
   const books = useBooks(user?.id);
-  const name = useProfileName(user?.id).data?.trim();
   const visible = (books.data ?? []).filter((book) => filter === "todos" || book.status === filter);
 
   return (
     <main className="page-pb-nav">
-      <BrandHeader heading subtitle={name ? `Wendía ${name}` : undefined} />
+      <BrandHeader heading />
       <div className="filter-row app-gutter">
         <div className="filter-tabs" role="group" aria-label="Filtrar">
           {filters.map(([value, label]) => (

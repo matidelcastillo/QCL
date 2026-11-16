@@ -184,13 +184,3 @@ export async function removeBook(ownerId: string, bookId: string): Promise<void>
     .eq("owner_id", ownerId);
   if (error) throw error;
 }
-
-export async function profileName(ownerId: string): Promise<string> {
-  const { data, error } = await browserSupabase()
-    .from("profiles")
-    .select("name")
-    .eq("id", ownerId)
-    .single();
-  if (error) throw error;
-  return data.name ?? "";
-}
