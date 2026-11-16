@@ -147,7 +147,7 @@ export function BookSheet({
           {saved && (
             <button
               type="button"
-              className="drawer-action drawer-action-destructive"
+              className="drawer-action"
               aria-label="Quitar"
               aria-pressed={confirming}
               onClick={() => setConfirming(true)}
@@ -164,7 +164,7 @@ export function BookSheet({
             </button>
             <button
               type="button"
-              className="drawer-choice drawer-choice-destructive"
+              className="drawer-choice drawer-choice-active"
               disabled={busy}
               onClick={() => void remove()}
             >

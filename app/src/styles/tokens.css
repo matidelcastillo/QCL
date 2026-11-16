@@ -183,31 +183,8 @@
   --timeline-day-gap: var(--space-4);
   --timeline-label-card-gap: var(--space-4);
   --timeline-card-gap: var(--space-6);
-  --media-card-light-wash: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.28) 0%,
-    rgba(255, 255, 255, 0.16) 8%,
-    rgba(255, 255, 255, 0.08) 24%,
-    rgba(255, 255, 255, 0.02) 52%,
-    rgba(255, 255, 255, 0) 82%
-  );
-  --media-card-depth-wash: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.92) 0%,
-    rgba(0, 0, 0, 0.72) 6%,
-    rgba(0, 0, 0, 0.46) 18%,
-    rgba(0, 0, 0, 0.18) 42%,
-    rgba(0, 0, 0, 0) 72%
-  );
   /* QC routes/index.tsx l. 166 (R.cardSm) and l. 2260-2370: events grid tile. */
   --qcl-tile-radius: 14px;
-  --qcl-tile-inset: 14px;
-  --qcl-tile-title-size: 19px;
-  --qcl-tile-title-leading: 1.05;
-  --qcl-tile-title-tracking: -0.025em;
-  --qcl-tile-marker-size: 32px;
-  --qcl-tile-marker-inset: 10px;
-  --qcl-tile-marker-icon: 17px;
   /* QC styles.css l. 2198-2212: cardEnter stagger. */
   --qcl-card-enter-offset: 12px;
   --qcl-card-enter-step: 45ms;
@@ -292,8 +269,8 @@
   --qcl-drawer-choice-pad: 6px;
   /* QC styles.css l. 2396-2400: .qc-people-row. */
   --qcl-row-min: 56px;
-  /* List cover: two steps of QC's 32px space token (2:3 → 64 x 96). */
-  --qcl-row-cover-w: calc(var(--space-8) * 2);
+  /* List cover: two steps of QC's 48px space token (2:3 → 96 x 144). */
+  --qcl-row-cover-w: calc(var(--space-12) * 2);
   --qcl-row-block: 10px;
 
   /* Only value with no QC equivalent: a book cover's physical ratio. */

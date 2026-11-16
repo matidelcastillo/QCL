@@ -28,8 +28,9 @@ export const Route = createFileRoute("/")({
 });
 
 /* QC routes/index.tsx home: brand header, filter tabs row with the view
-   toggle (l. 1941-1968, not persisted, like QC), feed grouped by genre the
-   way QC groups the feed by day (AgendaTimeline l. 3536-3640). */
+   toggle (l. 1941-1968, not persisted, like QC). The list groups by genre the
+   way QC groups the feed by day (AgendaTimeline l. 3536-3640); the grid shows
+   every cover in one grid. */
 function Home() {
   const { user } = useSession();
   const { f } = Route.useSearch();
@@ -83,27 +84,27 @@ function Home() {
           <LoadError retry={() => void books.refetch()} />
         ) : visible.length > 0 ? (
           <div key={`${filter}-${view}`} className="content-fade">
-            {groupByGenre(visible).map(([genre, items]) => (
-              <section key={genre} className="feed-group" aria-label={genre}>
-                <h2 className="feed-group-label">{genre.toLowerCase()}</h2>
-                {view === "grid" ? (
-                  <div className="book-grid">
-                    {items.map((book, index) => (
-                      <BookTile
-                        key={book.id}
-                        book={book}
-                        index={index}
-                        onOpen={() => setSelected(book)}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  items.map((book) => (
+            {view === "grid" ? (
+              <div className="book-grid">
+                {visible.map((book, index) => (
+                  <BookTile
+                    key={book.id}
+                    book={book}
+                    index={index}
+                    onOpen={() => setSelected(book)}
+                  />
+                ))}
+              </div>
+            ) : (
+              groupByGenre(visible).map(([genre, items]) => (
+                <section key={genre} className="feed-group" aria-label={genre}>
+                  <h2 className="feed-group-label">{genre.toLowerCase()}</h2>
+                  {items.map((book) => (
                     <BookRow key={book.id} book={book} onOpen={() => setSelected(book)} />
-                  ))
-                )}
-              </section>
-            ))}
+                  ))}
+                </section>
+              ))
+            )}
           </div>
         ) : filter === "todos" ? (
           <EmptyState text="Nada todavía." art>

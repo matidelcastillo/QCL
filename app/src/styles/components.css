@@ -650,21 +650,13 @@ button:disabled {
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: var(--black);
+  /* QC drawer actions: icon always C.orange; the label stays grey. */
+  color: var(--qcl-orange);
   text-decoration: none;
 }
 .drawer-action-icon {
   width: var(--filter-action-icon-size);
   height: var(--filter-action-icon-size);
-}
-.drawer-action[aria-pressed="true"] {
-  color: var(--qcl-orange);
-}
-/* Remove: QC destructive color (.drawer-choice-destructive), pressed or not. */
-.drawer-action-destructive,
-.drawer-action-destructive[aria-pressed="true"],
-.drawer-action-destructive .drawer-action-label {
-  color: var(--destructive);
 }
 .drawer-action-label {
   color: var(--qcl-meta-gray);
@@ -705,9 +697,6 @@ button:disabled {
 }
 .drawer-choice-active {
   color: var(--qcl-orange);
-}
-.drawer-choice-destructive {
-  color: var(--destructive);
 }
 
 /* Inputs: QC styles.css l. 2454-2467 (.qc-auth-email-input). */
@@ -947,7 +936,7 @@ button:disabled {
 }
 
 /* Feed groups: QC AgendaTimeline day label (routes/index.tsx l. 3610-3640):
-   muted gray heading-m label (QC grey), lowercase, not sticky, gaps from the timeline
+   heading-m label in the idle filter tab color, lowercase, not sticky, gaps from the timeline
    tokens; the last group owns no bottom gap. */
 .feed-group:not(:last-child) {
   margin-bottom: var(--timeline-day-gap);
@@ -955,18 +944,18 @@ button:disabled {
 .feed-group-label {
   margin: 0;
   padding-bottom: var(--timeline-label-card-gap);
-  color: var(--qcl-meta-gray);
+  color: var(--qcl-separator-muted);
   font-size: var(--text-heading-m);
   font-weight: var(--qcl-heading-weight);
   letter-spacing: var(--qcl-heading-tracking);
   line-height: var(--leading-heading-m);
 }
 
-/* Grid: QC events grid (routes/index.tsx l. 2235-2380), two columns. */
+/* Grid: every cover in one three-column grid, no groups or text. */
 .book-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--timeline-card-gap);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
 }
 .book-tile {
   position: relative;
@@ -977,8 +966,6 @@ button:disabled {
   border: 0;
   border-radius: var(--qcl-tile-radius);
   background: var(--black);
-  color: var(--white);
-  text-align: left;
 }
 .cover-tile {
   position: absolute;
@@ -989,42 +976,6 @@ button:disabled {
 }
 .media-card-treatment-compact {
   box-shadow: var(--media-card-shadow-compact);
-}
-.media-card-surface {
-  position: absolute;
-  inset: 0;
-  background: var(--media-card-light-wash), var(--media-card-depth-wash);
-  pointer-events: none;
-}
-.book-tile-status {
-  position: absolute;
-  top: var(--qcl-tile-marker-inset);
-  right: var(--qcl-tile-marker-inset);
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: var(--qcl-tile-marker-size);
-  height: var(--qcl-tile-marker-size);
-  border: var(--qcl-hairline) solid var(--qcl-border-white);
-  border-radius: 50%;
-}
-.book-tile-status svg {
-  width: var(--qcl-tile-marker-icon);
-  height: var(--qcl-tile-marker-icon);
-}
-.book-tile-title {
-  position: absolute;
-  right: var(--qcl-tile-inset);
-  bottom: var(--qcl-tile-inset);
-  left: var(--qcl-tile-inset);
-  display: -webkit-box;
-  overflow: hidden;
-  font-size: var(--qcl-tile-title-size);
-  font-weight: var(--qcl-heading-weight);
-  line-height: var(--qcl-tile-title-leading);
-  letter-spacing: var(--qcl-tile-title-tracking);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
 }
 /* QC .qcba-card-enter: `backwards` so the press transform is free after. */
 .card-enter {
