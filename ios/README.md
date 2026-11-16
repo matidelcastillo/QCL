@@ -9,9 +9,13 @@ Shell de Capacitor 8 que carga https://qcl.matidelcastillo.workers.dev
 
 ## TestFlight
 
-En esta Mac no está instalado Xcode (solo Command Line Tools) y el project de QC no tiene `DEVELOPMENT_TEAM`. Para subir:
+La subida corre en GitHub Actions (`.github/workflows/ios-release.yml`). No hace falta Xcode en esta Mac.
 
-1. Instalar Xcode y hacer `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`
-2. Abrir Xcode, iniciar sesión con la cuenta de Apple que usa QC, y en Signing & Capabilities del target App elegir el mismo Team
-3. En App Store Connect, crear la app (bundle `com.quecarajolees.app`, nombre de tienda p. ej. “qué carajo lees”)
-4. Archivar y subir: `cd ios/App && xcodebuild -scheme App -destination 'generic/platform=iOS' -archivePath ../../build/QCL.xcarchive archive` y después `xcodebuild -exportArchive ...` o Organizer → Distribute → TestFlight
+Secretos del repo (valores nuevos para QCL, no copiar los de QC):
+
+- `APPLE_TEAM_ID`
+- `APPSTORE_API_KEY_ID`
+- `APPSTORE_API_ISSUER_ID`
+- `APPSTORE_API_KEY_P8_BASE64`
+
+Después, en GitHub: Actions → iOS Release to TestFlight → Run workflow.
