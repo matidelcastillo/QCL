@@ -179,9 +179,9 @@ button:disabled {
   display: -webkit-box;
   overflow: hidden;
   color: var(--foreground);
-  font-size: var(--text-body-qcba);
+  font-size: var(--text-section);
   font-weight: 700;
-  line-height: var(--leading-body-qcba);
+  line-height: var(--leading-section);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -911,8 +911,10 @@ button:disabled {
   align-items: center;
   gap: var(--space-1);
 }
+/* Filters → first group: the same 16px rhythm as group → group and
+   label → first row (--timeline-day-gap = --space-4). */
 .feed {
-  padding-top: var(--space-8);
+  padding-top: var(--timeline-day-gap);
 }
 
 /* View toggle: QC routes/index.tsx l. 1941-1968 + styles.css .filter-action-icon. */
