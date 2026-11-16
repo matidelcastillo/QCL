@@ -8,12 +8,19 @@
   "assets": {
     "directory": ".output/public",
   },
-  // /api/libros cache misses per client IP (Google Books quota).
+  // /api/libros cache misses and /api/genero calls, per client IP.
   "ratelimits": [
     {
       "name": "CATALOG_LIMIT",
       "namespace_id": "1001",
       "simple": { "limit": 30, "period": 60 },
     },
+    {
+      "name": "GENRE_LIMIT",
+      "namespace_id": "1002",
+      "simple": { "limit": 30, "period": 60 },
+    },
   ],
+  // Workers AI: genre classifier (src/server/genre-ai.ts).
+  "ai": { "binding": "AI" },
 }

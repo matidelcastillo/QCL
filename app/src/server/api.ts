@@ -2,17 +2,23 @@ import { normalizeIsbn } from "../domain/isbn";
 import { CatalogUnavailable, searchCatalog } from "./catalog";
 import { allowedCoverUrl } from "./cover";
 import { findCover } from "./cover-search";
+import { type Ai, classifyGenre, genreInput } from "./genre-ai";
 
 /* Bump when the CatalogBook shape or cleaning rules change, so cached
    responses from an older worker are not served. */
-const CATALOG_SCHEMA = "6";
+const CATALOG_SCHEMA = "7";
+
+type RateLimit = { limit: (options: { key: string }) => Promise<{ success: boolean }> };
 
 /* Worker bindings. GOOGLE_BOOKS_API_KEY is a secret; without it Google Books
-   is called keyless (shared quota). CATALOG_LIMIT is the Workers rate limiter
-   declared in wrangler.jsonc. */
+   is called keyless (shared quota). CATALOG_LIMIT and GENRE_LIMIT are the
+   Workers rate limiters and AI the Workers AI binding, all declared in
+   wrangler.jsonc. */
 export type Env = {
   GOOGLE_BOOKS_API_KEY?: string;
-  CATALOG_LIMIT?: { limit: (options: { key: string }) => Promise<{ success: boolean }> };
+  CATALOG_LIMIT?: RateLimit;
+  GENRE_LIMIT?: RateLimit;
+  AI?: Ai;
 };
 
 const json = (body: unknown, status = 200, cache = "no-store") =>
@@ -21,8 +27,26 @@ const json = (body: unknown, status = 200, cache = "no-store") =>
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": cache },
   });
 
+const clientKey = (request: Request) => request.headers.get("cf-connecting-ip") ?? "local";
+
+/* POST /api/genero: classify one book being saved (called once per save). */
+async function genreResponse(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") return json({ error: "Método no permitido." }, 405);
+  const input = genreInput(await request.json().catch(() => null));
+  if (!input) return json({ error: "Libro inválido." }, 400);
+  const allowed = (await env.GENRE_LIMIT?.limit({ key: clientKey(request) }))?.success ?? true;
+  if (!allowed) return json({ error: "Muchos pedidos. Probá en un rato." }, 429);
+  if (!env.AI) return json({ error: "Clasificador no disponible." }, 503);
+  try {
+    return json({ genre: await classifyGenre(env.AI, input) });
+  } catch {
+    return json({ error: "Clasificador no disponible." }, 503);
+  }
+}
+
 export async function apiResponse(request: Request, env: Env = {}): Promise<Response | null> {
   const url = new URL(request.url);
+  if (url.pathname === "/api/genero") return genreResponse(request, env);
   if (url.pathname !== "/api/libros" && url.pathname !== "/api/tapa") return null;
   if (request.method !== "GET") return json({ error: "Método no permitido." }, 405);
   if (url.pathname === "/api/libros") {
@@ -46,8 +70,7 @@ export async function apiResponse(request: Request, env: Env = {}): Promise<Resp
     const hit = await cache?.match(key);
     if (hit) return hit;
     /* Only cache misses reach the providers, so only they spend the limit. */
-    const client = request.headers.get("cf-connecting-ip") ?? "local";
-    const allowed = (await env.CATALOG_LIMIT?.limit({ key: client }))?.success ?? true;
+    const allowed = (await env.CATALOG_LIMIT?.limit({ key: clientKey(request) }))?.success ?? true;
     if (!allowed) return json({ error: "Muchas búsquedas. Probá en un rato." }, 429);
     let results;
     try {

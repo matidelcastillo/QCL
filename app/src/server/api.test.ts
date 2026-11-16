@@ -116,3 +116,19 @@ test("cache key ignores extra params and rate limit stops provider calls", async
   expect(limited?.status).toBe(429);
   expect(providerCalls).toBe(0);
 });
+
+test("genre route: POST only, needs a title, answers with a label from the list", async () => {
+  const post = (body: unknown, env = {}) =>
+    apiResponse(
+      new Request(`${base}/api/genero`, { method: "POST", body: JSON.stringify(body) }),
+      env,
+    );
+  expect((await apiResponse(new Request(`${base}/api/genero`)))?.status).toBe(405);
+  expect((await post({ author: "x" }))?.status).toBe(400);
+  expect((await post({ title: "Rayuela" }))?.status).toBe(503);
+  const ai = { run: async () => ({ response: "Novela" }) };
+  const response = await post({ title: "Rayuela", author: "Julio Cortázar" }, { AI: ai });
+  expect(await response?.json()).toEqual({ genre: "Novela" });
+  const limited = { AI: ai, GENRE_LIMIT: { limit: async () => ({ success: false }) } };
+  expect((await post({ title: "Rayuela" }, limited))?.status).toBe(429);
+});

@@ -169,7 +169,7 @@ button:disabled {
   display: flex;
   flex: 1;
   flex-direction: column;
-  align-self: flex-start;
+  align-self: center;
   gap: var(--space-1);
   min-width: 0;
 }
@@ -230,7 +230,7 @@ button:disabled {
 .cover {
   display: block;
   flex: 0 0 auto;
-  width: var(--space-12);
+  width: var(--qcl-row-cover-w);
   aspect-ratio: var(--qcl-cover-ratio);
   overflow: hidden;
   border-radius: var(--radius-sm);
@@ -584,6 +584,7 @@ button:disabled {
 .drawer-hero-book {
   display: flex;
   justify-content: center;
+  padding-top: var(--drawer-top-pad);
   margin-bottom: var(--drawer-hero-content-gap);
 }
 .drawer-centered {

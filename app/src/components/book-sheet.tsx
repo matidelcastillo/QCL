@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Heart, Trash2 } from "lucide-react";
+import { Check, Heart, X } from "lucide-react";
 import type { Book, BookStatus, CatalogBook, SharedBook } from "../domain/types";
 import { today } from "../domain/date";
 import { knownGenre } from "../domain/genre";
@@ -41,7 +41,8 @@ export function BookSheet({
   const [error, setError] = useState("");
   const [popped, setPopped] = useState<BookStatus | null>(null);
   const cover = "cover_url" in book ? book.cover_url : book.coverUrl;
-  const genre = knownGenre(book.genre);
+  /* A catalog result has no genre until it is saved and classified. */
+  const genre = knownGenre(saved?.genre ?? ("genre" in book ? book.genre : null));
 
   async function choose(status: BookStatus) {
     if (!user || busy || saved?.status === status) return;
@@ -151,7 +152,7 @@ export function BookSheet({
               aria-pressed={confirming}
               onClick={() => setConfirming(true)}
             >
-              <Trash2 className="drawer-action-icon" strokeWidth={2} aria-hidden="true" />
+              <X className="drawer-action-icon" strokeWidth={2} aria-hidden="true" />
               <span className="drawer-action-label">QUITAR</span>
             </button>
           )}

@@ -19,17 +19,22 @@ export type Book = {
   updated_at: string;
 };
 
+/* Catalog result. Genre is not decided here: subjects (Open Library work
+   subjects) and categories (Google) feed the genre classifier on save. */
 export type CatalogBook = Pick<
   Book,
-  "title" | "author" | "isbn" | "page_count" | "published_year" | "genre" | "synopsis"
+  "title" | "author" | "isbn" | "page_count" | "published_year" | "synopsis"
 > & {
   coverUrl: string | null;
   source: "openlibrary" | "google";
   externalId: string;
+  subjects: string[];
+  categories: string[];
 };
 
 /* Row of public.most_read_books(): one shared book, counts only, no identities. */
-export type SharedBook = Omit<CatalogBook, "source" | "externalId"> & {
+export type SharedBook = Omit<CatalogBook, "source" | "externalId" | "subjects" | "categories"> & {
+  genre: string | null;
   source: Book["source"];
   externalId: string | null;
   leiCount: number;

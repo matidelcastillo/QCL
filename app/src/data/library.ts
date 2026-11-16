@@ -1,6 +1,7 @@
 import type { Book, BookStatus, CatalogBook, SharedBook } from "../domain/types";
 import { today } from "../domain/date";
 import { coverParams } from "../domain/cover-url";
+import { knownGenre, OTHER_GENRE } from "../domain/genre";
 import { identity } from "../domain/metadata";
 import { browserSupabase } from "./supabase";
 
@@ -43,7 +44,12 @@ export type NewBook = Pick<
   | "published_year"
   | "genre"
   | "synopsis"
-> & { coverUrl: string | null };
+> & {
+  coverUrl: string | null;
+  /* Classifier input for a catalog book; never stored. */
+  subjects: string[];
+  categories: string[];
+};
 
 export function toNewBook(book: Book | CatalogBook | SharedBook): NewBook {
   return {
@@ -54,23 +60,30 @@ export function toNewBook(book: Book | CatalogBook | SharedBook): NewBook {
     external_id: "externalId" in book ? book.externalId : book.external_id,
     page_count: book.page_count,
     published_year: book.published_year,
-    genre: book.genre,
+    genre: "genre" in book ? book.genre : null,
     synopsis: book.synopsis,
     coverUrl: "coverUrl" in book ? book.coverUrl : book.cover_url,
+    subjects: "subjects" in book ? book.subjects : [],
+    categories: "categories" in book ? book.categories : [],
   };
+}
+
+/* Book columns of a NewBook: the cover is validated and the classifier input
+   consumed before insert, neither is a column. */
+function columns({ coverUrl, subjects, categories, ...fields }: NewBook) {
+  return fields;
 }
 
 /* Optimistic row shown while the insert is in flight. */
 export function pendingBook(ownerId: string, input: NewBook, status: BookStatus): Book {
   const now = new Date().toISOString();
-  const { coverUrl, ...fields } = input;
   return {
-    ...fields,
+    ...columns(input),
     id: `pending:${now}`,
     owner_id: ownerId,
     status,
     read_at: status === "lei" ? today() : null,
-    cover_url: coverUrl,
+    cover_url: input.coverUrl,
     created_at: now,
     updated_at: now,
   };
@@ -90,6 +103,30 @@ async function validatedCover(input: NewBook): Promise<string | null> {
   }
 }
 
+/* Genre is decided once, when the book is saved: a known genre (a book
+   already in someone's library) is kept, otherwise the server classifier
+   picks one. A failed call stores no genre (the book shows under Otros). */
+async function classifiedGenre(input: NewBook): Promise<string | null> {
+  if (knownGenre(input.genre) || input.genre === OTHER_GENRE) return input.genre;
+  try {
+    const response = await fetch("/api/genero", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        title: input.title,
+        author: input.author,
+        subjects: input.subjects,
+        categories: input.categories,
+      }),
+    });
+    if (!response.ok) return null;
+    const { genre } = (await response.json()) as { genre?: unknown };
+    return typeof genre === "string" ? genre : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function ensureBook(
   ownerId: string,
   input: NewBook,
@@ -99,17 +136,18 @@ export async function ensureBook(
   const existing = duplicate(await listBooks(ownerId), input);
   if (existing)
     return existing.status === status ? existing : setBookStatus(ownerId, existing.id, status);
-  const { coverUrl, ...fields } = input;
+  const [coverUrl, genre] = await Promise.all([validatedCover(input), classifiedGenre(input)]);
   const { data, error } = await browserSupabase()
     .from("books")
     .insert({
-      ...fields,
+      ...columns(input),
+      genre,
       owner_id: ownerId,
       title: input.title.trim(),
       author: input.author.trim(),
       status,
       read_at: status === "lei" ? today() : null,
-      cover_url: await validatedCover(input),
+      cover_url: coverUrl,
     })
     .select("*")
     .single();

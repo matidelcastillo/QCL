@@ -7,9 +7,9 @@ import {
   positiveInt,
   year,
 } from "../domain/metadata";
-import { genreFromSubjects } from "../domain/genre";
 import type { CatalogBook } from "../domain/types";
 import { allowedCoverUrl, fetchCover } from "./cover";
+import { SUBJECT_LIMIT } from "./genre-ai";
 
 type SourceResult = { ok: boolean; books: CatalogBook[] };
 type GoogleInfo = {
@@ -65,12 +65,14 @@ function googleCover(info: GoogleInfo): string | null {
     : null;
 }
 
-/* Google's lone "Fiction" category is too broad to name a genre: on the real
-   library it was right 2 of 6 times, always where Open Library already had
-   the answer. Specific categories still count. */
-function googleGenre(categories: unknown): string | null {
-  const genre = genreFromSubjects(categories);
-  return genre === "Novela" ? null : genre;
+/* Subject labels as the classifier sees them: strings only, capped. */
+function labels(values: unknown): string[] {
+  if (!Array.isArray(values)) return [];
+  return values
+    .filter((value): value is string => typeof value === "string")
+    .map(cleanText)
+    .filter(Boolean)
+    .slice(0, SUBJECT_LIMIT);
 }
 
 function googleBooks(data: unknown): CatalogBook[] {
@@ -92,7 +94,8 @@ function googleBooks(data: unknown): CatalogBook[] {
         coverUrl: googleCover(info),
         page_count: positiveInt(info.pageCount),
         published_year: year(info.publishedDate),
-        genre: googleGenre(info.categories),
+        subjects: [],
+        categories: labels(info.categories),
         synopsis: plainText(info.description),
         source: "google" as const,
         externalId: String(item.id ?? info.title),
@@ -125,7 +128,8 @@ function openLibraryBooks(data: unknown): CatalogBook[] {
         coverUrl: openLibraryCover(doc, isbn),
         page_count: positiveInt(doc.number_of_pages_median),
         published_year: year(doc.first_publish_year),
-        genre: genreFromSubjects(doc.subject),
+        subjects: labels(doc.subject),
+        categories: [],
         synopsis: null,
         source: "openlibrary" as const,
         externalId: String(doc.key ?? doc.title),
@@ -159,7 +163,8 @@ async function openLibrary(query: string, isbn: string | null): Promise<SourceRe
           page_count: positiveInt(doc.number_of_pages),
           published_year: year(doc.publish_date),
           /* Work subjects (search) are richer than the edition's own list. */
-          genre: books[0]?.genre ?? genreFromSubjects(doc.subjects),
+          subjects: books[0]?.subjects.length ? books[0].subjects : labels(doc.subjects),
+          categories: [],
           synopsis: plainText(
             doc.description && typeof doc.description === "object" && "value" in doc.description
               ? doc.description.value
@@ -228,12 +233,9 @@ export function mergeBooks(query: string, groups: CatalogBook[][]): CatalogBook[
           previous.coverUrl ??
           book.coverUrl,
         isbn: preferred.isbn ?? previous.isbn ?? book.isbn,
-        /* Open Library subjects map to genre more reliably than Google
-           categories (see domain/genre.ts), so they win when both exist. */
-        genre:
-          [previous, book].find((item) => item.source === "openlibrary" && item.genre)?.genre ??
-          previous.genre ??
-          book.genre,
+        /* Each provider brings its own labels; the classifier gets both. */
+        subjects: previous.subjects.length ? previous.subjects : book.subjects,
+        categories: previous.categories.length ? previous.categories : book.categories,
         synopsis: preferred.synopsis ?? previous.synopsis ?? book.synopsis,
       };
       mergedBooks[index] = merged;

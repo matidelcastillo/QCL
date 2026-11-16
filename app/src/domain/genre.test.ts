@@ -1,40 +1,30 @@
 import { describe, expect, test } from "bun:test";
-import { genreFromSubjects, genreGroup, groupByGenre } from "./genre";
+import { genreGroup, groupByGenre, parseGenre } from "./genre";
 
-describe("genreFromSubjects", () => {
-  test("most votes win; the generic novel loses to a specific genre", () => {
-    expect(
-      genreFromSubjects(["Cosmology", "Physics", "Astronomy", "Philosophie", "Science, history"]),
-    ).toBe("Ciencia");
-    expect(genreFromSubjects(["Fiction / Horror"])).toBe("Terror");
-    expect(genreFromSubjects(["Science fiction -- Argentina"])).toBe("Ciencia ficción");
-  });
-  test("topical 'X, fiction' and nonfiction do not vote novel", () => {
-    expect(genreFromSubjects(["American Horror tales", "Gods, fiction", "Death, fiction"])).toBe(
-      "Terror",
-    );
-    expect(genreFromSubjects(["Business", "Nonfiction"])).toBe("Negocios");
-    expect(genreFromSubjects(["Spanish fiction", "Fiction, general", "Chronology"])).toBe("Novela");
-  });
-  test("noise only is no genre", () => {
-    expect(genreFromSubjects(["Chronology", "Accessible book", "Argentina"])).toBeNull();
-    expect(genreFromSubjects("Fiction")).toBeNull();
+describe("parseGenre", () => {
+  test("keeps an exact label from the list, anything else is Otros", () => {
+    expect(parseGenre(" Ciencia ficción ")).toBe("Ciencia ficción");
+    expect(parseGenre("Otros")).toBe("Otros");
+    expect(parseGenre("Science fiction")).toBe("Otros");
+    expect(parseGenre("Novela.")).toBe("Otros");
+    expect(parseGenre("")).toBe("Otros");
   });
 });
 
 describe("groupByGenre", () => {
-  test("known genres sort alphabetically, unknown ones fall into Otros last", () => {
+  test("known genres sort alphabetically, the rest fall into Otros last", () => {
     const groups = groupByGenre([
       { genre: "Terror" },
       { genre: "Chronology" },
       { genre: null },
       { genre: "Ciencia ficción" },
       { genre: "Terror" },
+      { genre: "Otros" },
     ]);
     expect(groups.map(([name, items]) => [name, items.length])).toEqual([
       ["Ciencia ficción", 1],
       ["Terror", 2],
-      ["Otros", 2],
+      ["Otros", 3],
     ]);
     expect(genreGroup("Novela")).toBe("Novela");
   });

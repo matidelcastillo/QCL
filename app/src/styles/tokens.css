@@ -292,6 +292,8 @@
   --qcl-drawer-choice-pad: 6px;
   /* QC styles.css l. 2396-2400: .qc-people-row. */
   --qcl-row-min: 56px;
+  /* List cover: two steps of QC's 32px space token (2:3 → 64 x 96). */
+  --qcl-row-cover-w: calc(var(--space-8) * 2);
   --qcl-row-block: 10px;
 
   /* Only value with no QC equivalent: a book cover's physical ratio. */
