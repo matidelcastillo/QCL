@@ -116,6 +116,21 @@ export function BookSheet({
           <button
             type="button"
             className="drawer-action"
+            aria-label="Leí"
+            aria-pressed={saved?.status === "lei"}
+            onClick={() => void choose("lei")}
+          >
+            <Check
+              className={`drawer-action-icon${popped === "lei" ? " heart-pop" : ""}`}
+              strokeWidth={2}
+              onAnimationEnd={() => setPopped(null)}
+              aria-hidden="true"
+            />
+            <span className="drawer-action-label">LEÍ</span>
+          </button>
+          <button
+            type="button"
+            className="drawer-action"
             aria-label="Quiero"
             aria-pressed={saved?.status === "quiero"}
             onClick={() => void choose("quiero")}
@@ -128,21 +143,6 @@ export function BookSheet({
               aria-hidden="true"
             />
             <span className="drawer-action-label">QUIERO</span>
-          </button>
-          <button
-            type="button"
-            className="drawer-action"
-            aria-label="Leí"
-            aria-pressed={saved?.status === "lei"}
-            onClick={() => void choose("lei")}
-          >
-            <Check
-              className={`drawer-action-icon${popped === "lei" ? " heart-pop" : ""}`}
-              strokeWidth={2}
-              onAnimationEnd={() => setPopped(null)}
-              aria-hidden="true"
-            />
-            <span className="drawer-action-label">LEÍ</span>
           </button>
           {saved && (
             <button
