@@ -3,9 +3,9 @@ import type { Book, CatalogBook } from "../domain/types";
 import { BookCover } from "./book-cover";
 
 /* Row = QC .qc-people-row (editorial row, no card). Cover left, status right,
-   and always three one-line rows: title, author, "N pág. · año" (benchmark:
-   Literal / Fable / StoryGraph lists). A missing line keeps its space so
-   every row has the same shape; genre stays in the book sheet. */
+   and a text block centered on the cover: title (up to two lines), author and
+   "N pág. · año" (one line each; benchmark: Literal / Fable / StoryGraph
+   lists). A missing line keeps its space; genre stays in the book sheet. */
 export const EMPTY_LINE = "\u00a0";
 
 export function BookRow({

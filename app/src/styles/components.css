@@ -173,15 +173,17 @@ button:disabled {
   gap: var(--space-1);
   min-width: 0;
 }
-/* Title, author and meta: one line each, ellipsis (benchmark: Literal / Fable rows). */
+/* Title up to two lines; author and meta one line each; all end in ellipsis
+   (benchmark: Literal / Fable rows). */
 .row-title {
+  display: -webkit-box;
   overflow: hidden;
   color: var(--foreground);
   font-size: var(--text-body-qcba);
   font-weight: 700;
   line-height: var(--leading-body-qcba);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 .row-author {
   overflow: hidden;
@@ -234,6 +236,7 @@ button:disabled {
   aspect-ratio: var(--qcl-cover-ratio);
   overflow: hidden;
   border-radius: var(--radius-sm);
+  box-shadow: var(--media-card-shadow-compact);
 }
 .cover-image {
   display: block;
@@ -244,7 +247,6 @@ button:disabled {
 .cover-large {
   width: calc(var(--space-12) * 2.5);
   border-radius: var(--radius-card);
-  box-shadow: var(--media-card-shadow-compact);
 }
 .cover-fallback {
   background: linear-gradient(135deg, var(--gray-light), var(--bg));
@@ -973,6 +975,8 @@ button:disabled {
   width: 100%;
   height: 100%;
   border-radius: 0;
+  /* The tile itself carries the shadow. */
+  box-shadow: none;
 }
 .media-card-treatment-compact {
   box-shadow: var(--media-card-shadow-compact);
