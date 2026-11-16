@@ -4,7 +4,7 @@
   "description": "Capacitor 8 iOS shell for qué carajo lees",
   "scripts": {
     "cap:sync": "cap sync ios",
-    "ios:prepare": "bun run --cwd app build && bun scripts/write-capacitor-index.mjs && cap sync ios",
+    "ios:prepare": "QCL_TARGET=ios bun run --cwd app build && bun scripts/prepare-capacitor-web.mjs && cap sync ios",
     "ios:open": "cap open ios"
   },
   "dependencies": {

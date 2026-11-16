@@ -13,6 +13,10 @@ workflows:
         BUNDLE_ID: com.quecarajolees.app
         XCODE_PROJECT: App.xcodeproj
         XCODE_SCHEME: App
+        # Public client config baked into the iOS bundle (app/.env is not in git).
+        # Publishable key only; never the service role key.
+        VITE_SUPABASE_URL: https://mdytuysdombxyydqnsmj.supabase.co
+        VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_pCfoSYyZSDDxvvnbmq_EHw_7BUhKzYm
       xcode: latest
     scripts:
       - name: Install Bun
