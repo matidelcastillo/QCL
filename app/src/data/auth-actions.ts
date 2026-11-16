@@ -1,4 +1,3 @@
-import { apiUrl } from "./api-base";
 import { browserSupabase } from "./supabase";
 
 export async function signOut() {
@@ -8,12 +7,7 @@ export async function signOut() {
 
 export async function deleteAccount() {
   const client = browserSupabase();
-  const { data, error } = await client.auth.getSession();
-  if (error || !data.session?.access_token) throw new Error("no_session");
-  const response = await fetch(apiUrl("/api/cuenta"), {
-    method: "POST",
-    headers: { Authorization: `Bearer ${data.session.access_token}` },
-  });
-  if (!response.ok) throw new Error("delete_failed");
+  const { error } = await client.rpc("delete_own_account");
+  if (error) throw error;
   await client.auth.signOut();
 }

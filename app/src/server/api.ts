@@ -3,7 +3,6 @@ import { CatalogUnavailable, searchCatalog } from "./catalog";
 import { allowedCoverUrl } from "./cover";
 import { findCover } from "./cover-search";
 import { type Ai, classifyGenre, genreInput } from "./genre-ai";
-import { accountAdmin, bearerToken, deleteCallerAccount } from "./account";
 
 /* Bump when the CatalogBook shape or cleaning rules change, so cached
    responses from an older worker are not served. */
@@ -17,7 +16,6 @@ type RateLimit = { limit: (options: { key: string }) => Promise<{ success: boole
    wrangler.jsonc. */
 export type Env = {
   GOOGLE_BOOKS_API_KEY?: string;
-  SUPABASE_SERVICE_ROLE_KEY?: string;
   CATALOG_LIMIT?: RateLimit;
   GENRE_LIMIT?: RateLimit;
   AI?: Ai;
@@ -34,27 +32,13 @@ export function withCors(request: Request, response: Response) {
   const out = new Response(response.body, response);
   out.headers.set("Access-Control-Allow-Origin", CAPACITOR_ORIGIN);
   out.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  out.headers.set("Access-Control-Allow-Headers", "authorization, content-type");
+  out.headers.set("Access-Control-Allow-Headers", "content-type");
   out.headers.set("Access-Control-Expose-Headers", "x-qcl-cover-url");
   out.headers.set("Vary", "Origin");
   return out;
 }
 
-const API_PATHS = new Set(["/api/libros", "/api/tapa", "/api/genero", "/api/cuenta"]);
-
-async function accountResponse(request: Request, env: Env): Promise<Response> {
-  if (request.method !== "POST") return json({ error: "Método no permitido." }, 405);
-  const token = bearerToken(request);
-  if (!token) return json({ error: "No autorizado." }, 401);
-  if (!env.SUPABASE_SERVICE_ROLE_KEY) return json({ error: "No disponible." }, 503);
-  try {
-    const result = await deleteCallerAccount(accountAdmin(env.SUPABASE_SERVICE_ROLE_KEY), token);
-    if ("ok" in result) return json({ ok: true });
-    return json({ error: result.error }, result.status);
-  } catch {
-    return json({ error: "No se pudo eliminar la cuenta." }, 500);
-  }
-}
+const API_PATHS = new Set(["/api/libros", "/api/tapa", "/api/genero"]);
 
 const json = (body: unknown, status = 200, cache = "no-store") =>
   new Response(JSON.stringify(body), {
@@ -89,7 +73,6 @@ export async function apiResponse(request: Request, env: Env = {}): Promise<Resp
     );
   }
   const respond = async (pending: Promise<Response> | Response) => withCors(request, await pending);
-  if (url.pathname === "/api/cuenta") return respond(accountResponse(request, env));
   if (url.pathname === "/api/genero") return respond(genreResponse(request, env));
   if (url.pathname !== "/api/libros" && url.pathname !== "/api/tapa") return null;
   if (request.method !== "GET") return respond(json({ error: "Método no permitido." }, 405));

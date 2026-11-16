@@ -140,7 +140,7 @@ test("CORS is only set for capacitor://localhost on API routes", async () => {
   );
   expect(preflight?.status).toBe(204);
   expect(preflight?.headers.get("access-control-allow-origin")).toBe("capacitor://localhost");
-  expect(preflight?.headers.get("access-control-allow-headers")).toContain("authorization");
+  expect(preflight?.headers.get("access-control-allow-headers")).toContain("content-type");
   expect(preflight?.headers.get("access-control-expose-headers")).toContain("x-qcl-cover-url");
   const other = await apiResponse(
     new Request(`${base}/api/libros?q=`, {
@@ -157,18 +157,4 @@ test("CORS is only set for capacitor://localhost on API routes", async () => {
     new Response("", { headers: { "x-qcl-cover-url": "https://example.com/c.jpg" } }),
   );
   expect(wrapped.headers.get("access-control-expose-headers")).toContain("x-qcl-cover-url");
-});
-
-test("account route requires a bearer token and the service role", async () => {
-  expect((await apiResponse(new Request(`${base}/api/cuenta`)))?.status).toBe(405);
-  expect((await apiResponse(new Request(`${base}/api/cuenta`, { method: "POST" })))?.status).toBe(
-    401,
-  );
-  const noSecret = await apiResponse(
-    new Request(`${base}/api/cuenta`, {
-      method: "POST",
-      headers: { Authorization: "Bearer test-token" },
-    }),
-  );
-  expect(noSecret?.status).toBe(503);
 });

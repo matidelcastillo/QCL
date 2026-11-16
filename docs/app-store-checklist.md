@@ -2,7 +2,7 @@
 
 Documento de control para no fallar en TestFlight App Review ni en App Review. No cambia el comportamiento de la app. Fuentes: solo documentación oficial de Apple, consultada el 16 de noviembre de 2026 (America/Buenos_Aires). Las [App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) vigentes están actualizadas al 16 de octubre de 2026.
 
-**Estado al 16 de noviembre de 2026 (America/Buenos_Aires).** Worker `qcl` desplegado, versión `37963d81-627c-4ea7-a1bb-25efae2540eb` (`https://qcl.matidelcastillo.workers.dev`). Contacto de la política: `matidelcastillo@gmail.com` (email de la cuenta Cloudflare del usuario; no se usó el mail del agente).
+**Estado al 16 de noviembre de 2026 (America/Buenos_Aires).** Worker `qcl` desplegado, versión `0b5ea06e-b4bf-4c1d-9762-fedf1e403c99` (`https://qcl.matidelcastillo.workers.dev`). Contacto de la política: `matidelcastillo@gmail.com` (email de la cuenta Cloudflare del usuario; no se usó el mail del agente).
 
 **App:** shell Capacitor 8 (`com.quecarajolees.app`) que carga `https://qcl.matidelcastillo.workers.dev`. Alta por email (Supabase), biblioteca personal, feed de lecturas de otras personas, escáner de ISBN con cámara.
 
@@ -25,7 +25,7 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 - [Guideline 4.2 Minimum Functionality](https://developer.apple.com/app-store/review/guidelines/)
 - [Guideline 4.2.2](https://developer.apple.com/app-store/review/guidelines/)
 
-**En el repo.** El binario iOS empaqueta la UI en `capacitor-web` (ya no hay `server.url` remoto). Las APIs van al worker por HTTPS. Plugins: App, Keyboard, StatusBar y `@capacitor-mlkit/barcode-scanning` (en iOS, con el proyecto en SPM, el plugin no se enlaza y se usa el escáner web). La utilidad real (alta, biblioteca, “qué lee la gilada”, escáner ISBN con `getUserMedia` en `app/src/components/scanner.tsx` y `app/src/routes/agregar.tsx`) vive en la web remota, no en UI nativa.
+**En el repo.** El binario iOS empaqueta la UI en `capacitor-web` (ya no hay `server.url` remoto). Las APIs van al worker por HTTPS. Plugins: App, Keyboard, StatusBar y `@capacitor/barcode-scanner` (oficial, con `Package.swift`, compatible con el proyecto SPM y con `codemagic.yaml`). En la web se sigue usando el escáner de `app/src/components/scanner.tsx`.
 
 **Riesgos oficiales relacionados**
 
@@ -37,7 +37,7 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 
 ---
 
-## 2. Eliminación de cuenta en la app (5.1.1(v)) — **Hecho en código; falta el secret en el worker**
+## 2. Eliminación de cuenta en la app (5.1.1(v)) — **Cumple**
 
 **Qué pide Apple.** Si la app permite crear cuenta, también debe permitir iniciar la eliminación de esa cuenta *dentro de la app*. La opción tiene que ser fácil de encontrar (en general, en ajustes de cuenta). Tiene que borrar el registro y los datos personales asociados, no solo desactivar. Confirmar la intención está bien; mandar a un flujo de soporte (mail, teléfono, chat) no, salvo industrias muy reguladas. Si hace falta terminar el proceso en la web, el enlace debe ir directo a esa página.
 
@@ -46,7 +46,7 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 - [Guideline 5.1.1(v) Account Sign-In](https://developer.apple.com/app-store/review/guidelines/)
 - [5.1.1(v) — Offering account deletion in your app](https://developer.apple.com/help/app-review/guideline-reference/5-1-1-account-deletion/)
 
-**En el repo.** `entrar.tsx` sigue creando cuentas. En `vos.tsx` está “Eliminar cuenta” con confirmación. `POST /api/cuenta` en el worker verifica el JWT y borra solo a esa persona. Hasta que exista `SUPABASE_SERVICE_ROLE_KEY` en el worker `qcl`, la ruta responde 503.
+**En el repo.** En `vos.tsx` está “Eliminar cuenta” con confirmación. La app llama al RPC `public.delete_own_account()`, una función `SECURITY DEFINER` que borra solo los libros, el perfil y el usuario de Auth de `auth.uid()`. No usa service role en el browser ni en el worker.
 
 ---
 
@@ -126,7 +126,7 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 - [Guideline 5.1.1(ii) Permission](https://developer.apple.com/app-store/review/guidelines/)
 - [5.1.1(ii) — Write clear purpose strings](https://developer.apple.com/help/app-review/guideline-reference/5-1-1-purpose-strings/)
 
-**En el repo.** `NSCameraUsageDescription` quedó en `QCL usa la cámara para escanear el código ISBN del libro.` El escáner web está en `app/src/components/scanner.tsx`; en nativo se intenta `@capacitor-mlkit/barcode-scanning` y si no está disponible se usa el escáner web.
+**En el repo.** `NSCameraUsageDescription` quedó en `QCL usa la cámara para escanear el código ISBN del libro.` En nativo se usa `@capacitor/barcode-scanner` (SPM). En la web se sigue el escáner de `app/src/components/scanner.tsx`.
 
 ---
 
@@ -187,21 +187,21 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 
 ## Implementado en el repo (16 nov 2026)
 
-- **4.2.** El shell iOS ya no apunta `server.url` a la web en vivo. `webDir` es `capacitor-web` (build estático generado por `bun run ios:prepare`). Las llamadas a `/api/libros`, `/api/tapa`, `/api/genero` y `/api/cuenta` van a `https://qcl.matidelcastillo.workers.dev` cuando la app corre en `capacitor://localhost`. CORS se envía solo a ese origin y solo en esas rutas. El escáner nativo usa `@capacitor-mlkit/barcode-scanning` cuando el plugin está disponible; si no, sigue el escáner web (en este proyecto iOS el plugin no tiene `Package.swift`/SPM, así que en el binario actual cae al escáner web). Queda un riesgo residual de 4.2, menor que un WebView vacío.
-- **5.1.1(v).** En Vos hay “Eliminar cuenta” con confirmación. `POST /api/cuenta` verifica el JWT y borra solo a esa persona (libros, perfil y usuario de Auth) con `SUPABASE_SERVICE_ROLE_KEY` en el worker. El secret todavía no está cargado: sin él la ruta responde 503. Hay que correr `bunx wrangler secret put SUPABASE_SERVICE_ROLE_KEY --name qcl` en `app/` (el valor no va en git ni en el chat).
+- **4.2.** El shell iOS ya no apunta `server.url` a la web en vivo. `webDir` es `capacitor-web` (build estático generado por `bun run ios:prepare`). Las llamadas a `/api/libros`, `/api/tapa` y `/api/genero` van a `https://qcl.matidelcastillo.workers.dev` cuando la app corre en `capacitor://localhost`. CORS se envía solo a ese origin y solo en esas rutas. El escáner nativo usa `@capacitor/barcode-scanner` (plugin oficial con SPM; `cap sync ios` lo enlaza y `codemagic.yaml` sigue usando `App.xcodeproj`). En la web se mantiene el escáner anterior. Queda un riesgo residual de 4.2, menor que un WebView vacío.
+- **5.1.1(v).** En Vos hay “Eliminar cuenta” con confirmación. La app llama `rpc('delete_own_account')`. La función (migración `20261116183452_delete_own_account`) borra solo la fila de `auth.uid()`. No hace falta un secret de service role en el worker.
 - **Privacidad.** Página `/privacidad` en el mismo dominio, enlazada desde Entrar y Vos. Texto con los datos reales de la app. Contacto: `matidelcastillo@gmail.com`. Falta pegar esa URL en App Store Connect.
 - **PrivacyInfo.xcprivacy.** Incluido en el target `App`: sin tracking; email, nombre, user ID y contenido de usuario para funcionalidad de la app; UserDefaults `CA92.1`.
 - **Cuenta demo.** `3f8qjpxx+revision@mail.grokbot.com`, con tres libros. Credenciales solo en `.env-review` (gitignore). Falta cargarlas en App Review Information.
 - **Cámara.** `NSCameraUsageDescription` = `QCL usa la cámara para escanear el código ISBN del libro.`
 - **Notas de revisión.** Ver `docs/app-review-notes.md`.
-- **Auditoría 390×844.** /privacidad, /entrar y /vos (cuenta demo, confirmación de borrado y Cancelar) sin overflow horizontal. La ruta de borrado en el worker sigue en 503 hasta que esté el secret.
+- **Auditoría 390×844.** /privacidad, /entrar y /vos (cuenta demo, confirmación de borrado y Cancelar) sin overflow horizontal. El borrado de cuenta se prueba de punta a punta con un usuario temporal que después se elimina.
 
 ## Resumen rápido
 
 | Ítem | Estado |
 | --- | --- |
 | 4.2 wrapper web / utilidad “app-like” | Mitigado (riesgo residual) |
-| 5.1.1(v) borrar cuenta en la app | Hecho en código; falta el secret del worker |
+| 5.1.1(v) borrar cuenta en la app | Cumple |
 | 5.1.1(i) política de privacidad (URL + enlace in-app) | Hecho en la app; falta la URL en ASC |
 | Etiquetas App Privacy | Falta (ASC) |
 | `ITSAppUsesNonExemptEncryption` | Cumple |
