@@ -22,8 +22,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "robots", content: "noindex" },
-      { title: "que carajo lees" },
-      { name: "apple-mobile-web-app-title", content: "que carajo lees" },
+      { title: "qué carajo lees" },
+      { name: "apple-mobile-web-app-title", content: "qué carajo lees" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },

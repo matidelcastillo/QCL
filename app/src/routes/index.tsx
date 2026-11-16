@@ -15,10 +15,11 @@ import { buttonClass } from "../components/button";
 
 type Filter = "todos" | BookStatus;
 type View = "list" | "grid";
+/* Labels end in a period, like QC's filter tabs ("Hoy." "Cerca." "Gratis."). */
 const filters: Array<[Filter, string]> = [
-  ["todos", "Todos"],
-  ["quiero", "Quiero"],
-  ["lei", "Leí"],
+  ["todos", "Todos."],
+  ["quiero", "Quiero leer."],
+  ["lei", "Leí."],
 ];
 
 export const Route = createFileRoute("/")({

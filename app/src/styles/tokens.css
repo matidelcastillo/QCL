@@ -101,7 +101,9 @@
 
   /* QC styles.css l. 168-178: app chrome. */
   --app-viewport-max: 430px;
-  --filter-gap: 10px;
+  /* QC styles.css l. 2472-2478: compact filter row (tab gap 7px, no gap before
+     the toggle), used here so "Todos. Quiero leer. Leí." fit at 390px. */
+  --filter-gap-compact: 7px;
   --nav-height: 60px;
   --nav-radius: 40px;
   --nav-inline-padding: 8px;
