@@ -204,6 +204,9 @@
   --drawer-cta-font-size: 13px;
   --drawer-cta-font-weight: 700;
   --drawer-cta-padding-y: 14px;
+  /* Book list author: 2px above --text-caption (13px). */
+  --qcl-row-author-size: 15px;
+  --qcl-row-author-leading: 20px;
 
   /* QC styles.css l. 513-519 (.glass-orange) and l. 2809-2875 (materials). */
   --qcl-glass-orange-bg: rgba(232, 98, 74, 0.85);

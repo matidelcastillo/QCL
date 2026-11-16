@@ -166,18 +166,18 @@ button:disabled {
   display: -webkit-box;
   overflow: hidden;
   color: var(--foreground);
-  font-size: var(--text-heading-m);
+  font-size: var(--media-title-size);
   font-weight: 700;
-  line-height: var(--leading-heading-m);
+  line-height: var(--media-title-leading);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 .row-author {
   overflow: hidden;
   color: var(--gray-text);
-  font-size: var(--text-caption);
+  font-size: var(--qcl-row-author-size);
   font-weight: 500;
-  line-height: var(--leading-caption);
+  line-height: var(--qcl-row-author-leading);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
