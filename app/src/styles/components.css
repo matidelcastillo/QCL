@@ -947,7 +947,7 @@ button:disabled {
 }
 
 /* Feed groups: QC AgendaTimeline day label (routes/index.tsx l. 3610-3640):
-   heading-size orange label, lowercase, not sticky, gaps from the timeline
+   muted gray heading-m label (QC grey), lowercase, not sticky, gaps from the timeline
    tokens; the last group owns no bottom gap. */
 .feed-group:not(:last-child) {
   margin-bottom: var(--timeline-day-gap);
@@ -955,11 +955,11 @@ button:disabled {
 .feed-group-label {
   margin: 0;
   padding-bottom: var(--timeline-label-card-gap);
-  color: var(--qcl-orange);
-  font-size: var(--text-heading-l);
+  color: var(--qcl-meta-gray);
+  font-size: var(--text-heading-m);
   font-weight: var(--qcl-heading-weight);
   letter-spacing: var(--qcl-heading-tracking);
-  line-height: var(--qcl-heading-leading);
+  line-height: var(--leading-heading-m);
 }
 
 /* Grid: QC events grid (routes/index.tsx l. 2235-2380), two columns. */
