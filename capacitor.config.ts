@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.quecarajolees.app",
-  appName: "QCL",
+  appName: "Qué Carajo Lee",
   webDir: "capacitor-web",
   ios: {
     contentInset: "never",
