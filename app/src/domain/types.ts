@@ -32,18 +32,6 @@ export type CatalogBook = Pick<
   categories: string[];
 };
 
-/* Book entered by hand when the catalog has no match. */
-export type ManualBook = Pick<
-  Book,
-  "title" | "author" | "isbn" | "page_count" | "published_year" | "synopsis"
-> & {
-  coverUrl: null;
-  source: "manual";
-  externalId: null;
-  subjects: string[];
-  categories: string[];
-};
-
 /* Row of public.most_read_books(): one shared book, counts only, no identities. */
 export type SharedBook = Omit<CatalogBook, "source" | "externalId" | "subjects" | "categories"> & {
   genre: string | null;

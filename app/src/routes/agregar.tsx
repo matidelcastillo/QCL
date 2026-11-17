@@ -1,17 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import type { CatalogBook, ManualBook } from "../domain/types";
+import { useEffect, useRef, useState } from "react";
+import type { CatalogBook } from "../domain/types";
 import { normalizeIsbn } from "../domain/isbn";
 import { ADD_TABS, nextScanGeneration, type AddTab } from "../domain/add-tabs";
-import { duplicate, manualBook } from "../data/library";
+import { duplicate } from "../data/library";
 import { searchCatalog } from "../data/catalog";
 import { useBooks } from "../data/use-books";
 import { useSession } from "../data/session-context";
 import { BrandHeader } from "../components/brand-header";
 import { BookRow } from "../components/book-row";
 import { BookSheet } from "../components/book-sheet";
-import { buttonClass } from "../components/button";
 import { EmptyState, LoadError } from "../components/feedback";
 import { LoadingRows, LoadingSheet } from "../components/skeleton";
 import { useDeferredPending } from "../components/use-deferred-pending";
@@ -21,54 +20,6 @@ export const Route = createFileRoute("/agregar")({ component: Add });
 
 const DEBOUNCE_MS = 350;
 const MIN_QUERY = 3;
-
-function ManualForm({
-  isbn,
-  title: initialTitle = "",
-  onOpen,
-}: {
-  isbn?: string | null;
-  title?: string;
-  onOpen: (book: ManualBook) => void;
-}) {
-  const [title, setTitle] = useState(initialTitle);
-  const [author, setAuthor] = useState("");
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    const book = manualBook({ title, author, isbn });
-    if (!book.title) return;
-    onOpen(book);
-  }
-  return (
-    <form className="stack" onSubmit={submit}>
-      <input
-        className="qc-auth-email-input"
-        type="text"
-        placeholder="Título"
-        aria-label="Título"
-        autoComplete="off"
-        maxLength={500}
-        value={title}
-        onChange={(event) => setTitle(event.target.value)}
-        required
-      />
-      <input
-        className="qc-auth-email-input"
-        type="text"
-        placeholder="Autor"
-        aria-label="Autor"
-        autoComplete="off"
-        maxLength={500}
-        value={author}
-        onChange={(event) => setAuthor(event.target.value)}
-      />
-      {isbn && <p className="qc-feedback-text">{isbn}</p>}
-      <button type="submit" className={buttonClass("primary", true)}>
-        Cargarlo
-      </button>
-    </form>
-  );
-}
 
 function resultKey(book: CatalogBook) {
   return `${book.source}:${book.externalId}`;
@@ -127,8 +78,7 @@ function Add() {
   const [term, setTerm] = useState("");
   const [isbnDraft, setIsbnDraft] = useState("");
   const [scanError, setScanError] = useState("");
-  const [missedIsbn, setMissedIsbn] = useState<string | null>(null);
-  const [overlay, setOverlay] = useState<CatalogBook | ManualBook | null>(null);
+  const [overlay, setOverlay] = useState<CatalogBook | null>(null);
   const scanGeneration = useRef(0);
   const [looking, setLooking] = useState(false);
   useEffect(() => {
@@ -155,26 +105,18 @@ function Add() {
   async function scanned(code: string) {
     const started = scanGeneration.current;
     setScanError("");
-    setMissedIsbn(null);
     setLooking(true);
     try {
       const [first] = await searchCatalog({ isbn: code });
       if (started !== scanGeneration.current) return;
       if (first) setOverlay(first);
-      else {
-        setScanError("No está.");
-        setMissedIsbn(code);
-      }
+      else setScanError("No está.");
     } catch {
       if (started !== scanGeneration.current) return;
       setScanError("Revisá la conexión.");
     } finally {
       if (started === scanGeneration.current) setLooking(false);
     }
-  }
-
-  function openManual(book: ManualBook) {
-    setOverlay(book);
   }
 
   return (
@@ -220,15 +162,7 @@ function Add() {
               <SearchHits books={results.data} library={books.data ?? []} onOpen={setOverlay} />
             </div>
           ) : (
-            <>
-              <EmptyState text="No está." />
-              <ManualForm
-                key={`${isbn ?? ""}:${term}`}
-                isbn={isbn}
-                title={isbn ? "" : term}
-                onOpen={openManual}
-              />
-            </>
+            <EmptyState text="No está." />
           )}
         </section>
       )}
@@ -247,9 +181,6 @@ function Add() {
             <p className="error-text" role="alert">
               {scanError}
             </p>
-          )}
-          {!looking && missedIsbn && (
-            <ManualForm key={missedIsbn} isbn={missedIsbn} onOpen={openManual} />
           )}
         </div>
       )}

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Book } from "../domain/types";
-import { duplicate, manualBook } from "./library";
+import { duplicate } from "./library";
 
 const book = (fields: Partial<Book>): Book => ({
   id: "1",
@@ -45,23 +45,5 @@ describe("duplicate", () => {
   });
   test("different book does not match", () => {
     expect(duplicate([book({})], { title: "Rayuela", author: "Julio Cortázar" })).toBeUndefined();
-  });
-});
-
-describe("manualBook", () => {
-  test("builds a manual catalog entry with trimmed fields and no cover", () => {
-    const book = manualBook({
-      title: "  Ficciones  ",
-      author: "  Borges  ",
-      isbn: "9788806173678",
-    });
-    expect(book).toMatchObject({
-      title: "Ficciones",
-      author: "Borges",
-      isbn: "9788806173678",
-      source: "manual",
-      externalId: null,
-      coverUrl: null,
-    });
   });
 });

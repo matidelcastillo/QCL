@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, Heart, X } from "lucide-react";
-import type { Book, BookStatus, CatalogBook, ManualBook, SharedBook } from "../domain/types";
+import type { Book, BookStatus, CatalogBook, SharedBook } from "../domain/types";
 import { today } from "../domain/date";
 import { knownGenre } from "../domain/genre";
 import {
@@ -28,7 +28,7 @@ export function BookSheet({
   book,
   onClose,
 }: {
-  book: Book | CatalogBook | ManualBook | SharedBook;
+  book: Book | CatalogBook | SharedBook;
   onClose: () => void;
 }) {
   const { user } = useSession();
