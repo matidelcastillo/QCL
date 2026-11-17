@@ -261,10 +261,23 @@ button:disabled {
 
 /* Skeleton: QC routes/index.tsx l. 391-397 (shimmerStyle). */
 .shimmer {
+  background-color: var(--gray-light);
   background-image: var(--qcl-shimmer);
   background-size: 200% 100%;
   border-radius: var(--qcl-shimmer-radius);
   animation: shimmer var(--qcl-shimmer-duration) infinite;
+}
+/* Grid tiles are black so the cover can sit on them; a skeleton has no
+   photo yet, so it keeps the light shimmer fill instead of a black hole. */
+.book-tile:has(> .shimmer) {
+  background: var(--gray-light);
+}
+.book-tile > .cover.shimmer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  box-shadow: none;
 }
 .shimmer-line {
   width: 65%;
