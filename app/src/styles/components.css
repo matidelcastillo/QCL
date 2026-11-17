@@ -87,6 +87,7 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: var(--nav-hit-size);
   min-height: var(--nav-hit-size);
   margin: var(--space-3) auto 0;
   padding: 0;
