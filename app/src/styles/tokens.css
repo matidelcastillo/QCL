@@ -126,8 +126,13 @@
      calc(var(--qcl-auth-optical-lift) * 2) on .auth-screen, because flex
      centering splits the extra padding into a visual shift of half. */
   --qcl-auth-optical-lift: 30px;
-  --bottom-nav-h: 3.75rem;
-  --page-pb-nav: calc(var(--bottom-nav-h) + 40px + var(--safe-bottom));
+  /* Vertical inset around the dock pill. Shared by .app-nav and the page
+     offset so scroll padding tracks the real chrome, not a guessed gap. */
+  --nav-block-pad: var(--space-3);
+  --page-pb-nav: calc(
+    var(--nav-block-pad) + var(--nav-height) + var(--nav-block-pad) + var(--nav-block-pad) +
+      var(--safe-bottom)
+  );
   --drawer-max-h: 88dvh;
   --drawer-radius: 24px;
   --drawer-side-pad: 20px;

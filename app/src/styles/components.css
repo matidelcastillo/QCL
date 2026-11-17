@@ -84,7 +84,10 @@ button:disabled {
 /* QC routes/index.tsx l. 835-851 ("Ahora no"): text-only secondary action.
    Color is --gray-text so 13px text meets 4.5:1 on --bg. */
 .text-action {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--nav-hit-size);
   margin: var(--space-3) auto 0;
   padding: 0;
   border: 0;
@@ -457,7 +460,7 @@ button:disabled {
   z-index: 50;
   width: 100%;
   max-width: var(--app-viewport-max);
-  padding: var(--space-3) var(--space-5) calc(var(--space-3) + var(--safe-bottom));
+  padding: var(--nav-block-pad) var(--space-5) calc(var(--nav-block-pad) + var(--safe-bottom));
   background: transparent;
   transform: translateX(-50%);
   transition: opacity var(--qcl-nav-fade);
