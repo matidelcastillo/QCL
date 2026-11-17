@@ -11,13 +11,4 @@ Preparar el web shell y sincronizar iOS: `bun run ios:prepare` (desde la raíz d
 
 ## TestFlight
 
-La subida corre en GitHub Actions (`.github/workflows/ios-release.yml`). No hace falta Xcode en esta Mac.
-
-Secretos del repo (valores nuevos para QCL, no copiar los de QC):
-
-- `APPLE_TEAM_ID`
-- `APPSTORE_API_KEY_ID`
-- `APPSTORE_API_ISSUER_ID`
-- `APPSTORE_API_KEY_P8_BASE64`
-
-Después, en GitHub: Actions → iOS Release to TestFlight → Run workflow.
+La subida corre en Codemagic (`codemagic.yaml`, workflow "iOS Release to TestFlight"), desde `main`. No hace falta Xcode en esta Mac.

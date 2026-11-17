@@ -11,13 +11,14 @@ const CATALOG_SCHEMA = "7";
 type RateLimit = { limit: (options: { key: string }) => Promise<{ success: boolean }> };
 
 /* Worker bindings. GOOGLE_BOOKS_API_KEY is a secret; without it Google Books
-   is called keyless (shared quota). CATALOG_LIMIT and GENRE_LIMIT are the
-   Workers rate limiters and AI the Workers AI binding, all declared in
-   wrangler.jsonc. */
+   is called keyless (shared quota). CATALOG_LIMIT, GENRE_LIMIT and TAPA_LIMIT
+   are the Workers rate limiters and AI the Workers AI binding, all declared
+   in wrangler.jsonc. */
 export type Env = {
   GOOGLE_BOOKS_API_KEY?: string;
   CATALOG_LIMIT?: RateLimit;
   GENRE_LIMIT?: RateLimit;
+  TAPA_LIMIT?: RateLimit;
   AI?: Ai;
 };
 
@@ -124,6 +125,8 @@ export async function apiResponse(request: Request, env: Env = {}): Promise<Resp
   const title = (url.searchParams.get("t") ?? "").trim().slice(0, 200);
   const author = (url.searchParams.get("a") ?? "").trim().slice(0, 200);
   if (!coverUrl && !isbn && !title) return respond(json({ error: "Tapa inválida." }, 400));
+  const allowed = (await env.TAPA_LIMIT?.limit({ key: clientKey(request) }))?.success ?? true;
+  if (!allowed) return respond(json({ error: "Muchos pedidos. Probá en un rato." }, 429));
   const image = await findCover({ url: coverUrl, isbn, title, author });
   /* A miss is cached for a day so a cover-less row does not re-run the chain. */
   if (!image) return respond(json({ error: "Tapa no encontrada." }, 404, "public, max-age=86400"));

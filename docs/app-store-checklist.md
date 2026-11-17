@@ -167,7 +167,7 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 - [Provide test information](https://developer.apple.com/help/app-store-connect/test-a-beta-version/provide-test-information/)
 - [TestFlight overview](https://developer.apple.com/help/app-store-connect/test-a-beta-version/testflight-overview/)
 
-**En el repo.** Hay workflow de subida (`.github/workflows/ios-release.yml`), pero no está la metadata de Test Information ni una cuenta demo. La política de privacidad (ítem 3) también hace falta para la ficha, incluida la distribución beta.
+**En el repo.** La subida corre en Codemagic (`codemagic.yaml`). No está la metadata de Test Information ni una cuenta demo. La política de privacidad (ítem 3) también hace falta para la ficha, incluida la distribución beta.
 
 ---
 

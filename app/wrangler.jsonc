@@ -8,7 +8,7 @@
   "assets": {
     "directory": ".output/public",
   },
-  // /api/libros cache misses and /api/genero calls, per client IP.
+  // /api/libros cache misses, /api/tapa, and /api/genero, per client IP.
   "ratelimits": [
     {
       "name": "CATALOG_LIMIT",
@@ -18,6 +18,11 @@
     {
       "name": "GENRE_LIMIT",
       "namespace_id": "1002",
+      "simple": { "limit": 30, "period": 60 },
+    },
+    {
+      "name": "TAPA_LIMIT",
+      "namespace_id": "1003",
       "simple": { "limit": 30, "period": 60 },
     },
   ],

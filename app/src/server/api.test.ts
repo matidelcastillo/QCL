@@ -25,6 +25,19 @@ test("cover endpoint refuses hosts outside the allowlist", async () => {
   ).toBe(400);
 });
 
+test("cover endpoint rate limit returns 429 before fetching", async () => {
+  let calls = 0;
+  globalThis.fetch = (async () => {
+    calls += 1;
+    return new Response("", { status: 404 });
+  }) as unknown as typeof fetch;
+  const limited = await apiResponse(new Request(`${base}/api/tapa?t=Rayuela`), {
+    TAPA_LIMIT: { limit: async () => ({ success: false }) },
+  });
+  expect(limited?.status).toBe(429);
+  expect(calls).toBe(0);
+});
+
 const realFetch = globalThis.fetch;
 afterEach(() => {
   globalThis.fetch = realFetch;

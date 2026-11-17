@@ -100,7 +100,7 @@ function Enter() {
               placeholder="Contraseña"
               aria-label="Contraseña"
               autoComplete={mode === "entrar" ? "current-password" : "new-password"}
-              minLength={mode === "crear" ? 6 : undefined}
+              minLength={mode === "crear" ? 8 : undefined}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               required

@@ -76,14 +76,15 @@ button:disabled {
   color: var(--qcl-orange);
 }
 
-/* QC routes/index.tsx l. 835-851 ("Ahora no"): text-only secondary action. */
+/* QC routes/index.tsx l. 835-851 ("Ahora no"): text-only secondary action.
+   Color is --gray-text so 13px text meets 4.5:1 on --bg. */
 .text-action {
   display: block;
   margin: var(--space-3) auto 0;
   padding: 0;
   border: 0;
   background: none;
-  color: var(--qcl-separator-muted);
+  color: var(--gray-text);
   font-family: inherit;
   font-size: var(--text-caption);
   font-weight: var(--qcl-text-action-weight);
