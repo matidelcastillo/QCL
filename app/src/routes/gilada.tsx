@@ -6,7 +6,9 @@ import { useSharedBooks } from "../data/shared-books";
 import { BrandHeader, ScreenHeading } from "../components/brand-header";
 import { BookSheet } from "../components/book-sheet";
 import { BookTile } from "../components/book-tile";
-import { EmptyState, LoadError, LoadingRows } from "../components/feedback";
+import { EmptyState, LoadError } from "../components/feedback";
+import { LoadingTiles } from "../components/skeleton";
+import { useDeferredPending } from "../components/use-deferred-pending";
 
 export const Route = createFileRoute("/gilada")({ component: Gilada });
 
@@ -15,15 +17,16 @@ function Gilada() {
   const { user } = useSession();
   const books = useSharedBooks(Boolean(user));
   const [selected, setSelected] = useState<SharedBook | null>(null);
+  const showSkeleton = useDeferredPending(books.isPending);
 
   return (
     <main className="page-pb-nav">
       <BrandHeader />
       <ScreenHeading>Qué lee la gilada</ScreenHeading>
-      <section className="feed app-gutter">
-        {books.isPending ? (
-          <LoadingRows count={6} />
-        ) : books.isError ? (
+      <section className="feed app-gutter" aria-busy={books.isPending}>
+        {showSkeleton ? (
+          <LoadingTiles count={9} />
+        ) : books.isPending ? null : books.isError ? (
           <LoadError retry={() => void books.refetch()} />
         ) : books.data.length > 0 ? (
           <div className="book-grid">

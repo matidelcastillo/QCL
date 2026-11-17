@@ -4,7 +4,7 @@ import { updatePassword } from "../data/auth-actions";
 import { authErrorMessage } from "../data/auth-errors";
 import { useSession } from "../data/session-context";
 import { BrandHeader } from "../components/brand-header";
-import { LoadingPage } from "../components/feedback";
+import { LoadingForm } from "../components/skeleton";
 import { buttonClass } from "../components/button";
 
 export const Route = createFileRoute("/clave")({ component: NewPassword });
@@ -35,7 +35,7 @@ function NewPassword() {
         <BrandHeader heading />
         <div className="stack app-gutter">
           {loading ? (
-            <LoadingPage />
+            <LoadingForm />
           ) : form ? (
             <form className="stack" onSubmit={(event) => void submit(event)}>
               <input

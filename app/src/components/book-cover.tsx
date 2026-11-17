@@ -30,6 +30,7 @@ export function BookCover({
 }) {
   const host = useRef<HTMLSpanElement>(null);
   const [src, setSrc] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const params = coverParams(url, isbn);
   const key = params.toString();
   const request = key ? apiUrl(`/api/tapa?${params}`) : "";
@@ -37,8 +38,10 @@ export function BookCover({
   useEffect(() => {
     if (!key) {
       setSrc(null);
+      setLoading(false);
       return;
     }
+    if (!loaded.has(key)) setLoading(true);
     const node = host.current;
     if (!node) return;
     let alive = true;
@@ -50,6 +53,7 @@ export function BookCover({
     function show(blob: Blob) {
       loaded.set(key, blob);
       if (!alive) return;
+      setLoading(false);
       if (objectUrl) URL.revokeObjectURL(objectUrl);
       objectUrl = URL.createObjectURL(blob);
       setSrc(objectUrl);
@@ -66,10 +70,14 @@ export function BookCover({
         if (!alive) return;
         if (result === "miss") {
           setSrc(null);
+          setLoading(false);
           return;
         }
         if (result === "retry") {
-          if (attempt >= RETRY_MS.length) return;
+          if (attempt >= RETRY_MS.length) {
+            setLoading(false);
+            return;
+          }
           timer = window.setTimeout(() => {
             attempt += 1;
             void load();
@@ -79,7 +87,10 @@ export function BookCover({
         show(result);
       } catch {
         if (!alive || ac.signal.aborted) return;
-        if (attempt >= RETRY_MS.length) return;
+        if (attempt >= RETRY_MS.length) {
+          setLoading(false);
+          return;
+        }
         timer = window.setTimeout(() => {
           attempt += 1;
           void load();
@@ -120,7 +131,7 @@ export function BookCover({
     <span
       ref={host}
       aria-hidden="true"
-      className={`cover cover-fallback${size === "row" ? "" : ` cover-${size}`}`}
+      className={`cover cover-fallback${size === "row" ? "" : ` cover-${size}`}${loading && !src ? " shimmer" : ""}`}
     >
       {src && (
         <img

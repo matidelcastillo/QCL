@@ -14,6 +14,7 @@ import { useSession } from "../data/session-context";
 import { AppNav } from "../components/nav";
 import { SheetProvider } from "../components/sheet";
 import { useSheetOpen } from "../components/sheet-visibility";
+import { BrandHeader } from "../components/brand-header";
 import { LoadingPage } from "../components/feedback";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -75,7 +76,8 @@ function Gate() {
   const sheetOpen = useSheetOpen();
   if (loading)
     return (
-      <div className="app-frame safe-area-top">
+      <div className="app-frame safe-area-top" aria-busy="true">
+        <BrandHeader heading />
         <LoadingPage />
       </div>
     );

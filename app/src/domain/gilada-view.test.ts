@@ -1,11 +1,13 @@
 import { describe, expect, test } from "bun:test";
 
-const source = await Bun.file(new URL("./gilada.tsx", import.meta.url)).text();
+const source = await Bun.file(new URL("../routes/gilada.tsx", import.meta.url)).text();
 
 describe("Gilada view", () => {
   test("is always the same 3-column cover grid as home, with no list toggle", () => {
     expect(source).toContain("book-grid");
     expect(source).toContain("BookTile");
+    expect(source).toContain("LoadingTiles");
+    expect(source).not.toContain("LoadingRows");
     expect(source).not.toContain("SharedBookRow");
     expect(source).not.toContain("LayoutGrid");
     expect(source).not.toContain("filter-action");

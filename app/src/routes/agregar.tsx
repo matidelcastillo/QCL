@@ -12,7 +12,9 @@ import { BrandHeader } from "../components/brand-header";
 import { BookRow } from "../components/book-row";
 import { BookSheet } from "../components/book-sheet";
 import { buttonClass } from "../components/button";
-import { EmptyState, LoadError, LoadingRows } from "../components/feedback";
+import { EmptyState, LoadError } from "../components/feedback";
+import { LoadingRows, LoadingSheet } from "../components/skeleton";
+import { useDeferredPending } from "../components/use-deferred-pending";
 import { Scanner } from "../components/scanner";
 
 export const Route = createFileRoute("/agregar")({ component: Add });
@@ -79,6 +81,7 @@ function Add() {
   const [missedIsbn, setMissedIsbn] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<CatalogBook | ManualBook | null>(null);
   const scanGeneration = useRef(0);
+  const [looking, setLooking] = useState(false);
   useEffect(() => {
     const timer = setTimeout(() => setTerm(query.trim()), DEBOUNCE_MS);
     return () => clearTimeout(timer);
@@ -92,9 +95,11 @@ function Add() {
     enabled: term.length >= MIN_QUERY,
     staleTime: 5 * 60 * 1000,
   });
+  const showSearchSkeleton = useDeferredPending(results.isPending);
 
   function selectTab(next: AddTab) {
     scanGeneration.current = nextScanGeneration(tab, next, scanGeneration.current);
+    if (next !== "escanear") setLooking(false);
     setTab(next);
   }
 
@@ -102,6 +107,7 @@ function Add() {
     const started = scanGeneration.current;
     setScanError("");
     setMissedIsbn(null);
+    setLooking(true);
     try {
       const [first] = await searchCatalog({ isbn: code });
       if (started !== scanGeneration.current) return;
@@ -113,6 +119,8 @@ function Add() {
     } catch {
       if (started !== scanGeneration.current) return;
       setScanError("Revisá la conexión.");
+    } finally {
+      if (started === scanGeneration.current) setLooking(false);
     }
   }
 
@@ -153,10 +161,10 @@ function Add() {
         </div>
       )}
       {tab === "buscar" && term.length >= MIN_QUERY && (
-        <section className="feed app-gutter">
-          {results.isPending ? (
+        <section className="feed app-gutter" aria-busy={results.isPending}>
+          {showSearchSkeleton ? (
             <LoadingRows count={3} />
-          ) : results.isError ? (
+          ) : results.isPending ? null : results.isError ? (
             <LoadError retry={() => void results.refetch()} />
           ) : results.data.length > 0 ? (
             <div className="content-fade">
@@ -183,18 +191,24 @@ function Add() {
         </section>
       )}
       {tab === "escanear" && !overlay && (
-        <div className="stack app-gutter">
-          <Scanner
-            onFound={(code) => void scanned(code)}
-            isbn={isbnDraft}
-            onIsbnChange={setIsbnDraft}
-          />
-          {scanError && (
+        <div className="stack app-gutter" aria-busy={looking}>
+          {looking ? (
+            <LoadingSheet />
+          ) : (
+            <Scanner
+              onFound={(code) => void scanned(code)}
+              isbn={isbnDraft}
+              onIsbnChange={setIsbnDraft}
+            />
+          )}
+          {!looking && scanError && (
             <p className="error-text" role="alert">
               {scanError}
             </p>
           )}
-          {missedIsbn && <ManualForm key={missedIsbn} isbn={missedIsbn} onOpen={openManual} />}
+          {!looking && missedIsbn && (
+            <ManualForm key={missedIsbn} isbn={missedIsbn} onOpen={openManual} />
+          )}
         </div>
       )}
       {overlay && <BookSheet book={overlay} onClose={() => setOverlay(null)} />}

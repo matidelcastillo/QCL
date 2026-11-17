@@ -9,7 +9,9 @@ import { BrandHeader } from "../components/brand-header";
 import { BookRow } from "../components/book-row";
 import { BookSheet } from "../components/book-sheet";
 import { BookTile } from "../components/book-tile";
-import { EmptyState, LoadError, LoadingRows } from "../components/feedback";
+import { EmptyState, LoadError } from "../components/feedback";
+import { LoadingList, LoadingTiles } from "../components/skeleton";
+import { useDeferredPending } from "../components/use-deferred-pending";
 import { buttonClass } from "../components/button";
 
 type Filter = "todos" | BookStatus;
@@ -40,6 +42,7 @@ function Home() {
   const [view, setView] = useState<View>("list");
   const books = useBooks(user?.id);
   const visible = (books.data ?? []).filter((book) => filter === "todos" || book.status === filter);
+  const showSkeleton = useDeferredPending(books.isPending);
 
   return (
     <main className="page-pb-nav">
@@ -76,10 +79,14 @@ function Home() {
           </span>
         </button>
       </div>
-      <section className="feed app-gutter">
-        {books.isPending ? (
-          <LoadingRows count={5} />
-        ) : books.isError ? (
+      <section className="feed app-gutter" aria-busy={books.isPending}>
+        {showSkeleton ? (
+          view === "grid" ? (
+            <LoadingTiles count={9} />
+          ) : (
+            <LoadingList />
+          )
+        ) : books.isPending ? null : books.isError ? (
           <LoadError retry={() => void books.refetch()} />
         ) : visible.length > 0 ? (
           <div key={`${filter}-${view}`} className="content-fade">

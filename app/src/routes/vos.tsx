@@ -7,7 +7,9 @@ import { useBooks } from "../data/use-books";
 import { BrandHeader, ScreenHeading } from "../components/brand-header";
 import { BookRow } from "../components/book-row";
 import { BookSheet } from "../components/book-sheet";
-import { LoadError, LoadingRows } from "../components/feedback";
+import { LoadError } from "../components/feedback";
+import { LoadingCounts } from "../components/skeleton";
+import { useDeferredPending } from "../components/use-deferred-pending";
 import { Sheet } from "../components/sheet";
 import { buttonClass } from "../components/button";
 
@@ -21,6 +23,7 @@ function Profile() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const showSkeleton = useDeferredPending(books.isPending);
 
   const library = books.data ?? [];
   const want = library.filter((book) => book.status === "quiero").length;
@@ -58,10 +61,10 @@ function Profile() {
     <main className="page-pb-nav">
       <BrandHeader />
       <ScreenHeading>Tu racconto</ScreenHeading>
-      <div className="stack-loose app-gutter feed">
-        {books.isPending ? (
-          <LoadingRows count={2} />
-        ) : books.isError ? (
+      <div className="stack-loose app-gutter feed" aria-busy={books.isPending}>
+        {showSkeleton ? (
+          <LoadingCounts />
+        ) : books.isPending ? null : books.isError ? (
           <LoadError retry={() => void books.refetch()} />
         ) : (
           <>

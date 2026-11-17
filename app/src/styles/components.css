@@ -274,6 +274,36 @@ button:disabled {
   width: 40%;
   height: var(--space-3);
 }
+.shimmer-line-meta {
+  width: 50%;
+  height: var(--space-3);
+}
+.shimmer-label {
+  width: 28%;
+  height: var(--leading-heading-m);
+}
+.shimmer-count {
+  width: var(--space-8);
+  height: var(--leading-display-xl);
+}
+.shimmer-input {
+  width: 100%;
+  height: var(--space-8);
+  border-radius: 0;
+}
+.shimmer-button {
+  width: 100%;
+  height: var(--space-12);
+  border-radius: var(--nav-radius);
+}
+.shimmer-sheet-title {
+  width: 60%;
+  margin: 0 auto var(--drawer-title-meta-gap);
+}
+.shimmer-sheet-meta {
+  width: 40%;
+  margin: 0 auto var(--drawer-meta-content-gap);
+}
 
 /* Feedback: QC components/home/HomeFeedback.tsx (LoadError) and
    routes/index.tsx l. 2405-2440 (empty state). */
@@ -883,6 +913,11 @@ button:disabled {
   *::after {
     animation: none !important;
     transition: none !important;
+  }
+  /* Frozen gradient would sit off-canvas; a solid token fill stays visible. */
+  .shimmer {
+    background-image: none;
+    background-color: var(--gray-light);
   }
 }
 @media (prefers-reduced-transparency: reduce) {

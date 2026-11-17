@@ -2,22 +2,7 @@ import type { ReactNode } from "react";
 import { Loader2, WifiOff } from "lucide-react";
 import { buttonClass } from "./button";
 
-/* QC routes/index.tsx l. 391-397 (shimmerStyle) applied to the row shape. */
-export function LoadingRows({ count }: { count: number }) {
-  return (
-    <div role="status" aria-label="Cargando">
-      {Array.from({ length: count }, (_, index) => (
-        <div className="qc-people-row" key={index}>
-          <div className="cover shimmer" />
-          <div className="row-copy">
-            <div className="shimmer shimmer-line" />
-            <div className="shimmer shimmer-line-short" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
+export { LoadingRows } from "./skeleton";
 
 /* QC components/home/HomeFeedback.tsx: LoadError. */
 export function LoadError({ retry }: { retry: () => void }) {
