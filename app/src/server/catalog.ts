@@ -252,11 +252,12 @@ export function mergeBooks(query: string, groups: CatalogBook[][]): CatalogBook[
 }
 
 /* Covers of the first results are checked before answering, so the list
-   does not open on a broken or placeholder cover. Budget per request stays
-   under the Workers subrequest limit: each cover check follows up to two
-   Open Library redirects. */
+   does not open on a broken or placeholder cover. Worst case stays well
+   under the Workers free-plan cap of 50 subrequests: at most 3 provider
+   calls plus 3 verified results, each with one cover fetch (up to 3 hops)
+   and 2 edition covers (1 editions.json + 2×3 hops) ≈ 33, plus cache. */
 const VERIFIED_RESULTS = 3;
-const EDITION_COVER_TRIES = 3;
+const EDITION_COVER_TRIES = 2;
 
 type Edition = {
   covers?: unknown;

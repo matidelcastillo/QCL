@@ -10,17 +10,23 @@ const hosts = new Set([
 /* Open Library serves every cover through a redirect to its Internet Archive
    storage (archive.org, then ia<N>.us.archive.org); only those hops are added. */
 const redirectHosts = /^(archive\.org|ia\d+\.us\.archive\.org)$/;
-/* Google Books generic "image not available" bytes observed at zoom 0–3. */
-const placeholderHashes = new Set(["c84d8baf", "5c4ccddd", "6a075bb7", "f231d268", "b67b4c6d"]);
+/* Google Books generic "image not available" covers: SHA-256 of the bytes
+   observed at zoom 0–3, plus a later generic PNG for other missing ISBNs. */
+const placeholderHashes = new Set([
+  "729486963874f66935b0a01ee5271e9dead375f60f22c56db05b0e9bfac0cbb8",
+  "2391e84fe8ea8a1f0c8f5e4f35098aaa71fee54eccba1ecfe45adc85439e7ce7",
+  "78cb76768db9a199e7d70e84fa80edccdd27e1e68453062f718e3ba3282b9fef",
+  "194a59e32e67af04934666e43823aadecfff17cc04ca9eb70486bf0eb0475a09",
+  "3efa8c43e5b4348f303a528c81adf435f0111ea752fe9f0f6241478b60987fa6",
+]);
 export const MAX_COVER_BYTES = 2_000_000;
+/* 3 hops cover the original request plus the two Open Library redirects
+   (archive.org → iaN.us.archive.org). */
+export const COVER_FETCH_HOPS = 3;
 
-function fnv1a(bytes: Uint8Array): string {
-  let hash = 0x811c9dc5;
-  for (const byte of bytes) {
-    hash ^= byte;
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0).toString(16).padStart(8, "0");
+async function sha256(bytes: Uint8Array): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", bytes.slice());
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function safeUrl(raw: string, allowed: (host: string) => boolean): URL | null {
@@ -79,27 +85,27 @@ function dimensions(bytes: Uint8Array, type: string): { width: number; height: n
   return null;
 }
 
-export function validCover(bytes: Uint8Array, type: string): boolean {
+export async function validCover(bytes: Uint8Array, type: string): Promise<boolean> {
   if (bytes.byteLength < 2048 || bytes.byteLength > MAX_COVER_BYTES) return false;
   if (type !== "image/jpeg" && type !== "image/png") return false;
   const size = dimensions(bytes, type);
   if (!size || size.width < 100) return false;
   if (type === "image/png" && size.width === 300 && size.height === 391) return false;
-  if (placeholderHashes.has(fnv1a(bytes))) return false;
+  if (placeholderHashes.has(await sha256(bytes))) return false;
   return true;
 }
 
 /* Read a cover body up to MAX_COVER_BYTES. Abort if Content-Length or the
    streamed body goes past the cap, including when the length header is missing. */
 export async function readBody(
-  response: Response,
+  source: Request | Response,
   maxBytes = MAX_COVER_BYTES,
 ): Promise<Uint8Array | null> {
-  const length = Number(response.headers.get("content-length"));
+  const length = Number(source.headers.get("content-length"));
   if (Number.isFinite(length) && length > maxBytes) return null;
-  const body = response.body;
+  const body = source.body;
   if (!body) {
-    const bytes = new Uint8Array(await response.arrayBuffer());
+    const bytes = new Uint8Array(await source.arrayBuffer());
     return bytes.byteLength > maxBytes ? null : bytes;
   }
   const reader = body.getReader();
@@ -132,7 +138,7 @@ export async function fetchCover(
   url: URL,
 ): Promise<{ bytes: Uint8Array; type: string; sourceUrl: string } | null> {
   let current = url;
-  for (let hop = 0; hop < 4; hop++) {
+  for (let hop = 0; hop < COVER_FETCH_HOPS; hop++) {
     let response: Response;
     try {
       response = await fetch(current, { redirect: "manual", signal: AbortSignal.timeout(8000) });
@@ -149,7 +155,9 @@ export async function fetchCover(
     if (!response.ok) return null;
     const type = (response.headers.get("content-type") ?? "").split(";")[0].trim();
     const bytes = await readBody(response);
-    return bytes && validCover(bytes, type) ? { bytes, type, sourceUrl: url.toString() } : null;
+    return bytes && (await validCover(bytes, type))
+      ? { bytes, type, sourceUrl: url.toString() }
+      : null;
   }
   return null;
 }

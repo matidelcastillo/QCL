@@ -16,11 +16,11 @@ describe("cover proxy gate", () => {
     expect(allowedCoverUrl("http://covers.openlibrary.org/b/id/1-L.jpg")).toBeNull();
     expect(allowedCoverUrl("https://books.google.com.evil.example/cover")).toBeNull();
   });
-  test("rejects undersized and known placeholder dimensions", () => {
-    expect(validCover(png(300, 391), "image/png")).toBe(false);
-    expect(validCover(png(99, 300), "image/png")).toBe(false);
-    expect(validCover(png(200, 300, 1000), "image/png")).toBe(false);
-    expect(validCover(png(200, 300), "image/png")).toBe(true);
+  test("rejects undersized and known placeholder dimensions", async () => {
+    expect(await validCover(png(300, 391), "image/png")).toBe(false);
+    expect(await validCover(png(99, 300), "image/png")).toBe(false);
+    expect(await validCover(png(200, 300, 1000), "image/png")).toBe(false);
+    expect(await validCover(png(200, 300), "image/png")).toBe(true);
   });
 });
 
