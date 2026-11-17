@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mergeBooks, withCover } from "./catalog";
+import { mergeBooks, mergeCovers, withCover } from "./catalog";
 import type { CatalogBook } from "../domain/types";
 
 const base: CatalogBook = {
@@ -29,7 +29,7 @@ test("catalog merges duplicate ISBNs even when source titles differ", () => {
   expect(result[0].coverUrl).toBe(google.coverUrl);
 });
 
-test("catalog keeps the Open Library cover over Google's", () => {
+test("catalog keeps a confirmed Open Library cover over Google's", () => {
   const openLibrary = { ...base, coverUrl: "https://covers.openlibrary.org/b/id/1-L.jpg" };
   const google: CatalogBook = {
     ...base,
@@ -67,4 +67,47 @@ test("withCover drops books that have no cover URL", () => {
   };
   expect(withCover([bare, pictured]).map((book) => book.title)).toEqual(["Con tapa"]);
   expect(withCover([bare])).toEqual([]);
+});
+
+test("an ISBN-only Open Library cover yields to the Google thumbnail", () => {
+  const openLibrary = {
+    ...base,
+    coverUrl: "https://covers.openlibrary.org/b/isbn/9788806173678-L.jpg",
+  };
+  const google: CatalogBook = {
+    ...base,
+    source: "google",
+    externalId: "g-1",
+    coverUrl: "https://books.google.com/cover",
+  };
+  const [book] = mergeBooks("Ficciones", [[openLibrary], [google]]);
+  expect(book.coverUrl).toBe(google.coverUrl);
+  expect(book.coverFallback).toBeUndefined();
+});
+
+test("an Open Library edition-key cover stays ahead of Google, with Google as fallback", () => {
+  const openLibrary = {
+    ...base,
+    coverUrl: "https://covers.openlibrary.org/b/olid/OL123M-L.jpg",
+  };
+  const google: CatalogBook = {
+    ...base,
+    source: "google",
+    externalId: "g-1",
+    coverUrl: "https://books.google.com/cover",
+  };
+  const [book] = mergeBooks("Ficciones", [[openLibrary], [google]]);
+  expect(book.coverUrl).toBe(openLibrary.coverUrl);
+  expect(book.coverFallback).toBe("https://books.google.com/cover");
+});
+
+test("mergeCovers prefers Google over an ISBN-only Open Library URL and keeps a fallback when the OL cover is confirmed", () => {
+  const olId = "https://covers.openlibrary.org/b/id/1-L.jpg";
+  const olIsbn = "https://covers.openlibrary.org/b/isbn/9788806173678-L.jpg";
+  const google = "https://books.google.com/cover";
+  expect(mergeCovers(olIsbn, google)).toEqual({ coverUrl: google });
+  expect(mergeCovers(olId, google)).toEqual({ coverUrl: olId, coverFallback: google });
+  expect(mergeCovers(olIsbn, null)).toEqual({ coverUrl: olIsbn });
+  expect(mergeCovers(null, google)).toEqual({ coverUrl: google });
+  expect(mergeCovers(null, null)).toEqual({ coverUrl: null });
 });

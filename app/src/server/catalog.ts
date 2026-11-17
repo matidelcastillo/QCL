@@ -213,31 +213,61 @@ function rank(book: CatalogBook, query: string): number {
   return score;
 }
 
-export function mergeBooks(query: string, groups: CatalogBook[][]): CatalogBook[] {
+/* A cover id or edition key is a real Open Library image. An ISBN URL is
+   only a guess and often 404s, so Google's thumbnail wins in that case. */
+export function trustedOpenLibraryCover(url: string | null | undefined): boolean {
+  return Boolean(url && /covers\.openlibrary\.org\/b\/(?:id|olid)\//.test(url));
+}
+
+export function isbnOnlyOpenLibraryCover(url: string | null | undefined): boolean {
+  return Boolean(url && /covers\.openlibrary\.org\/b\/isbn\//.test(url));
+}
+
+export type MergedCover = {
+  coverUrl: string | null;
+  coverFallback?: string;
+};
+
+export type CatalogBookWithFallback = CatalogBook & { coverFallback?: string };
+
+export function mergeCovers(a: string | null, b: string | null): MergedCover {
+  const urls = [a, b].filter((url): url is string => Boolean(url));
+  const trusted = urls.find(trustedOpenLibraryCover) ?? null;
+  const other =
+    urls.find((url) => !trustedOpenLibraryCover(url) && !isbnOnlyOpenLibraryCover(url)) ?? null;
+  const isbnOnly = urls.find(isbnOnlyOpenLibraryCover) ?? null;
+  if (trusted)
+    return other && other !== trusted
+      ? { coverUrl: trusted, coverFallback: other }
+      : { coverUrl: trusted };
+  return { coverUrl: other ?? isbnOnly ?? null };
+}
+
+export function mergeBooks(query: string, groups: CatalogBook[][]): CatalogBookWithFallback[] {
   const byIsbn = new Map<string, number>();
   const byName = new Map<string, number>();
-  const mergedBooks: CatalogBook[] = [];
+  const mergedBooks: CatalogBookWithFallback[] = [];
   for (const book of groups.flat()) {
     const name = `${identity(book.title)}|${identity(book.author)}`;
     const index = (book.isbn ? byIsbn.get(book.isbn) : undefined) ?? byName.get(name);
     if (index !== undefined) {
       const previous = mergedBooks[index];
       const preferred = rank(book, query) > rank(previous, query) ? book : previous;
+      const covers = mergeCovers(previous.coverUrl, book.coverUrl);
       const merged = {
         ...previous,
         ...preferred,
-        /* Spec 6.1: Open Library cover first, then Google. */
-        coverUrl:
-          [previous, book].find((item) => item.source === "openlibrary" && item.coverUrl)
-            ?.coverUrl ??
-          previous.coverUrl ??
-          book.coverUrl,
+        /* Spec 6.1: a confirmed Open Library cover (id or olid) first;
+           if that URL is only an ISBN guess, or later fails verify, use Google. */
+        coverUrl: covers.coverUrl,
         isbn: preferred.isbn ?? previous.isbn ?? book.isbn,
         /* Each provider brings its own labels; the classifier gets both. */
         subjects: previous.subjects.length ? previous.subjects : book.subjects,
         categories: previous.categories.length ? previous.categories : book.categories,
         synopsis: preferred.synopsis ?? previous.synopsis ?? book.synopsis,
       };
+      if (covers.coverFallback) merged.coverFallback = covers.coverFallback;
+      else delete merged.coverFallback;
       mergedBooks[index] = merged;
       byName.set(name, index);
       byName.set(`${identity(previous.title)}|${identity(previous.author)}`, index);
@@ -299,9 +329,17 @@ async function editionCover(book: CatalogBook): Promise<CatalogBook | null> {
   return null;
 }
 
-async function withVerifiedCover(book: CatalogBook): Promise<CatalogBook> {
-  if (await coverPasses(book.coverUrl)) return book;
-  return (await editionCover(book)) ?? { ...book, coverUrl: null };
+function withoutFallback(book: CatalogBookWithFallback): CatalogBook {
+  const { coverFallback: _fallback, ...rest } = book;
+  return rest;
+}
+
+async function withVerifiedCover(book: CatalogBookWithFallback): Promise<CatalogBook> {
+  if (await coverPasses(book.coverUrl)) return withoutFallback(book);
+  const edition = await editionCover(book);
+  if (edition) return withoutFallback(edition);
+  if (book.coverFallback) return withoutFallback({ ...book, coverUrl: book.coverFallback });
+  return withoutFallback({ ...book, coverUrl: null });
 }
 
 /* Throws CatalogUnavailable only when every provider failed (429, 5xx,
@@ -328,6 +366,6 @@ export async function searchCatalog(
   return withCover([...verified, ...merged.slice(VERIFIED_RESULTS)]);
 }
 
-export function withCover(books: CatalogBook[]): CatalogBook[] {
-  return books.filter((book) => Boolean(book.coverUrl));
+export function withCover(books: CatalogBookWithFallback[]): CatalogBook[] {
+  return books.filter((book) => Boolean(book.coverUrl)).map(withoutFallback);
 }
