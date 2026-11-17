@@ -34,9 +34,13 @@ export function Scanner({
   const [canZoom, setCanZoom] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [error, setError] = useState("");
+  const [canRetry, setCanRetry] = useState(false);
   const [engine, setEngine] = useState<"pending" | "native" | "web" | "manual">("pending");
   const onFoundRef = useRef(onFound);
   onFoundRef.current = onFound;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const cancelledRef = useRef(false);
 
   const stop = useCallback(() => {
     if (timer.current != null) clearTimeout(timer.current);
@@ -56,34 +60,51 @@ export function Scanner({
     [stop],
   );
 
+  const runNative = useCallback(async () => {
+    setError("");
+    setNoCamera(false);
+    setCanRetry(false);
+    setEngine("native");
+    const result = await scanIsbnNative();
+    if (cancelledRef.current) return;
+    if (result.status === "isbn") {
+      onFoundRef.current(result.isbn);
+      return;
+    }
+    if (result.status === "cancelled") {
+      onCloseRef.current();
+      return;
+    }
+    if (result.status === "invalid") {
+      setError("Ese código no es un ISBN.");
+      setCanRetry(true);
+      setEngine("manual");
+      return;
+    }
+    if (result.status === "denied") {
+      setError("Habilitá la cámara en Ajustes.");
+      setCanRetry(true);
+      setEngine("manual");
+      return;
+    }
+    setNoCamera(true);
+    setEngine("manual");
+  }, []);
+
   useEffect(() => {
-    let cancelled = false;
+    cancelledRef.current = false;
     void (async () => {
       if (!(await nativeIsbnScannerAvailable())) {
-        if (!cancelled) setEngine("web");
+        if (!cancelledRef.current) setEngine("web");
         return;
       }
-      if (!cancelled) setEngine("native");
-      try {
-        const isbn = await scanIsbnNative();
-        if (cancelled) return;
-        if (isbn) {
-          onFoundRef.current(isbn);
-          return;
-        }
-      } catch {
-        /* Fall back to typing, same as a missing camera. */
-      }
-      if (!cancelled) {
-        setNoCamera(true);
-        setEngine("manual");
-      }
+      await runNative();
     })();
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
       void stopNativeScan();
     };
-  }, []);
+  }, [runNative]);
 
   useEffect(() => {
     if (engine !== "web") return;
@@ -192,11 +213,7 @@ export function Scanner({
   return (
     <Sheet onClose={onClose} label="Escanear">
       <div className="drawer-body drawer-body-enter stack scanner-body">
-        {noCamera || engine !== "web" ? (
-          engine !== "pending" && engine !== "native" ? (
-            <p className="scanner-note">Sin cámara. Escribí el ISBN.</p>
-          ) : null
-        ) : (
+        {engine === "web" && !noCamera && (
           <div className="scanner-frame">
             <video
               ref={video}
@@ -208,6 +225,9 @@ export function Scanner({
             />
             <span ref={guide} className="scanner-guide" aria-hidden="true" />
           </div>
+        )}
+        {noCamera && engine !== "pending" && engine !== "native" && (
+          <p className="scanner-note">Sin cámara. Escribí el ISBN.</p>
         )}
         <form
           className="scanner-manual"
@@ -235,6 +255,11 @@ export function Scanner({
             Buscar
           </button>
         </form>
+        {canRetry && (
+          <button type="button" className="text-action" onClick={() => void runNative()}>
+            Escanear de nuevo
+          </button>
+        )}
         {error && (
           <p className="error-text" role="alert">
             {error}
