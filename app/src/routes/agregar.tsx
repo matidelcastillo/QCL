@@ -70,6 +70,55 @@ function ManualForm({
   );
 }
 
+function resultKey(book: CatalogBook) {
+  return `${book.source}:${book.externalId}`;
+}
+
+function SearchHits({
+  books,
+  library,
+  onOpen,
+}: {
+  books: CatalogBook[];
+  library: Parameters<typeof duplicate>[0];
+  onOpen: (book: CatalogBook) => void;
+}) {
+  const [status, setStatus] = useState<Record<string, "ready" | "miss">>({});
+  const keys = books.map(resultKey).join("|");
+  useEffect(() => {
+    setStatus({});
+  }, [keys]);
+
+  const withUrl = books.filter((book) => book.coverUrl);
+  const ready = withUrl.filter((book) => status[resultKey(book)] === "ready");
+  const pending = withUrl.filter((book) => !status[resultKey(book)]);
+
+  return (
+    <>
+      {withUrl.map((book) => {
+        const key = resultKey(book);
+        if (status[key] === "miss") return null;
+        return (
+          <div key={key} hidden={status[key] !== "ready"}>
+            <BookRow
+              book={book}
+              saved={duplicate(library, book)}
+              onOpen={() => onOpen(book)}
+              eager
+              onCover={(value) =>
+                setStatus((current) =>
+                  current[key] === value ? current : { ...current, [key]: value },
+                )
+              }
+            />
+          </div>
+        );
+      })}
+      {pending.length === 0 && ready.length === 0 && <EmptyState text="No está." />}
+    </>
+  );
+}
+
 function Add() {
   const { user } = useSession();
   const books = useBooks(user?.id);
@@ -168,14 +217,7 @@ function Add() {
             <LoadError retry={() => void results.refetch()} />
           ) : results.data.length > 0 ? (
             <div className="content-fade">
-              {results.data.map((book) => (
-                <BookRow
-                  key={`${book.source}:${book.externalId}`}
-                  book={book}
-                  saved={duplicate(books.data ?? [], book)}
-                  onOpen={() => setOverlay(book)}
-                />
-              ))}
+              <SearchHits books={results.data} library={books.data ?? []} onOpen={setOverlay} />
             </div>
           ) : (
             <>

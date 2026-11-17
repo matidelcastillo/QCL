@@ -22,12 +22,18 @@ export function BookCover({
   url,
   isbn,
   size = "row",
+  eager = false,
+  onCover,
 }: {
   url?: string | null;
   isbn?: string | null;
   size?: CoverSize;
+  eager?: boolean;
+  onCover?: (status: "ready" | "miss") => void;
 }) {
   const host = useRef<HTMLSpanElement>(null);
+  const onCoverRef = useRef(onCover);
+  onCoverRef.current = onCover;
   const [src, setSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [instant, setInstant] = useState(false);
@@ -40,6 +46,7 @@ export function BookCover({
       setSrc(null);
       setLoading(false);
       setInstant(false);
+      onCoverRef.current?.("miss");
       return;
     }
     const wasCached = loaded.has(key);
@@ -57,6 +64,7 @@ export function BookCover({
       if (!alive) return;
       setLoading(false);
       setInstant(wasCached);
+      onCoverRef.current?.("ready");
       if (objectUrl) URL.revokeObjectURL(objectUrl);
       objectUrl = URL.createObjectURL(blob);
       setSrc(objectUrl);
@@ -74,11 +82,13 @@ export function BookCover({
         if (result === "miss") {
           setSrc(null);
           setLoading(false);
+          onCoverRef.current?.("miss");
           return;
         }
         if (result === "retry") {
           if (attempt >= RETRY_MS.length) {
             setLoading(false);
+            onCoverRef.current?.("miss");
             return;
           }
           timer = window.setTimeout(() => {
@@ -92,6 +102,7 @@ export function BookCover({
         if (!alive || ac.signal.aborted) return;
         if (attempt >= RETRY_MS.length) {
           setLoading(false);
+          onCoverRef.current?.("miss");
           return;
         }
         timer = window.setTimeout(() => {
@@ -112,7 +123,7 @@ export function BookCover({
     }
 
     const start = () => void load();
-    if (typeof IntersectionObserver === "undefined") {
+    if (eager || typeof IntersectionObserver === "undefined") {
       start();
       return stop;
     }
@@ -126,7 +137,7 @@ export function BookCover({
       io.disconnect();
       stop();
     };
-  }, [key, request]);
+  }, [key, request, eager]);
 
   /* The 2:3 slot always renders with the fallback fill; the image fades in
      over it, so a slow or missing cover never collapses the row. */

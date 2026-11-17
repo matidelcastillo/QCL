@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mergeBooks } from "./catalog";
+import { mergeBooks, withCover } from "./catalog";
 import type { CatalogBook } from "../domain/types";
 
 const base: CatalogBook = {
@@ -56,4 +56,15 @@ test("same ISBN in another script keeps the Latin-script record", () => {
   };
   const [book] = mergeBooks(base.isbn!, [[], [arabic, latin]]);
   expect(book.title).toBe("El princiito");
+});
+
+test("withCover drops books that have no cover URL", () => {
+  const bare = { ...base, coverUrl: null, title: "Sin tapa" };
+  const pictured = {
+    ...base,
+    coverUrl: "https://covers.openlibrary.org/b/id/1-L.jpg",
+    title: "Con tapa",
+  };
+  expect(withCover([bare, pictured]).map((book) => book.title)).toEqual(["Con tapa"]);
+  expect(withCover([bare])).toEqual([]);
 });

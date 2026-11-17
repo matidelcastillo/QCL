@@ -325,5 +325,9 @@ export async function searchCatalog(
     results.map((result) => result.books),
   );
   const verified = await Promise.all(merged.slice(0, VERIFIED_RESULTS).map(withVerifiedCover));
-  return [...verified, ...merged.slice(VERIFIED_RESULTS)];
+  return withCover([...verified, ...merged.slice(VERIFIED_RESULTS)]);
+}
+
+export function withCover(books: CatalogBook[]): CatalogBook[] {
+  return books.filter((book) => Boolean(book.coverUrl));
 }

@@ -12,10 +12,14 @@ export function BookRow({
   book,
   saved,
   onOpen,
+  eager,
+  onCover,
 }: {
   book: Book | CatalogBook;
   saved?: Book;
   onOpen: () => void;
+  eager?: boolean;
+  onCover?: (status: "ready" | "miss") => void;
 }) {
   const stored = saved ?? ("id" in book ? book : undefined);
   const cover = "cover_url" in book ? book.cover_url : book.coverUrl;
@@ -24,7 +28,7 @@ export function BookRow({
   );
   return (
     <button type="button" className="qc-people-row qc-press-card" onClick={onOpen}>
-      <BookCover url={cover} isbn={book.isbn} />
+      <BookCover url={cover} isbn={book.isbn} eager={eager} onCover={onCover} />
       <span className="row-copy">
         <span className="row-title">{book.title}</span>
         <span className="row-author">{book.author || EMPTY_LINE}</span>

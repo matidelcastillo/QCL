@@ -77,21 +77,52 @@ afterEach(() => {
   else (globalThis as { caches?: unknown }).caches = realCaches;
 });
 
+function png(width = 200, height = 300, bytes = 2500) {
+  const image = new Uint8Array(bytes);
+  image.set([137, 80, 78, 71, 13, 10, 26, 10]);
+  const view = new DataView(image.buffer);
+  view.setUint32(16, width);
+  view.setUint32(20, height);
+  return image;
+}
+
 function mockProviders(openLibrary: number, google: number) {
   globalThis.fetch = (async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.startsWith("https://openlibrary.org/"))
       return openLibrary === 200
         ? Response.json({
-            docs: [{ title: "Rayuela", author_name: ["Julio Cortázar"], key: "/works/OL1W" }],
+            docs: [
+              {
+                title: "Rayuela",
+                author_name: ["Julio Cortázar"],
+                key: "/works/OL1W",
+                cover_i: 1,
+              },
+            ],
           })
         : new Response("", { status: openLibrary });
     if (url.startsWith("https://www.googleapis.com/"))
       return google === 200
         ? Response.json({
-            items: [{ id: "g1", volumeInfo: { title: "Rayuela", authors: ["Julio Cortázar"] } }],
+            items: [
+              {
+                id: "g1",
+                volumeInfo: {
+                  title: "Rayuela",
+                  authors: ["Julio Cortázar"],
+                  imageLinks: { thumbnail: "https://books.google.com/books/content?id=g1" },
+                },
+              },
+            ],
           })
         : new Response("", { status: google });
+    if (
+      url.startsWith("https://covers.openlibrary.org/") ||
+      url.startsWith("https://books.google.com/")
+    ) {
+      return new Response(png(), { headers: { "content-type": "image/png" } });
+    }
     return new Response("", { status: 404 });
   }) as typeof fetch;
 }
