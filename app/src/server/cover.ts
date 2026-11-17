@@ -12,6 +12,7 @@ const hosts = new Set([
 const redirectHosts = /^(archive\.org|ia\d+\.us\.archive\.org)$/;
 /* Google Books generic "image not available" bytes observed at zoom 0–3. */
 const placeholderHashes = new Set(["c84d8baf", "5c4ccddd", "6a075bb7", "f231d268", "b67b4c6d"]);
+export const MAX_COVER_BYTES = 2_000_000;
 
 function fnv1a(bytes: Uint8Array): string {
   let hash = 0x811c9dc5;
@@ -79,13 +80,52 @@ function dimensions(bytes: Uint8Array, type: string): { width: number; height: n
 }
 
 export function validCover(bytes: Uint8Array, type: string): boolean {
-  if (bytes.byteLength < 2048 || bytes.byteLength > 2_000_000) return false;
+  if (bytes.byteLength < 2048 || bytes.byteLength > MAX_COVER_BYTES) return false;
   if (type !== "image/jpeg" && type !== "image/png") return false;
   const size = dimensions(bytes, type);
   if (!size || size.width < 100) return false;
   if (type === "image/png" && size.width === 300 && size.height === 391) return false;
   if (placeholderHashes.has(fnv1a(bytes))) return false;
   return true;
+}
+
+/* Read a cover body up to MAX_COVER_BYTES. Abort if Content-Length or the
+   streamed body goes past the cap, including when the length header is missing. */
+export async function readBody(
+  response: Response,
+  maxBytes = MAX_COVER_BYTES,
+): Promise<Uint8Array | null> {
+  const length = Number(response.headers.get("content-length"));
+  if (Number.isFinite(length) && length > maxBytes) return null;
+  const body = response.body;
+  if (!body) {
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    return bytes.byteLength > maxBytes ? null : bytes;
+  }
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += value.byteLength;
+      if (received > maxBytes) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return null;
+  }
+  const bytes = new Uint8Array(received);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
 }
 
 export async function fetchCover(
@@ -107,11 +147,9 @@ export async function fetchCover(
       continue;
     }
     if (!response.ok) return null;
-    const length = Number(response.headers.get("content-length"));
-    if (length > 2_000_000) return null;
     const type = (response.headers.get("content-type") ?? "").split(";")[0].trim();
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    return validCover(bytes, type) ? { bytes, type, sourceUrl: url.toString() } : null;
+    const bytes = await readBody(response);
+    return bytes && validCover(bytes, type) ? { bytes, type, sourceUrl: url.toString() } : null;
   }
   return null;
 }

@@ -1,5 +1,5 @@
 // Security headers for every worker response.
-// Covers come through /api/tapa (same origin), so img-src only needs 'self'.
+// Covers come through /api/tapa as blobs, so img-src must allow blob: as well as 'self'.
 // The barcode reader (zxing-wasm, .wasm from 'self') needs 'wasm-unsafe-eval'.
 const SUPABASE_ORIGIN = "https://mdytuysdombxyydqnsmj.supabase.co";
 
@@ -26,7 +26,7 @@ export function contentSecurityPolicy(nonce: string) {
     `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval'`,
     "style-src 'self' https://fonts.googleapis.com",
     "font-src https://fonts.gstatic.com",
-    "img-src 'self' data:",
+    "img-src 'self' data: blob:",
     `connect-src 'self' ${SUPABASE_ORIGIN}`,
     "media-src 'self' blob:",
     "object-src 'none'",

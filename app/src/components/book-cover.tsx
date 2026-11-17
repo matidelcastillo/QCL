@@ -5,19 +5,20 @@ import { apiUrl } from "../data/api-base";
 type CoverSize = "row" | "large" | "tile";
 
 const RETRY_MS = [2000, 8000, 30000, 60000];
-const loaded = new Map<string, string>();
+const loaded = new Map<string, Blob>();
 
 async function loadCover(src: string, signal: AbortSignal) {
   const response = await fetch(src, { signal });
   if (response.status === 429 || response.status >= 500) return "retry" as const;
   if (!response.ok) return "miss" as const;
-  return URL.createObjectURL(await response.blob());
+  return await response.blob();
 }
 
 /* Cover served through /api/tapa. Reveal = QC .qc-card-image / .drawer-media-fade.
    Sizes: row thumbnail, sheet hero (large), grid tile (fills its card).
-   Only visible covers are requested. Hits are reused; 429s retry through the
-   rate-limit window; a real miss keeps the fallback. */
+   Only visible covers are requested. Hits cache the blob and reuse it; each
+   mount creates its own object URL and revokes it on change or unmount.
+   429s retry through the rate-limit window; a real miss keeps the fallback. */
 export function BookCover({
   url,
   isbn,
@@ -34,17 +35,24 @@ export function BookCover({
   const request = key ? apiUrl(`/api/tapa?${params}`) : "";
 
   useEffect(() => {
-    if (!key) return;
+    if (!key) {
+      setSrc(null);
+      return;
+    }
     const node = host.current;
     if (!node) return;
     let alive = true;
     let attempt = 0;
     let timer = 0;
+    let objectUrl = "";
     const ac = new AbortController();
 
-    function show(image: string) {
-      loaded.set(key, image);
-      if (alive) setSrc(image);
+    function show(blob: Blob) {
+      loaded.set(key, blob);
+      if (!alive) return;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      objectUrl = URL.createObjectURL(blob);
+      setSrc(objectUrl);
     }
 
     async function load() {
@@ -79,14 +87,20 @@ export function BookCover({
       }
     }
 
+    function stop() {
+      alive = false;
+      ac.abort();
+      window.clearTimeout(timer);
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = "";
+      }
+    }
+
     const start = () => void load();
     if (typeof IntersectionObserver === "undefined") {
       start();
-      return () => {
-        alive = false;
-        ac.abort();
-        window.clearTimeout(timer);
-      };
+      return stop;
     }
     const io = new IntersectionObserver((entries) => {
       if (!entries.some((entry) => entry.isIntersecting)) return;
@@ -95,10 +109,8 @@ export function BookCover({
     });
     io.observe(node);
     return () => {
-      alive = false;
       io.disconnect();
-      ac.abort();
-      window.clearTimeout(timer);
+      stop();
     };
   }, [key, request]);
 

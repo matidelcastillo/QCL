@@ -10,7 +10,7 @@ import { buttonClass } from "../components/button";
 export const Route = createFileRoute("/clave")({ component: NewPassword });
 
 function NewPassword() {
-  const { loading, user } = useSession();
+  const { loading, user, passwordRecovery } = useSession();
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -28,6 +28,7 @@ function NewPassword() {
       setBusy(false);
     }
   }
+  const form = passwordRecovery && user;
   return (
     <main className="auth-screen">
       <div className="auth-panel">
@@ -35,14 +36,7 @@ function NewPassword() {
         <div className="stack app-gutter">
           {loading ? (
             <LoadingPage />
-          ) : !user ? (
-            <>
-              <p className="qc-feedback-text">Abrí el enlace del mail.</p>
-              <Link to="/entrar" className="text-action">
-                Volver
-              </Link>
-            </>
-          ) : (
+          ) : form ? (
             <form className="stack" onSubmit={(event) => void submit(event)}>
               <input
                 className="qc-auth-email-input"
@@ -64,6 +58,13 @@ function NewPassword() {
                 Guardar
               </button>
             </form>
+          ) : (
+            <>
+              <p className="qc-feedback-text">Abrí el enlace del mail.</p>
+              <Link to="/entrar" className="text-action">
+                Volver
+              </Link>
+            </>
           )}
         </div>
       </div>

@@ -5,7 +5,11 @@ import { updateSessionUser } from "./session-epoch";
 import { SessionContext, type SessionState } from "./session-context";
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<SessionState>({ loading: true, user: null });
+  const [state, setState] = useState<SessionState>({
+    loading: true,
+    user: null,
+    passwordRecovery: false,
+  });
   const queryClient = useQueryClient();
   useEffect(() => {
     let alive = true;
@@ -13,13 +17,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const client = browserSupabase();
     const {
       data: { subscription },
-    } = client.auth.onAuthStateChange((_event, session) => {
+    } = client.auth.onAuthStateChange((event, session) => {
       if (!alive) return;
       authEvents++;
       setState((previous) => {
         if (previous.user?.id !== (session?.user.id ?? null)) queryClient.clear();
         updateSessionUser(session?.user.id ?? null);
-        return { loading: false, user: session?.user ?? null };
+        return {
+          loading: false,
+          user: session?.user ?? null,
+          passwordRecovery:
+            event === "PASSWORD_RECOVERY" || (event !== "SIGNED_OUT" && previous.passwordRecovery),
+        };
       });
     });
     const requestVersion = authEvents;
@@ -27,13 +36,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (!alive || authEvents !== requestVersion) return;
       if (error) {
         updateSessionUser(null);
-        setState({ loading: false, user: null });
+        setState({ loading: false, user: null, passwordRecovery: false });
         return;
       }
       setState((previous) => {
         if (previous.user?.id !== (data.user?.id ?? null)) queryClient.clear();
         updateSessionUser(data.user?.id ?? null);
-        return { loading: false, user: data.user };
+        return {
+          loading: false,
+          user: data.user,
+          passwordRecovery: previous.passwordRecovery,
+        };
       });
     });
     return () => {

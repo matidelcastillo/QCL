@@ -1,4 +1,4 @@
-import type { Book, BookStatus, CatalogBook, SharedBook } from "../domain/types";
+import type { Book, BookStatus, CatalogBook, ManualBook, SharedBook } from "../domain/types";
 import { today } from "../domain/date";
 import { coverParams } from "../domain/cover-url";
 import { knownGenre, OTHER_GENRE } from "../domain/genre";
@@ -52,7 +52,27 @@ export type NewBook = Pick<
   categories: string[];
 };
 
-export function toNewBook(book: Book | CatalogBook | SharedBook): NewBook {
+export function manualBook(input: {
+  title: string;
+  author?: string;
+  isbn?: string | null;
+}): ManualBook {
+  return {
+    title: input.title.trim(),
+    author: (input.author ?? "").trim(),
+    isbn: input.isbn ?? null,
+    page_count: null,
+    published_year: null,
+    synopsis: null,
+    coverUrl: null,
+    source: "manual",
+    externalId: null,
+    subjects: [],
+    categories: [],
+  };
+}
+
+export function toNewBook(book: Book | CatalogBook | ManualBook | SharedBook): NewBook {
   return {
     title: book.title,
     author: book.author,

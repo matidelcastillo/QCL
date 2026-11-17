@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Barcode } from "lucide-react";
-import type { Book, CatalogBook } from "../domain/types";
+import type { Book, CatalogBook, ManualBook } from "../domain/types";
 import { normalizeIsbn } from "../domain/isbn";
-import { duplicate } from "../data/library";
+import { duplicate, manualBook } from "../data/library";
 import { searchCatalog } from "../data/catalog";
 import { useBooks } from "../data/use-books";
 import { useSession } from "../data/session-context";
@@ -20,7 +20,55 @@ export const Route = createFileRoute("/agregar")({ component: Add });
 const DEBOUNCE_MS = 350;
 const MIN_QUERY = 3;
 
-type Overlay = { kind: "book"; book: Book | CatalogBook } | { kind: "scanner" } | null;
+type Overlay = { kind: "book"; book: Book | CatalogBook | ManualBook } | { kind: "scanner" } | null;
+
+function ManualForm({
+  isbn,
+  title: initialTitle = "",
+  onOpen,
+}: {
+  isbn?: string | null;
+  title?: string;
+  onOpen: (book: ManualBook) => void;
+}) {
+  const [title, setTitle] = useState(initialTitle);
+  const [author, setAuthor] = useState("");
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    const book = manualBook({ title, author, isbn });
+    if (!book.title) return;
+    onOpen(book);
+  }
+  return (
+    <form className="stack" onSubmit={submit}>
+      <input
+        className="qc-auth-email-input"
+        type="text"
+        placeholder="Título"
+        aria-label="Título"
+        autoComplete="off"
+        maxLength={500}
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+        required
+      />
+      <input
+        className="qc-auth-email-input"
+        type="text"
+        placeholder="Autor"
+        aria-label="Autor"
+        autoComplete="off"
+        maxLength={500}
+        value={author}
+        onChange={(event) => setAuthor(event.target.value)}
+      />
+      {isbn && <p className="qc-feedback-text">{isbn}</p>}
+      <button type="submit" className={buttonClass("primary", true)}>
+        Cargarlo
+      </button>
+    </form>
+  );
+}
 
 function Add() {
   const { user } = useSession();
@@ -29,6 +77,7 @@ function Add() {
   const [term, setTerm] = useState("");
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [scanError, setScanError] = useState("");
+  const [missedIsbn, setMissedIsbn] = useState<string | null>(null);
   useEffect(() => {
     const timer = setTimeout(() => setTerm(query.trim()), DEBOUNCE_MS);
     return () => clearTimeout(timer);
@@ -44,13 +93,23 @@ function Add() {
   async function scanned(code: string) {
     setOverlay(null);
     setScanError("");
+    setMissedIsbn(null);
+    setQuery("");
+    setTerm("");
     try {
       const [first] = await searchCatalog({ isbn: code });
       if (first) setOverlay({ kind: "book", book: first });
-      else setScanError("No está.");
+      else {
+        setScanError("No está.");
+        setMissedIsbn(code);
+      }
     } catch {
       setScanError("Revisá la conexión.");
     }
+  }
+
+  function openManual(book: ManualBook) {
+    setOverlay({ kind: "book", book });
   }
 
   return (
@@ -81,6 +140,7 @@ function Add() {
             {scanError}
           </p>
         )}
+        {missedIsbn && <ManualForm key={missedIsbn} isbn={missedIsbn} onOpen={openManual} />}
       </div>
       {term.length >= MIN_QUERY && (
         <section className="feed app-gutter">
@@ -100,7 +160,15 @@ function Add() {
               ))}
             </div>
           ) : (
-            <EmptyState text="No está." />
+            <>
+              <EmptyState text="No está." />
+              <ManualForm
+                key={`${isbn ?? ""}:${term}`}
+                isbn={isbn}
+                title={isbn ? "" : term}
+                onOpen={openManual}
+              />
+            </>
           )}
         </section>
       )}
