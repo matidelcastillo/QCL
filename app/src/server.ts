@@ -11,8 +11,7 @@ async function handle(request: Request, env: Env, context: unknown) {
   /* Nitro often calls this entry with the request only. Use the runtime env
      Nitro stashes on globalThis (__env__), then the fetch argument, then
      cloudflare:workers. Do not spread: rate-limit bindings are not enumerable. */
-  const runtime =
-    (globalThis as { __env__?: Env }).__env__ ?? env ?? (bindings as Env);
+  const runtime = (globalThis as { __env__?: Env }).__env__ ?? env ?? (bindings as Env);
   const api = await apiResponse(request, runtime);
   if (api) return api;
   entry ??= import("@tanstack/react-start/server-entry").then(

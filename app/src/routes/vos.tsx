@@ -113,6 +113,9 @@ function Profile() {
         <Link to="/privacidad" className="text-action">
           Privacidad
         </Link>
+        <Link to="/soporte" className="text-action">
+          Soporte
+        </Link>
         {error && (
           <p className="error-text" role="alert">
             {error}

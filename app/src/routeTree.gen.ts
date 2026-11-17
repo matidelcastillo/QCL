@@ -14,6 +14,7 @@ import { Route as AgregarRouteImport } from './routes/agregar'
 import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as GiladaRouteImport } from './routes/gilada'
 import { Route as PrivacidadRouteImport } from './routes/privacidad'
+import { Route as SoporteRouteImport } from './routes/soporte'
 import { Route as VosRouteImport } from './routes/vos'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +42,11 @@ const PrivacidadRoute = PrivacidadRouteImport.update({
   path: '/privacidad',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SoporteRoute = SoporteRouteImport.update({
+  id: '/soporte',
+  path: '/soporte',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VosRoute = VosRouteImport.update({
   id: '/vos',
   path: '/vos',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/entrar': typeof EntrarRoute
   '/gilada': typeof GiladaRoute
   '/privacidad': typeof PrivacidadRoute
+  '/soporte': typeof SoporteRoute
   '/vos': typeof VosRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/entrar': typeof EntrarRoute
   '/gilada': typeof GiladaRoute
   '/privacidad': typeof PrivacidadRoute
+  '/soporte': typeof SoporteRoute
   '/vos': typeof VosRoute
 }
 export interface FileRoutesById {
@@ -70,13 +78,28 @@ export interface FileRoutesById {
   '/entrar': typeof EntrarRoute
   '/gilada': typeof GiladaRoute
   '/privacidad': typeof PrivacidadRoute
+  '/soporte': typeof SoporteRoute
   '/vos': typeof VosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/agregar' | '/entrar' | '/gilada' | '/privacidad' | '/vos'
+  fullPaths:
+    | '/'
+    | '/agregar'
+    | '/entrar'
+    | '/gilada'
+    | '/privacidad'
+    | '/soporte'
+    | '/vos'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/agregar' | '/entrar' | '/gilada' | '/privacidad' | '/vos'
+  to:
+    | '/'
+    | '/agregar'
+    | '/entrar'
+    | '/gilada'
+    | '/privacidad'
+    | '/soporte'
+    | '/vos'
   id:
     | '__root__'
     | '/'
@@ -84,6 +107,7 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/gilada'
     | '/privacidad'
+    | '/soporte'
     | '/vos'
   fileRoutesById: FileRoutesById
 }
@@ -93,6 +117,7 @@ export interface RootRouteChildren {
   EntrarRoute: typeof EntrarRoute
   GiladaRoute: typeof GiladaRoute
   PrivacidadRoute: typeof PrivacidadRoute
+  SoporteRoute: typeof SoporteRoute
   VosRoute: typeof VosRoute
 }
 
@@ -133,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacidadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/soporte': {
+      id: '/soporte'
+      path: '/soporte'
+      fullPath: '/soporte'
+      preLoaderRoute: typeof SoporteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/vos': {
       id: '/vos'
       path: '/vos'
@@ -149,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   EntrarRoute: EntrarRoute,
   GiladaRoute: GiladaRoute,
   PrivacidadRoute: PrivacidadRoute,
+  SoporteRoute: SoporteRoute,
   VosRoute: VosRoute,
 }
 export const routeTree = rootRouteImport

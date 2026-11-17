@@ -117,6 +117,9 @@ function Enter() {
           <Link to="/privacidad" className="text-action">
             Privacidad
           </Link>
+          <Link to="/soporte" className="text-action">
+            Soporte
+          </Link>
         </div>
       </div>
     </main>

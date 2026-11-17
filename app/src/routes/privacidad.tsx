@@ -30,6 +30,10 @@ function Privacy() {
           worker), Open Library y Google Books (búsqueda de libros y tapas) y Workers AI de
           Cloudflare (para sugerir el género al guardar un libro).
         </p>
+        <p>
+          Los terceros que procesan estos datos ofrecen una protección equivalente a la descrita en
+          esta política.
+        </p>
         <p>No hay publicidad ni seguimiento entre apps. No vendemos datos.</p>
         <p>
           Los datos se conservan mientras tengas cuenta. En Tu racconto podés tocar “Eliminar

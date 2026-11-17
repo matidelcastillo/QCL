@@ -85,7 +85,7 @@ function Gate() {
         <LoadingPage />
       </div>
     );
-  const publicPath = path === "/entrar" || path === "/privacidad";
+  const publicPath = path === "/entrar" || path === "/privacidad" || path === "/soporte";
   if (!user && !publicPath) return <Navigate to="/entrar" />;
   if (user && path === "/entrar") return <Navigate to="/" />;
   return (
