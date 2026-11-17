@@ -13,14 +13,14 @@ function Support() {
       <BrandHeader />
       <ScreenHeading>Soporte</ScreenHeading>
       <div className="stack-loose app-gutter legal-copy">
-        <p>Qué Carajo Lee (QCL) es una app para guardar tu lista de libros.</p>
+        <p>Qué Carajo Lee es una app para guardar tu lista de libros.</p>
         <p>
-          Si tienes un problema o una consulta, escribe a{" "}
-          <a href={`mailto:${CONTACT}`}>{CONTACT}</a>.
+          Si tenés un problema o una consulta, escribí a <a href={`mailto:${CONTACT}`}>{CONTACT}</a>
+          .
         </p>
         <p>
-          Para borrar tu cuenta: en la app, ve a Vos (Tu racconto) → Eliminar cuenta → confirma. Eso
-          borra tu usuario, tu perfil y todos tus libros.
+          Para borrar tu cuenta: en la app, andá a Vos (Tu racconto) → Eliminar cuenta → confirmá.
+          Eso borra tu usuario, tu perfil y todos tus libros.
         </p>
         {!user && (
           <Link to="/entrar" className="text-action">

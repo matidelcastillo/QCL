@@ -59,8 +59,12 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleDarkContent</string>
 	<key>NSCameraUsageDescription</key>
-	<string>QCL usa la cámara para escanear el código ISBN del libro.</string>
+	<string>Qué Carajo Lee usa la cámara para escanear el ISBN.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>

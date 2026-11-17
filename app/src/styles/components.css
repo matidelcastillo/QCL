@@ -43,6 +43,8 @@ button:disabled {
 
 /* Root wrapper: QC routes/__root.tsx + .safe-area-top (styles.css l. 651). */
 .app-frame {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-width: var(--app-viewport-max);
   min-height: 100dvh;
@@ -50,6 +52,9 @@ button:disabled {
 }
 .safe-area-top {
   padding-top: var(--safe-top);
+}
+.safe-area-bottom {
+  padding-bottom: var(--safe-bottom);
 }
 .page-pb-nav {
   padding-bottom: var(--page-pb-nav);
@@ -110,10 +115,13 @@ button:disabled {
 .filter-tabs {
   display: flex;
   flex: 1;
-  align-items: baseline;
+  align-items: center;
   gap: var(--filter-gap-compact);
 }
 .filter-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--nav-hit-size);
   padding: 0;
   border: 0;
   background: none;
@@ -729,9 +737,9 @@ button:disabled {
 /* Auth screen: QC routes/auth.tsx (centered column on --bg). */
 .auth-screen {
   display: flex;
+  flex: 1;
   align-items: center;
   justify-content: center;
-  min-height: 100dvh;
 }
 .auth-panel {
   width: 100%;
@@ -909,8 +917,8 @@ button:disabled {
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: var(--drawer-control-visual-size);
-  height: var(--drawer-control-visual-size);
+  width: var(--nav-hit-size);
+  height: var(--nav-hit-size);
   padding: 0;
   border: 0;
   background: none;

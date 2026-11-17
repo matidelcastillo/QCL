@@ -85,13 +85,15 @@ function Gate() {
         <LoadingPage />
       </div>
     );
-  const publicPath = path === "/entrar" || path === "/privacidad" || path === "/soporte";
+  const publicPath =
+    path === "/entrar" || path === "/privacidad" || path === "/soporte" || path === "/clave";
   if (!user && !publicPath) return <Navigate to="/entrar" />;
   if (user && path === "/entrar") return <Navigate to="/" />;
+  const bottomSafe = !user || path === "/clave";
   return (
-    <div className="app-frame safe-area-top">
+    <div className={`app-frame safe-area-top${bottomSafe ? " safe-area-bottom" : ""}`}>
       <Outlet />
-      {user && <AppNav hidden={sheetOpen} />}
+      {user && path !== "/clave" && <AppNav hidden={sheetOpen} />}
     </div>
   );
 }

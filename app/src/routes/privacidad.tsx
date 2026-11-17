@@ -13,7 +13,10 @@ function Privacy() {
       <BrandHeader />
       <ScreenHeading>Privacidad</ScreenHeading>
       <div className="stack-loose app-gutter legal-copy">
-        <p>QCL sirve para guardar tu lista de libros y ver qué leen otras personas de la app.</p>
+        <p>
+          Qué Carajo Lee sirve para guardar tu lista de libros y ver qué leen otras personas de la
+          app.
+        </p>
         <p>Juntamos estos datos:</p>
         <p>
           El email y la contraseña de tu cuenta (la contraseña la guarda Supabase, no la vemos en

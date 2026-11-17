@@ -6,8 +6,16 @@ const config: CapacitorConfig = {
   webDir: "capacitor-web",
   ios: {
     contentInset: "never",
-    backgroundColor: "#ffffff",
+    // Same value as --bg in app/src/styles/tokens.css.
+    backgroundColor: "#f5f0eb",
     preferredContentMode: "mobile",
+  },
+  plugins: {
+    StatusBar: {
+      // Dark text on the cream --bg (tokens.css).
+      style: "DARK",
+      backgroundColor: "#f5f0eb",
+    },
   },
 };
 
