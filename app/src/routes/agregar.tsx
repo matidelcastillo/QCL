@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
-import { Barcode } from "lucide-react";
 import type { Book, CatalogBook, ManualBook } from "../domain/types";
 import { normalizeIsbn } from "../domain/isbn";
 import { duplicate, manualBook } from "../data/library";
@@ -117,24 +116,25 @@ function Add() {
       <BrandHeader />
       <ScreenHeading>Buscar</ScreenHeading>
       <div className="stack app-gutter">
-        <input
-          className="qc-auth-email-input"
-          type="search"
-          enterKeyHint="search"
-          placeholder="Tipeá título o autor"
-          aria-label="Buscar"
-          autoComplete="off"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
-        <button
-          type="button"
-          className={buttonClass("primary", true)}
-          onClick={() => setOverlay({ kind: "scanner" })}
-        >
-          <Barcode size={24} strokeWidth={2} aria-hidden="true" />
-          Escanear
-        </button>
+        <div className="search-scan-row">
+          <input
+            className="qc-auth-email-input"
+            type="search"
+            enterKeyHint="search"
+            placeholder="Tipeá título o autor"
+            aria-label="Buscar"
+            autoComplete="off"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <button
+            type="button"
+            className={buttonClass("primary")}
+            onClick={() => setOverlay({ kind: "scanner" })}
+          >
+            Scan
+          </button>
+        </div>
         {scanError && (
           <p className="error-text" role="alert">
             {scanError}
