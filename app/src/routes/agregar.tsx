@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState, type FormEvent } from "react";
-import type { Book, CatalogBook, ManualBook } from "../domain/types";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import type { CatalogBook, ManualBook } from "../domain/types";
 import { normalizeIsbn } from "../domain/isbn";
+import { ADD_TABS, nextScanGeneration, type AddTab } from "../domain/add-tabs";
 import { duplicate, manualBook } from "../data/library";
 import { searchCatalog } from "../data/catalog";
 import { useBooks } from "../data/use-books";
 import { useSession } from "../data/session-context";
-import { BrandHeader, ScreenHeading } from "../components/brand-header";
+import { BrandHeader } from "../components/brand-header";
 import { BookRow } from "../components/book-row";
 import { BookSheet } from "../components/book-sheet";
 import { buttonClass } from "../components/button";
@@ -18,8 +19,6 @@ export const Route = createFileRoute("/agregar")({ component: Add });
 
 const DEBOUNCE_MS = 350;
 const MIN_QUERY = 3;
-
-type Overlay = { kind: "book"; book: Book | CatalogBook | ManualBook } | { kind: "scanner" } | null;
 
 function ManualForm({
   isbn,
@@ -72,16 +71,21 @@ function ManualForm({
 function Add() {
   const { user } = useSession();
   const books = useBooks(user?.id);
+  const [tab, setTab] = useState<AddTab>("buscar");
   const [query, setQuery] = useState("");
   const [term, setTerm] = useState("");
-  const [overlay, setOverlay] = useState<Overlay>(null);
+  const [isbnDraft, setIsbnDraft] = useState("");
   const [scanError, setScanError] = useState("");
   const [missedIsbn, setMissedIsbn] = useState<string | null>(null);
+  const [overlay, setOverlay] = useState<CatalogBook | ManualBook | null>(null);
+  const scanGeneration = useRef(0);
   useEffect(() => {
     const timer = setTimeout(() => setTerm(query.trim()), DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [query]);
   const isbn = normalizeIsbn(term);
+  /* Keep the catalog query mounted across tabs so an in-flight search, a
+     429, or the typed query is still there when you come back to Buscar. */
   const results = useQuery({
     queryKey: ["catalog", isbn ?? term],
     queryFn: () => searchCatalog(isbn ? { isbn } : { q: term }),
@@ -89,34 +93,53 @@ function Add() {
     staleTime: 5 * 60 * 1000,
   });
 
+  function selectTab(next: AddTab) {
+    scanGeneration.current = nextScanGeneration(tab, next, scanGeneration.current);
+    setTab(next);
+  }
+
   async function scanned(code: string) {
-    setOverlay(null);
+    const started = scanGeneration.current;
     setScanError("");
     setMissedIsbn(null);
-    setQuery("");
-    setTerm("");
     try {
       const [first] = await searchCatalog({ isbn: code });
-      if (first) setOverlay({ kind: "book", book: first });
+      if (started !== scanGeneration.current) return;
+      if (first) setOverlay(first);
       else {
         setScanError("No está.");
         setMissedIsbn(code);
       }
     } catch {
+      if (started !== scanGeneration.current) return;
       setScanError("Revisá la conexión.");
     }
   }
 
   function openManual(book: ManualBook) {
-    setOverlay({ kind: "book", book });
+    setOverlay(book);
   }
 
   return (
     <main className="page-pb-nav">
       <BrandHeader />
-      <ScreenHeading>Buscar</ScreenHeading>
-      <div className="stack app-gutter">
-        <div className="search-scan-row">
+      <div className="filter-row app-gutter">
+        <div className="filter-tabs" role="group" aria-label="Buscar o escanear">
+          {ADD_TABS.map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className="filter-tab"
+              aria-pressed={tab === value}
+              onClick={() => selectTab(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {tab === "buscar" && (
+        <div className="stack app-gutter">
           <input
             className="qc-auth-email-input"
             type="search"
@@ -127,22 +150,9 @@ function Add() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
-          <button
-            type="button"
-            className={buttonClass("primary")}
-            onClick={() => setOverlay({ kind: "scanner" })}
-          >
-            Scan
-          </button>
         </div>
-        {scanError && (
-          <p className="error-text" role="alert">
-            {scanError}
-          </p>
-        )}
-        {missedIsbn && <ManualForm key={missedIsbn} isbn={missedIsbn} onOpen={openManual} />}
-      </div>
-      {term.length >= MIN_QUERY && (
+      )}
+      {tab === "buscar" && term.length >= MIN_QUERY && (
         <section className="feed app-gutter">
           {results.isPending ? (
             <LoadingRows count={3} />
@@ -155,7 +165,7 @@ function Add() {
                   key={`${book.source}:${book.externalId}`}
                   book={book}
                   saved={duplicate(books.data ?? [], book)}
-                  onOpen={() => setOverlay({ kind: "book", book })}
+                  onOpen={() => setOverlay(book)}
                 />
               ))}
             </div>
@@ -172,12 +182,22 @@ function Add() {
           )}
         </section>
       )}
-      {overlay?.kind === "scanner" && (
-        <Scanner onClose={() => setOverlay(null)} onFound={(code) => void scanned(code)} />
+      {tab === "escanear" && !overlay && (
+        <div className="stack app-gutter">
+          <Scanner
+            onFound={(code) => void scanned(code)}
+            isbn={isbnDraft}
+            onIsbnChange={setIsbnDraft}
+          />
+          {scanError && (
+            <p className="error-text" role="alert">
+              {scanError}
+            </p>
+          )}
+          {missedIsbn && <ManualForm key={missedIsbn} isbn={missedIsbn} onOpen={openManual} />}
+        </div>
       )}
-      {overlay?.kind === "book" && (
-        <BookSheet book={overlay.book} onClose={() => setOverlay(null)} />
-      )}
+      {overlay && <BookSheet book={overlay} onClose={() => setOverlay(null)} />}
     </main>
   );
 }

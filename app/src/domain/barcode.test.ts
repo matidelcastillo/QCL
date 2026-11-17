@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 import { prepareZXingModule, readBarcodes } from "zxing-wasm/reader";
-import { ISBN_READER_OPTIONS, isbnFromResults } from "./barcode";
+import { ISBN_READER_OPTIONS, barcodeFromResults, isbnFromResults } from "./barcode";
+import type { ReadResult } from "zxing-wasm/reader";
 
 const L = [
   "0001101",
@@ -83,5 +84,18 @@ describe("ISBN barcode reader", () => {
   });
   test("ignores EAN-13 codes that are not ISBNs", async () => {
     expect(await read(frame("7791234567898", 0))).toBeNull();
+  });
+});
+
+describe("barcodeFromResults", () => {
+  test("splits ISBN, non-ISBN and empty reads", () => {
+    const result = (text: string, isValid = true) => ({ isValid, text }) as ReadResult;
+    expect(barcodeFromResults([result("9788471893147")])).toEqual({
+      kind: "isbn",
+      isbn: "9788471893147",
+    });
+    expect(barcodeFromResults([result("7791234567898")])).toEqual({ kind: "invalid" });
+    expect(barcodeFromResults([result("9788471893147", false)])).toEqual({ kind: "none" });
+    expect(barcodeFromResults([])).toEqual({ kind: "none" });
   });
 });

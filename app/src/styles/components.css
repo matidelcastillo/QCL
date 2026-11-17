@@ -802,16 +802,6 @@ button:disabled {
   flex: 1;
   min-width: 0;
 }
-/* Search field + Scan: same row recipe as .scanner-manual. */
-.search-scan-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-.search-scan-row .qc-auth-email-input {
-  flex: 1;
-  min-width: 0;
-}
 /* Scanner body is a .stack: its gap already separates the dock. */
 .scanner-body .drawer-action-dock {
   margin-top: 0;

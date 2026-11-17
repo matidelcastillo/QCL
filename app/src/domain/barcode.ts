@@ -11,10 +11,20 @@ export const ISBN_READER_OPTIONS: ReaderOptions = {
   maxNumberOfSymbols: 4,
 };
 
-export function isbnFromResults(results: ReadResult[]): string | null {
+export type BarcodeRead = { kind: "isbn"; isbn: string } | { kind: "invalid" } | { kind: "none" };
+
+export function barcodeFromResults(results: ReadResult[]): BarcodeRead {
+  let invalid = false;
   for (const result of results) {
-    const isbn = result.isValid ? normalizeIsbn(result.text) : null;
-    if (isbn) return isbn;
+    if (!result.isValid) continue;
+    const isbn = normalizeIsbn(result.text);
+    if (isbn) return { kind: "isbn", isbn };
+    invalid = true;
   }
-  return null;
+  return invalid ? { kind: "invalid" } : { kind: "none" };
+}
+
+export function isbnFromResults(results: ReadResult[]): string | null {
+  const read = barcodeFromResults(results);
+  return read.kind === "isbn" ? read.isbn : null;
 }

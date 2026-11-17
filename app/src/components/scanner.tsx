@@ -1,11 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Flashlight, FlashlightOff, X, ZoomIn } from "lucide-react";
+import { Flashlight, FlashlightOff, ZoomIn } from "lucide-react";
 import { normalizeIsbn } from "../domain/isbn";
 import { guideCrop } from "../domain/scan-crop";
-import { preloadReader, readIsbn } from "./barcode-reader";
+import { preloadReader, readBarcode } from "./barcode-reader";
 import { buttonClass } from "./button";
-import { Sheet } from "./sheet";
 import { nativeIsbnScannerAvailable, scanIsbnNative, stopNativeScan } from "./native-isbn-scan";
+import {
+  CAMERA_DENIED_MESSAGE,
+  CAMERA_UNAVAILABLE_MESSAGE,
+  createWebScanSession,
+  NOT_ISBN_MESSAGE,
+  type WebScanSession,
+} from "./web-scan-session";
 
 type CameraCapabilities = MediaTrackCapabilities & {
   torch?: boolean;
@@ -16,18 +22,19 @@ type CameraCapabilities = MediaTrackCapabilities & {
 const SCAN_INTERVAL_MS = 120;
 
 export function Scanner({
-  onClose,
   onFound,
+  isbn = "",
+  onIsbnChange,
 }: {
-  onClose: () => void;
   onFound: (isbn: string) => void;
+  isbn?: string;
+  onIsbnChange?: (value: string) => void;
 }) {
   const video = useRef<HTMLVideoElement>(null);
   const guide = useRef<HTMLSpanElement>(null);
   const stream = useRef<MediaStream | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const accepted = useRef(false);
-  const [manual, setManual] = useState("");
+  const session = useRef<WebScanSession | null>(null);
+  const [draft, setDraft] = useState("");
   const [noCamera, setNoCamera] = useState(false);
   const [torch, setTorch] = useState(false);
   const [canTorch, setCanTorch] = useState(false);
@@ -36,155 +43,194 @@ export function Scanner({
   const [error, setError] = useState("");
   const [canRetry, setCanRetry] = useState(false);
   const [engine, setEngine] = useState<"pending" | "native" | "web" | "manual">("pending");
+  const [attempt, setAttempt] = useState(0);
+  const platform = useRef<"native" | "web" | null>(null);
   const onFoundRef = useRef(onFound);
   onFoundRef.current = onFound;
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-  const cancelledRef = useRef(false);
+  const manual = onIsbnChange ? isbn : draft;
 
-  const stop = useCallback(() => {
-    if (timer.current != null) clearTimeout(timer.current);
-    stream.current?.getTracks().forEach((track) => track.stop());
-    stream.current = null;
-  }, []);
-
-  const found = useCallback(
-    (raw: string) => {
-      const isbn = normalizeIsbn(raw);
-      if (!isbn || accepted.current) return;
-      accepted.current = true;
-      navigator.vibrate?.(50);
-      stop();
-      onFoundRef.current(isbn);
-    },
-    [stop],
-  );
-
-  const runNative = useCallback(async () => {
-    setError("");
-    setNoCamera(false);
-    setCanRetry(false);
-    setEngine("native");
-    const result = await scanIsbnNative();
-    if (cancelledRef.current) return;
-    if (result.status === "isbn") {
-      onFoundRef.current(result.isbn);
-      return;
-    }
-    if (result.status === "cancelled") {
-      onCloseRef.current();
-      return;
-    }
-    if (result.status === "invalid") {
-      setError("Ese código no es un ISBN.");
-      setCanRetry(true);
-      setEngine("manual");
-      return;
-    }
-    if (result.status === "denied") {
-      setError("Habilitá la cámara en Ajustes.");
-      setCanRetry(true);
-      setEngine("manual");
-      return;
-    }
-    setNoCamera(true);
-    setEngine("manual");
+  const accept = useCallback((code: string) => {
+    session.current?.stop();
+    navigator.vibrate?.(50);
+    onFoundRef.current(code);
   }, []);
 
   useEffect(() => {
-    cancelledRef.current = false;
-    void (async () => {
-      if (!(await nativeIsbnScannerAvailable())) {
-        if (!cancelledRef.current) setEngine("web");
+    let cancelled = false;
+    void nativeIsbnScannerAvailable().then((native) => {
+      if (cancelled) return;
+      const next = native ? "native" : "web";
+      platform.current = next;
+      setEngine(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (engine !== "native") return;
+    let cancelled = false;
+
+    async function run() {
+      setError("");
+      setNoCamera(false);
+      setCanRetry(false);
+      const result = await scanIsbnNative();
+      if (cancelled) return;
+      if (result.status === "isbn") {
+        accept(result.isbn);
         return;
       }
-      await runNative();
-    })();
+      setEngine("manual");
+      if (result.status === "cancelled") return;
+      setCanRetry(true);
+      if (result.status === "invalid") setError(NOT_ISBN_MESSAGE);
+      else if (result.status === "denied") setError(CAMERA_DENIED_MESSAGE);
+      else setNoCamera(true);
+    }
+
+    void run();
+    function onVisibility() {
+      if (document.hidden) void stopNativeScan();
+    }
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
-      cancelledRef.current = true;
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisibility);
       void stopNativeScan();
     };
-  }, [runNative]);
+  }, [engine, attempt, accept]);
 
   useEffect(() => {
     if (engine !== "web") return;
-    let alive = true;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    function clearTimer() {
+      if (timer != null) clearTimeout(timer);
+      timer = null;
+    }
+
+    const scan = createWebScanSession({
+      getUserMedia: (constraints) => navigator.mediaDevices.getUserMedia(constraints),
+      onStatus(status) {
+        if (cancelled) return;
+        if (status === "denied") {
+          setNoCamera(true);
+          setError(CAMERA_DENIED_MESSAGE);
+          setCanRetry(true);
+          return;
+        }
+        if (status === "unavailable") {
+          setNoCamera(true);
+          setError("");
+          setCanRetry(true);
+          return;
+        }
+        if (status === "running") {
+          setNoCamera(false);
+          setError("");
+          setCanRetry(false);
+          return;
+        }
+        if (status === "stopped") {
+          setCanTorch(false);
+          setCanZoom(false);
+          setTorch(false);
+        }
+      },
+      onStream(media) {
+        stream.current = media;
+        const element = video.current;
+        if (element) element.srcObject = media;
+        if (!media) {
+          clearTimer();
+          return;
+        }
+        const track = media.getVideoTracks()[0];
+        const caps = track?.getCapabilities?.() as CameraCapabilities | undefined;
+        if (caps?.focusMode?.includes("continuous"))
+          void track
+            .applyConstraints({
+              advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet],
+            })
+            .catch(() => undefined);
+        setCanTorch(Boolean(caps?.torch));
+        setCanZoom(Boolean(caps?.zoom));
+        void element?.play();
+      },
+      onFound(code) {
+        if (cancelled) return;
+        accept(code);
+      },
+      onInvalid() {
+        if (!cancelled) setError(NOT_ISBN_MESSAGE);
+      },
+    });
+    session.current = scan;
+    preloadReader();
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d", { willReadFrequently: true });
 
-    /* Decodes only the guide area, then schedules the next frame. */
-    async function scan(element: HTMLVideoElement) {
+    async function tick() {
+      const element = video.current;
       const box = guide.current;
-      if (!alive || accepted.current) return;
-      if (context && box && element.videoWidth > 0) {
+      if (element && box && context && element.videoWidth > 0) {
         const crop = guideCrop(
           { width: element.videoWidth, height: element.videoHeight },
           element.getBoundingClientRect(),
           box.getBoundingClientRect(),
         );
-        canvas.width = crop.width;
-        canvas.height = crop.height;
-        context.drawImage(
-          element,
-          crop.x,
-          crop.y,
-          crop.width,
-          crop.height,
-          0,
-          0,
-          crop.width,
-          crop.height,
-        );
-        const isbn = await readIsbn(context.getImageData(0, 0, crop.width, crop.height));
-        if (isbn) found(isbn);
+        if (crop.width > 0 && crop.height > 0) {
+          const generation = scan.generation();
+          canvas.width = crop.width;
+          canvas.height = crop.height;
+          context.drawImage(
+            element,
+            crop.x,
+            crop.y,
+            crop.width,
+            crop.height,
+            0,
+            0,
+            crop.width,
+            crop.height,
+          );
+          try {
+            const read = await readBarcode(context.getImageData(0, 0, crop.width, crop.height));
+            scan.ingest(read, generation);
+          } catch {
+            if (!cancelled) {
+              scan.stop();
+              setNoCamera(true);
+              setCanRetry(true);
+              return;
+            }
+          }
+        }
       }
-      if (alive && !accepted.current)
-        timer.current = setTimeout(() => void scan(element).catch(noReader), SCAN_INTERVAL_MS);
+      if (!cancelled) timer = setTimeout(() => void tick(), SCAN_INTERVAL_MS);
     }
 
-    /* No camera or no decoder: release the camera and fall back to typing. */
-    function noReader() {
-      stop();
-      if (alive) setNoCamera(true);
+    function onVisibility() {
+      scan.handleVisibility(document.hidden);
     }
 
-    async function start() {
-      preloadReader();
-      const media = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-        audio: false,
-      });
-      if (!alive) {
-        media.getTracks().forEach((track) => track.stop());
-        return;
-      }
-      stream.current = media;
-      const track = media.getVideoTracks()[0];
-      const caps = track.getCapabilities?.() as CameraCapabilities | undefined;
-      /* Continuous autofocus where the browser exposes it (Android); iOS focuses on its own. */
-      if (caps?.focusMode?.includes("continuous"))
-        await track
-          .applyConstraints({ advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet] })
-          .catch(() => undefined);
-      setCanTorch(Boolean(caps?.torch));
-      setCanZoom(Boolean(caps?.zoom));
-      const element = video.current;
-      if (!element) return;
-      element.srcObject = media;
-      await element.play();
-      await scan(element);
-    }
+    document.addEventListener("visibilitychange", onVisibility);
+    void scan.start().then(() => {
+      if (!cancelled) void tick();
+    });
 
-    start().catch(noReader);
     return () => {
-      alive = false;
-      stop();
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisibility);
+      clearTimer();
+      scan.stop();
+      session.current = null;
+      stream.current = null;
     };
-  }, [engine, found, stop]);
+  }, [engine, attempt, accept]);
 
   async function toggleTorch() {
     const track = stream.current?.getVideoTracks()[0];
@@ -210,61 +256,71 @@ export function Scanner({
     }
   }
 
+  function setManual(value: string) {
+    if (onIsbnChange) onIsbnChange(value);
+    else setDraft(value);
+    setError("");
+  }
+
+  function retry() {
+    const next = platform.current ?? "web";
+    setError("");
+    setNoCamera(false);
+    setCanRetry(false);
+    setEngine(next);
+    setAttempt((current) => current + 1);
+  }
+
   return (
-    <Sheet onClose={onClose} label="Escanear">
-      <div className="drawer-body drawer-body-enter stack scanner-body">
-        {engine === "web" && !noCamera && (
-          <div className="scanner-frame">
-            <video
-              ref={video}
-              className="scanner-video"
-              muted
-              playsInline
-              autoPlay
-              aria-label="Cámara"
-            />
-            <span ref={guide} className="scanner-guide" aria-hidden="true" />
-          </div>
-        )}
-        {noCamera && engine !== "pending" && engine !== "native" && (
-          <p className="scanner-note">Sin cámara. Escribí el ISBN.</p>
-        )}
-        <form
-          className="scanner-manual"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const isbn = normalizeIsbn(manual);
-            if (isbn) found(isbn);
-            else setError("ISBN inválido.");
-          }}
-        >
-          <input
-            className="qc-auth-email-input"
-            inputMode="numeric"
-            enterKeyHint="search"
-            placeholder="ISBN"
-            aria-label="ISBN"
-            autoComplete="off"
-            value={manual}
-            onChange={(event) => {
-              setManual(event.target.value);
-              setError("");
-            }}
+    <div className="stack scanner-body">
+      {engine === "web" && !noCamera && (
+        <div className="scanner-frame">
+          <video
+            ref={video}
+            className="scanner-video"
+            muted
+            playsInline
+            autoPlay
+            aria-label="Cámara"
           />
-          <button type="submit" className={buttonClass("primary")}>
-            Buscar
-          </button>
-        </form>
-        {canRetry && (
-          <button type="button" className="text-action" onClick={() => void runNative()}>
-            Escanear de nuevo
-          </button>
-        )}
-        {error && (
-          <p className="error-text" role="alert">
-            {error}
-          </p>
-        )}
+          <span ref={guide} className="scanner-guide" aria-hidden="true" />
+        </div>
+      )}
+      {noCamera && !error && <p className="scanner-note">{CAMERA_UNAVAILABLE_MESSAGE}</p>}
+      <form
+        className="scanner-manual"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const code = normalizeIsbn(manual);
+          if (code) accept(code);
+          else setError("ISBN inválido.");
+        }}
+      >
+        <input
+          className="qc-auth-email-input"
+          inputMode="numeric"
+          enterKeyHint="search"
+          placeholder="ISBN"
+          aria-label="ISBN"
+          autoComplete="off"
+          value={manual}
+          onChange={(event) => setManual(event.target.value)}
+        />
+        <button type="submit" className={buttonClass("primary")}>
+          Buscar
+        </button>
+      </form>
+      {canRetry && (
+        <button type="button" className="text-action" onClick={retry}>
+          Escanear de nuevo
+        </button>
+      )}
+      {error && (
+        <p className="error-text" role="alert">
+          {error}
+        </p>
+      )}
+      {(canTorch || canZoom) && (
         <div className="drawer-action-dock">
           {canTorch && (
             <button
@@ -291,11 +347,8 @@ export function Scanner({
               <ZoomIn className="drawer-action-icon" strokeWidth={2} aria-hidden="true" />
             </button>
           )}
-          <button type="button" className="drawer-action" aria-label="Cerrar" onClick={onClose}>
-            <X className="drawer-action-icon" strokeWidth={2} aria-hidden="true" />
-          </button>
         </div>
-      </div>
-    </Sheet>
+      )}
+    </div>
   );
 }
