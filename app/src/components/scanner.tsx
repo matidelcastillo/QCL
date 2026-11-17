@@ -158,7 +158,7 @@ export function Scanner({
             .catch(() => undefined);
         setCanTorch(Boolean(caps?.torch));
         setCanZoom(Boolean(caps?.zoom));
-        void element?.play();
+        void element?.play().catch(() => undefined);
       },
       onFound(code) {
         if (cancelled) return;
