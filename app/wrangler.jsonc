@@ -23,7 +23,8 @@
     {
       "name": "TAPA_LIMIT",
       "namespace_id": "1003",
-      "simple": { "limit": 30, "period": 60 },
+      // 120/min covers a whole library; cached hits do not spend the limit.
+      "simple": { "limit": 120, "period": 60 },
     },
   ],
   // Workers AI: genre classifier (src/server/genre-ai.ts).

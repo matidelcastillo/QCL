@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgregarRouteImport } from './routes/agregar'
+import { Route as ClaveRouteImport } from './routes/clave'
 import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as GiladaRouteImport } from './routes/gilada'
 import { Route as PrivacidadRouteImport } from './routes/privacidad'
@@ -25,6 +26,11 @@ const IndexRoute = IndexRouteImport.update({
 const AgregarRoute = AgregarRouteImport.update({
   id: '/agregar',
   path: '/agregar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClaveRoute = ClaveRouteImport.update({
+  id: '/clave',
+  path: '/clave',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EntrarRoute = EntrarRouteImport.update({
@@ -56,6 +62,7 @@ const VosRoute = VosRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agregar': typeof AgregarRoute
+  '/clave': typeof ClaveRoute
   '/entrar': typeof EntrarRoute
   '/gilada': typeof GiladaRoute
   '/privacidad': typeof PrivacidadRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agregar': typeof AgregarRoute
+  '/clave': typeof ClaveRoute
   '/entrar': typeof EntrarRoute
   '/gilada': typeof GiladaRoute
   '/privacidad': typeof PrivacidadRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agregar': typeof AgregarRoute
+  '/clave': typeof ClaveRoute
   '/entrar': typeof EntrarRoute
   '/gilada': typeof GiladaRoute
   '/privacidad': typeof PrivacidadRoute
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/agregar'
+    | '/clave'
     | '/entrar'
     | '/gilada'
     | '/privacidad'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/agregar'
+    | '/clave'
     | '/entrar'
     | '/gilada'
     | '/privacidad'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/agregar'
+    | '/clave'
     | '/entrar'
     | '/gilada'
     | '/privacidad'
@@ -114,6 +126,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgregarRoute: typeof AgregarRoute
+  ClaveRoute: typeof ClaveRoute
   EntrarRoute: typeof EntrarRoute
   GiladaRoute: typeof GiladaRoute
   PrivacidadRoute: typeof PrivacidadRoute
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/agregar'
       fullPath: '/agregar'
       preLoaderRoute: typeof AgregarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clave': {
+      id: '/clave'
+      path: '/clave'
+      fullPath: '/clave'
+      preLoaderRoute: typeof ClaveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/entrar': {
@@ -178,6 +198,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgregarRoute: AgregarRoute,
+  ClaveRoute: ClaveRoute,
   EntrarRoute: EntrarRoute,
   GiladaRoute: GiladaRoute,
   PrivacidadRoute: PrivacidadRoute,

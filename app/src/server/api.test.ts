@@ -38,9 +38,42 @@ test("cover endpoint rate limit returns 429 before fetching", async () => {
   expect(calls).toBe(0);
 });
 
+test("a cached cover is served without spending the rate limit", async () => {
+  const cached = new Response(new Uint8Array([1, 2, 3]), {
+    headers: { "content-type": "image/jpeg", "cache-control": "public, max-age=2592000" },
+  });
+  (globalThis as unknown as { caches: { default: Cache } }).caches = {
+    default: {
+      match: async () => cached.clone(),
+      put: async () => undefined,
+    } as unknown as Cache,
+  };
+  let limited = 0;
+  let fetched = 0;
+  globalThis.fetch = (async () => {
+    fetched += 1;
+    return new Response("", { status: 404 });
+  }) as unknown as typeof fetch;
+  const response = await apiResponse(new Request(`${base}/api/tapa?t=Rayuela`), {
+    TAPA_LIMIT: {
+      limit: async () => {
+        limited += 1;
+        return { success: false };
+      },
+    },
+  });
+  expect(response?.status).toBe(200);
+  expect(new Uint8Array(await response!.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3]));
+  expect(limited).toBe(0);
+  expect(fetched).toBe(0);
+});
+
 const realFetch = globalThis.fetch;
+const realCaches = (globalThis as { caches?: unknown }).caches;
 afterEach(() => {
   globalThis.fetch = realFetch;
+  if (realCaches === undefined) delete (globalThis as { caches?: unknown }).caches;
+  else (globalThis as { caches?: unknown }).caches = realCaches;
 });
 
 function mockProviders(openLibrary: number, google: number) {

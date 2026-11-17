@@ -49,6 +49,12 @@ const json = (body: unknown, status = 200, cache = "no-store") =>
 
 const clientKey = (request: Request) => request.headers.get("cf-connecting-ip") ?? "local";
 
+function workerCache() {
+  return typeof caches !== "undefined"
+    ? (caches as unknown as { default?: Cache }).default
+    : undefined;
+}
+
 /* POST /api/genero: classify one book being saved (called once per save). */
 async function genreResponse(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") return json({ error: "Método no permitido." }, 405);
@@ -87,10 +93,7 @@ export async function apiResponse(request: Request, env: Env = {}): Promise<Resp
     const query = isbn ?? text;
     if (!query) return respond(json({ results: [] }, 200, "public, max-age=3600"));
     if (query.length > 200) return respond(json({ error: "Búsqueda muy larga." }, 400));
-    const cache =
-      typeof caches !== "undefined"
-        ? (caches as unknown as { default?: Cache }).default
-        : undefined;
+    const cache = workerCache();
     /* Key on the normalized search only: extra params cannot skip the cache. */
     const cacheUrl = new URL("/api/libros", url.origin);
     cacheUrl.searchParams.set(isbn ? "isbn" : "q", query);
@@ -125,19 +128,33 @@ export async function apiResponse(request: Request, env: Env = {}): Promise<Resp
   const title = (url.searchParams.get("t") ?? "").trim().slice(0, 200);
   const author = (url.searchParams.get("a") ?? "").trim().slice(0, 200);
   if (!coverUrl && !isbn && !title) return respond(json({ error: "Tapa inválida." }, 400));
+  const cache = workerCache();
+  const cacheUrl = new URL("/api/tapa", url.origin);
+  if (coverUrl) cacheUrl.searchParams.set("u", coverUrl.toString());
+  if (isbn) cacheUrl.searchParams.set("isbn", isbn);
+  if (title) cacheUrl.searchParams.set("t", title);
+  if (author) cacheUrl.searchParams.set("a", author);
+  const cacheKey = new Request(cacheUrl.toString(), { method: "GET" });
+  const hit = await cache?.match(cacheKey);
+  if (hit) return respond(hit);
   const allowed = (await env.TAPA_LIMIT?.limit({ key: clientKey(request) }))?.success ?? true;
   if (!allowed) return respond(json({ error: "Muchos pedidos. Probá en un rato." }, 429));
   const image = await findCover({ url: coverUrl, isbn, title, author });
   /* A miss is cached for a day so a cover-less row does not re-run the chain. */
-  if (!image) return respond(json({ error: "Tapa no encontrada." }, 404, "public, max-age=86400"));
-  return respond(
-    new Response(image.bytes as BodyInit, {
-      headers: {
-        "content-type": image.type,
-        "cache-control": "public, max-age=2592000",
-        "x-content-type-options": "nosniff",
-        "x-qcl-cover-url": image.sourceUrl,
-      },
-    }),
-  );
+  const response = image
+    ? new Response(image.bytes as BodyInit, {
+        headers: {
+          "content-type": image.type,
+          "cache-control": "public, max-age=2592000",
+          "x-content-type-options": "nosniff",
+          "x-qcl-cover-url": image.sourceUrl,
+        },
+      })
+    : json({ error: "Tapa no encontrada." }, 404, "public, max-age=86400");
+  try {
+    await cache?.put(cacheKey, response.clone());
+  } catch {
+    /* Cache is best effort. */
+  }
+  return respond(response);
 }

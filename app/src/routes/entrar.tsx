@@ -1,21 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { browserSupabase } from "../data/supabase";
+import { requestPasswordReset } from "../data/auth-actions";
+import { authErrorMessage, NEEDS_CONFIRMATION } from "../data/auth-errors";
 import { BrandHeader } from "../components/brand-header";
 import { buttonClass } from "../components/button";
 
 export const Route = createFileRoute("/entrar")({ component: Enter });
-
-const NEEDS_CONFIRMATION = "signup_requires_confirmation";
-
-function errorMessage(message: string) {
-  if (message === NEEDS_CONFIRMATION) return "Revisá tu mail.";
-  if (/already registered|already exists|user already/i.test(message))
-    return "Ese email ya tiene cuenta.";
-  if (/invalid login|invalid credentials|password/i.test(message))
-    return "Email o contraseña incorrectos.";
-  return "Revisá la conexión.";
-}
 
 function Enter() {
   const navigate = useNavigate();
@@ -24,11 +15,13 @@ function Enter() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       const client = browserSupabase();
       const result =
@@ -39,7 +32,24 @@ function Enter() {
       if (!result.data.session) throw new Error(NEEDS_CONFIRMATION);
       await navigate({ to: "/" });
     } catch (cause) {
-      setError(errorMessage(cause instanceof Error ? cause.message : ""));
+      setError(authErrorMessage(cause, mode));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function resetPassword() {
+    if (!email.trim()) {
+      setError("Escribí tu email.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      await requestPasswordReset(email);
+      setNotice("Revisá tu mail.");
+    } catch (cause) {
+      setError(authErrorMessage(cause, "reset"));
     } finally {
       setBusy(false);
     }
@@ -64,6 +74,7 @@ function Enter() {
                 onClick={() => {
                   setMode(value);
                   setError("");
+                  setNotice("");
                 }}
               >
                 {label}
@@ -110,10 +121,25 @@ function Enter() {
                 {error}
               </p>
             )}
+            {notice && (
+              <p className="qc-feedback-text" role="status">
+                {notice}
+              </p>
+            )}
             <button type="submit" className={buttonClass("primary", true)} disabled={busy}>
               {mode === "entrar" ? "Entrar" : "Crear cuenta"}
             </button>
           </form>
+          {mode === "entrar" && (
+            <button
+              type="button"
+              className="text-action"
+              disabled={busy}
+              onClick={() => void resetPassword()}
+            >
+              ¿Olvidaste la contraseña?
+            </button>
+          )}
           <Link to="/privacidad" className="text-action">
             Privacidad
           </Link>
