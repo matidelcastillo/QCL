@@ -8,9 +8,15 @@ type Entry = {
 let entry: Promise<Entry> | undefined;
 
 async function handle(request: Request, env: Env, context: unknown) {
-  /* Nitro calls this entry with the request only, so worker bindings
-     (secrets) come from cloudflare:workers, not from the fetch arguments. */
-  const api = await apiResponse(request, bindings as Env);
+  /* Nitro often calls this entry with the request only. Bindings then come
+     from cloudflare:workers, plus __env__ (set by Nitro's Cloudflare handler)
+     which includes the rate limiters that module env does not expose. */
+  const runtime = {
+    ...(bindings as Env),
+    ...((globalThis as { __env__?: Env }).__env__ ?? {}),
+    ...(env ?? {}),
+  };
+  const api = await apiResponse(request, runtime);
   if (api) return api;
   entry ??= import("@tanstack/react-start/server-entry").then(
     (module) => (module.default ?? module) as Entry,
