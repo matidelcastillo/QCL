@@ -1,6 +1,6 @@
 import { normalizeIsbn } from "../domain/isbn";
 import { CatalogUnavailable, searchCatalog } from "./catalog";
-import { allowedCoverUrl } from "./cover";
+import { allowedCoverUrl, readBody } from "./cover";
 import { findCover } from "./cover-search";
 import { type Ai, classifyGenre, genreInput } from "./genre-ai";
 
@@ -49,6 +49,29 @@ const json = (body: unknown, status = 200, cache = "no-store") =>
 
 const clientKey = (request: Request) => request.headers.get("cf-connecting-ip") ?? "local";
 
+/* Small JSON: title, author and a handful of subject strings. */
+export const GENRE_MAX_BYTES = 8_192;
+
+function contentLengthTooLarge(request: Request, maxBytes: number) {
+  const raw = request.headers.get("content-length");
+  if (raw === null) return false;
+  const length = Number(raw);
+  return Number.isFinite(length) && length > maxBytes;
+}
+
+/* Missing bindings fail closed with 503 so a misconfigured deploy cannot
+   run the providers or the classifier without a limit. */
+async function allow(
+  limiter: RateLimit | undefined,
+  request: Request,
+  limitedMessage: string,
+): Promise<Response | null> {
+  if (!limiter) return json({ error: "Servicio no disponible." }, 503);
+  const { success } = await limiter.limit({ key: clientKey(request) });
+  if (!success) return json({ error: limitedMessage }, 429);
+  return null;
+}
+
 function workerCache() {
   return typeof caches !== "undefined"
     ? (caches as unknown as { default?: Cache }).default
@@ -58,10 +81,20 @@ function workerCache() {
 /* POST /api/genero: classify one book being saved (called once per save). */
 async function genreResponse(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") return json({ error: "Método no permitido." }, 405);
-  const input = genreInput(await request.json().catch(() => null));
+  if (contentLengthTooLarge(request, GENRE_MAX_BYTES))
+    return json({ error: "Pedido demasiado grande." }, 413);
+  const limited = await allow(env.GENRE_LIMIT, request, "Muchos pedidos. Probá en un rato.");
+  if (limited) return limited;
+  const bytes = await readBody(request, GENRE_MAX_BYTES);
+  if (!bytes) return json({ error: "Pedido demasiado grande." }, 413);
+  let parsed: unknown = null;
+  try {
+    parsed = JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    parsed = null;
+  }
+  const input = genreInput(parsed);
   if (!input) return json({ error: "Libro inválido." }, 400);
-  const allowed = (await env.GENRE_LIMIT?.limit({ key: clientKey(request) }))?.success ?? true;
-  if (!allowed) return json({ error: "Muchos pedidos. Probá en un rato." }, 429);
   if (!env.AI) return json({ error: "Clasificador no disponible." }, 503);
   try {
     return json({ genre: await classifyGenre(env.AI, input) });
@@ -102,8 +135,8 @@ export async function apiResponse(request: Request, env: Env = {}): Promise<Resp
     const hit = await cache?.match(key);
     if (hit) return respond(hit);
     /* Only cache misses reach the providers, so only they spend the limit. */
-    const allowed = (await env.CATALOG_LIMIT?.limit({ key: clientKey(request) }))?.success ?? true;
-    if (!allowed) return respond(json({ error: "Muchas búsquedas. Probá en un rato." }, 429));
+    const limited = await allow(env.CATALOG_LIMIT, request, "Muchas búsquedas. Probá en un rato.");
+    if (limited) return respond(limited);
     let results;
     try {
       results = await searchCatalog(query, isbn, env.GOOGLE_BOOKS_API_KEY);
@@ -137,8 +170,8 @@ export async function apiResponse(request: Request, env: Env = {}): Promise<Resp
   const cacheKey = new Request(cacheUrl.toString(), { method: "GET" });
   const hit = await cache?.match(cacheKey);
   if (hit) return respond(hit);
-  const allowed = (await env.TAPA_LIMIT?.limit({ key: clientKey(request) }))?.success ?? true;
-  if (!allowed) return respond(json({ error: "Muchos pedidos. Probá en un rato." }, 429));
+  const limited = await allow(env.TAPA_LIMIT, request, "Muchos pedidos. Probá en un rato.");
+  if (limited) return respond(limited);
   const image = await findCover({ url: coverUrl, isbn, title, author });
   /* A miss is cached for a day so a cover-less row does not re-run the chain. */
   const response = image

@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { apiResponse, withCors } from "./api";
 
 const base = "https://qcl.example";
+const allow = { limit: async () => ({ success: true }) };
 
 test("catalog rejects invalid requests before calling upstreams", async () => {
   expect((await apiResponse(new Request(`${base}/api/libros`, { method: "POST" })))?.status).toBe(
@@ -101,23 +102,32 @@ test("both providers failing is an uncached 503, not an empty result", async () 
     [503, 500],
   ]) {
     mockProviders(ol, g);
-    const response = await apiResponse(new Request(`${base}/api/libros?q=rayuela`));
+    const response = await apiResponse(new Request(`${base}/api/libros?q=rayuela`), {
+      CATALOG_LIMIT: allow,
+    });
     expect(response?.status).toBe(503);
     expect(response?.headers.get("cache-control")).toBe("no-store");
   }
   globalThis.fetch = (async () => {
     throw new TypeError("network");
   }) as unknown as typeof fetch;
-  expect((await apiResponse(new Request(`${base}/api/libros?q=rayuela`)))?.status).toBe(503);
+  expect(
+    (await apiResponse(new Request(`${base}/api/libros?q=rayuela`), { CATALOG_LIMIT: allow }))
+      ?.status,
+  ).toBe(503);
 });
 
 test("one provider answering still returns results", async () => {
   mockProviders(429, 200);
-  const google = await apiResponse(new Request(`${base}/api/libros?q=rayuela`));
+  const google = await apiResponse(new Request(`${base}/api/libros?q=rayuela`), {
+    CATALOG_LIMIT: allow,
+  });
   expect(google?.status).toBe(200);
   expect(((await google?.json()) as { results: unknown[] }).results.length).toBeGreaterThan(0);
   mockProviders(200, 503);
-  const openLibrary = await apiResponse(new Request(`${base}/api/libros?q=rayuela`));
+  const openLibrary = await apiResponse(new Request(`${base}/api/libros?q=rayuela`), {
+    CATALOG_LIMIT: allow,
+  });
   expect(openLibrary?.status).toBe(200);
   expect(((await openLibrary?.json()) as { results: unknown[] }).results.length).toBeGreaterThan(0);
 });
@@ -131,8 +141,9 @@ test("Google Books gets the key only when the secret is set", async () => {
   }) as typeof fetch;
   await apiResponse(new Request(`${base}/api/libros?q=mafalda`), {
     GOOGLE_BOOKS_API_KEY: "test-key",
+    CATALOG_LIMIT: allow,
   });
-  await apiResponse(new Request(`${base}/api/libros?q=mafalda`));
+  await apiResponse(new Request(`${base}/api/libros?q=mafalda`), { CATALOG_LIMIT: allow });
   expect(new URL(googleUrls[0]).searchParams.get("key")).toBe("test-key");
   expect(new URL(googleUrls[1]).searchParams.has("key")).toBe(false);
 });
@@ -144,7 +155,7 @@ test("an ISBN typed in q uses the ISBN lookup with country", async () => {
     if (url.startsWith("https://www.googleapis.com/")) googleUrls.push(url);
     return new Response("", { status: 404 });
   }) as typeof fetch;
-  await apiResponse(new Request(`${base}/api/libros?q=84-7189-314-2`));
+  await apiResponse(new Request(`${base}/api/libros?q=84-7189-314-2`), { CATALOG_LIMIT: allow });
   const params = new URL(googleUrls[0]).searchParams;
   expect(params.get("q")).toBe("isbn:9788471893147");
   expect(params.get("country")).toBe("AR");
@@ -164,19 +175,85 @@ test("cache key ignores extra params and rate limit stops provider calls", async
 });
 
 test("genre route: POST only, needs a title, answers with a label from the list", async () => {
-  const post = (body: unknown, env = {}) =>
+  const post = (body: unknown, env: Record<string, unknown> = {}) =>
     apiResponse(
       new Request(`${base}/api/genero`, { method: "POST", body: JSON.stringify(body) }),
       env,
     );
   expect((await apiResponse(new Request(`${base}/api/genero`)))?.status).toBe(405);
-  expect((await post({ author: "x" }))?.status).toBe(400);
-  expect((await post({ title: "Rayuela" }))?.status).toBe(503);
+  expect((await post({ author: "x" }, { GENRE_LIMIT: allow }))?.status).toBe(400);
+  expect((await post({ title: "Rayuela" }, { GENRE_LIMIT: allow }))?.status).toBe(503);
   const ai = { run: async () => ({ response: "Novela" }) };
-  const response = await post({ title: "Rayuela", author: "Julio Cortázar" }, { AI: ai });
+  const response = await post(
+    { title: "Rayuela", author: "Julio Cortázar" },
+    { AI: ai, GENRE_LIMIT: allow },
+  );
   expect(await response?.json()).toEqual({ genre: "Novela" });
   const limited = { AI: ai, GENRE_LIMIT: { limit: async () => ({ success: false }) } };
   expect((await post({ title: "Rayuela" }, limited))?.status).toBe(429);
+});
+
+test("rate limiters fail closed when the binding is missing", async () => {
+  let fetched = 0;
+  globalThis.fetch = (async () => {
+    fetched += 1;
+    return new Response("", { status: 404 });
+  }) as unknown as typeof fetch;
+  expect((await apiResponse(new Request(`${base}/api/libros?q=rayuela`)))?.status).toBe(503);
+  expect((await apiResponse(new Request(`${base}/api/tapa?t=Rayuela`)))?.status).toBe(503);
+  const genre = await apiResponse(
+    new Request(`${base}/api/genero`, {
+      method: "POST",
+      body: JSON.stringify({ title: "Rayuela" }),
+    }),
+  );
+  expect(genre?.status).toBe(503);
+  expect(fetched).toBe(0);
+});
+
+test("genre route rejects an oversized body before reading it", async () => {
+  let limited = 0;
+  const env = {
+    GENRE_LIMIT: {
+      limit: async () => {
+        limited += 1;
+        return { success: true };
+      },
+    },
+    AI: { run: async () => ({ response: "Novela" }) },
+  };
+  const tooLong = new Request(`${base}/api/genero`, {
+    method: "POST",
+    headers: { "content-length": "8193" },
+    body: "{}",
+  });
+  expect((await apiResponse(tooLong, env))?.status).toBe(413);
+  expect(limited).toBe(0);
+  const oversized = JSON.stringify({ title: "x".repeat(8193) });
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(oversized));
+      controller.close();
+    },
+  });
+  const actual = await apiResponse(
+    new Request(`${base}/api/genero`, {
+      method: "POST",
+      body: stream,
+      duplex: "half",
+    } as RequestInit),
+    env,
+  );
+  expect(actual?.status).toBe(413);
+  expect(limited).toBe(1);
+});
+
+test("wrangler.jsonc declares the bindings the worker uses", async () => {
+  const raw = await Bun.file(new URL("../../wrangler.jsonc", import.meta.url)).text();
+  const parsed = JSON.parse(raw.replace(/\/\/.*$/gm, "").replace(/,(\s*[}\]])/g, "$1"));
+  const names = new Set((parsed.ratelimits ?? []).map((entry: { name: string }) => entry.name));
+  expect(names).toEqual(new Set(["CATALOG_LIMIT", "GENRE_LIMIT", "TAPA_LIMIT"]));
+  expect(parsed.ai?.binding).toBe("AI");
 });
 
 test("CORS is only set for capacitor://localhost on API routes", async () => {
