@@ -10,4 +10,12 @@ For expiry, wait until at least `exp + 35s` for a real JWT and verify that the a
 
 Never paste fixture credentials into issues, screenshots, logs, or commits. The `e1-review/` REST and SQL gates are separate. This local screen does not implement the v4 product.
 
-Validation on this host: TypeScript/Vite build, local HTTP 200 and automated A/B, logout/reload, delayed A response after logout, delayed A response after B login passed. Genuine JWT expiry and C `deletion_pending` remain unverified.
+## Validation (aligned with e1-review/REVIEW.md)
+
+On 2026-11-09 the package was executed against QCL `mdytuysdombxyydqnsmj` (migration `e1_isolation_review` / `20261109181812`):
+
+- REST isolation, C `deletion_pending` and expiry (JWT at 120 s, then restored to 3600) passed.
+- Browser gate: A/B, logout/reload, late-response discard and C pending passed. The gate port and the Ingresar button after a failed login were fixed in `c59b192`.
+- The same day's cleanup deleted only the A/B/C fixture rows and users, dropped `public.accounts` and `public.e1_private_records` (and their policies), and removed that migration from history. QCL was left with no tables in `public` and no Auth users. QC was not touched.
+
+This README is the browser-gate how-to; the sequenced operator steps and audit notes live in `e1-review/REVIEW.md`.
