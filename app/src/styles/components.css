@@ -740,6 +740,7 @@ button:disabled {
   flex: 1;
   align-items: center;
   justify-content: center;
+  padding-bottom: calc(var(--qcl-auth-optical-lift) * 2);
 }
 .auth-panel {
   width: 100%;

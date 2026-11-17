@@ -112,6 +112,12 @@
   /* QC styles.css l. 304-327: page and drawer geometry. */
   --safe-top: env(safe-area-inset-top);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* Optical lift for Entrar: raises the flex-centered auth panel slightly
+     above geometric center so the block reads as balanced, not dropped
+     toward the bottom. Applied as padding-bottom:
+     calc(var(--qcl-auth-optical-lift) * 2) on .auth-screen, because flex
+     centering splits the extra padding into a visual shift of half. */
+  --qcl-auth-optical-lift: 30px;
   --bottom-nav-h: 3.75rem;
   --page-pb-nav: calc(var(--bottom-nav-h) + 40px + var(--safe-bottom));
   --drawer-max-h: 88dvh;
