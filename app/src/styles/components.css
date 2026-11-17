@@ -252,15 +252,20 @@ button:disabled {
   background: linear-gradient(135deg, var(--gray-light), var(--bg));
 }
 
-/* Image reveal: QC styles.css l. 2161-2180. */
+/* Image reveal: fade + slight scale; cached covers mount already .is-loaded. */
 .qc-card-image,
 .drawer-media-fade {
   opacity: 0;
-  transition: opacity var(--qcl-image-fade) var(--ease-fade);
+  transform: scale(var(--qcl-cover-from-scale));
+  transform-origin: center center;
+  transition:
+    opacity var(--qcl-image-fade) var(--ease-cover),
+    transform var(--qcl-cover-scale-dur) var(--ease-cover);
 }
 .qc-card-image.is-loaded,
 .drawer-media-fade.is-loaded {
   opacity: 1;
+  transform: scale(1);
 }
 
 /* Skeleton: QC routes/index.tsx l. 391-397 (shimmerStyle). */
@@ -589,7 +594,7 @@ button:disabled {
   background-color: var(--bg);
   outline: none;
   transform: translateX(-50%) translateY(100%);
-  transition: transform var(--dur-drawer) var(--ease-press);
+  transition: transform var(--dur-sheet) var(--ease-sheet);
   will-change: transform;
 }
 .drawer-surface.is-visible {
@@ -935,6 +940,11 @@ button:disabled {
   .shimmer {
     background-image: none;
     background-color: var(--gray-light);
+  }
+  .qc-card-image,
+  .drawer-media-fade {
+    opacity: 1;
+    transform: none;
   }
 }
 @media (prefers-reduced-transparency: reduce) {

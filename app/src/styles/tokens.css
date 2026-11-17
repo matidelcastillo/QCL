@@ -166,6 +166,13 @@
   --dur-glow: 2.5s;
   --press-card-scale: 0.985;
   --press-button-scale: 0.96;
+  /* Cover reveal: fade on --qcl-image-fade, slight scale up to 1. */
+  --qcl-cover-from-scale: 0.96;
+  --qcl-cover-scale-dur: 0.48s;
+  --ease-cover: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Book sheet spring, same curve as iOS UISheetPresentationController. */
+  --dur-sheet: 0.52s;
+  --ease-sheet: var(--ease-press);
   /* QC styles.css l. 2161-2200: image reveal and drawer body entrance. */
   --qcl-image-fade: 0.32s;
   --qcl-body-enter: 0.28s;

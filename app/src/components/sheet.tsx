@@ -20,8 +20,9 @@ function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-/* QC routes/index.tsx l. 2690-2760: backdrop + .drawer-surface sliding with
-   --dur-drawer / --ease-press, handle on top, drag down or Escape to close. */
+/* QC routes/index.tsx l. 2690-2760: backdrop + .drawer-surface, now with
+   --dur-sheet / --ease-sheet spring (and a matching close). Handle on top,
+   drag down or Escape to close. */
 export function Sheet({
   children,
   onClose,

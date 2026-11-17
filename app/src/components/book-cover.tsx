@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { coverImageClass, type CoverSize } from "./cover-reveal";
 import { coverParams } from "../domain/cover-url";
 import { apiUrl } from "../data/api-base";
-
-type CoverSize = "row" | "large" | "tile";
 
 const RETRY_MS = [2000, 8000, 30000, 60000];
 const loaded = new Map<string, Blob>();
@@ -31,6 +30,7 @@ export function BookCover({
   const host = useRef<HTMLSpanElement>(null);
   const [src, setSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [instant, setInstant] = useState(false);
   const params = coverParams(url, isbn);
   const key = params.toString();
   const request = key ? apiUrl(`/api/tapa?${params}`) : "";
@@ -39,9 +39,11 @@ export function BookCover({
     if (!key) {
       setSrc(null);
       setLoading(false);
+      setInstant(false);
       return;
     }
-    if (!loaded.has(key)) setLoading(true);
+    const wasCached = loaded.has(key);
+    if (!wasCached) setLoading(true);
     const node = host.current;
     if (!node) return;
     let alive = true;
@@ -54,6 +56,7 @@ export function BookCover({
       loaded.set(key, blob);
       if (!alive) return;
       setLoading(false);
+      setInstant(wasCached);
       if (objectUrl) URL.revokeObjectURL(objectUrl);
       objectUrl = URL.createObjectURL(blob);
       setSrc(objectUrl);
@@ -135,7 +138,7 @@ export function BookCover({
     >
       {src && (
         <img
-          className={`cover-image ${size === "large" ? "drawer-media-fade" : "qc-card-image"}`}
+          className={coverImageClass(size, instant)}
           src={src}
           alt=""
           decoding="async"
