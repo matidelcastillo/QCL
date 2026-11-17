@@ -1,7 +1,7 @@
 {
-  "name": "qué carajo lees",
+  "name": "qué carajo lee",
   "short_name": "QCL",
-  "description": "qué carajo lees",
+  "description": "qué carajo lee",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f0eb",

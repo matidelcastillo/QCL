@@ -13,6 +13,7 @@ e1-review.tgz
 /.env
 /.env.*
 .env-review
+.env-demo
 !.env.example
 !.env.mobile.example
 

@@ -127,7 +127,7 @@ function openLibraryBooks(data: unknown): CatalogBook[] {
         isbn,
         coverUrl: openLibraryCover(doc, isbn),
         page_count: positiveInt(doc.number_of_pages_median),
-        published_year: year(doc.first_publish_year),
+        published_year: year(doc.first_publish_year, doc.publish_date),
         subjects: labels(doc.subject),
         categories: [],
         synopsis: null,
@@ -142,7 +142,7 @@ async function openLibrary(query: string, isbn: string | null): Promise<SourceRe
   const params = new URLSearchParams({
     limit: "20",
     fields:
-      "key,title,author_name,first_publish_year,isbn,cover_i,cover_edition_key,number_of_pages_median,subject",
+      "key,title,author_name,first_publish_year,publish_date,isbn,cover_i,cover_edition_key,number_of_pages_median,subject",
   });
   params.set(isbn ? "isbn" : "q", query);
   const search = await getJson(`https://openlibrary.org/search.json?${params}`);
@@ -265,6 +265,7 @@ export function mergeBooks(query: string, groups: CatalogBook[][]): CatalogBookW
         subjects: previous.subjects.length ? previous.subjects : book.subjects,
         categories: previous.categories.length ? previous.categories : book.categories,
         synopsis: preferred.synopsis ?? previous.synopsis ?? book.synopsis,
+        published_year: year(previous.published_year, book.published_year),
       };
       if (covers.coverFallback) merged.coverFallback = covers.coverFallback;
       else delete merged.coverFallback;

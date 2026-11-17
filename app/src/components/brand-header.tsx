@@ -4,7 +4,7 @@ export function BrandHeader({ heading = false }: { heading?: boolean }) {
   return (
     <header className="app-brand-header">
       <Title className="app-brand-title">
-        <span className="app-brand-accent">qué carajo</span> lees
+        <span className="app-brand-accent">qué carajo</span> lee
       </Title>
     </header>
   );
