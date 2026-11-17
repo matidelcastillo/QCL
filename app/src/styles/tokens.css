@@ -29,7 +29,8 @@
   /* QC routes/index.tsx l. 131-135 (LIGHT_C). */
   --qcl-orange: #e8624a;
   --qcl-meta-gray: #888888;
-  --qcl-separator-muted: #c0bcb6;
+  /* Idle filters and genre titles: same AA contrast as --gray-text on --bg. */
+  --qcl-separator-muted: var(--gray-text);
   /* QC routes/index.tsx l. ~2697: drawer backdrop. */
   --qcl-backdrop: rgba(0, 0, 0, 0.5);
   /* QC routes/index.tsx l. 391-397: shimmerStyle. */
