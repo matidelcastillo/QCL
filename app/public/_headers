@@ -3,6 +3,8 @@
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
   Content-Security-Policy: default-src 'none'; script-src 'wasm-unsafe-eval'; img-src 'self'; style-src 'self'; font-src 'self'; manifest-src 'self'; frame-ancestors 'none'
 
 /manifest.webmanifest

@@ -14,6 +14,8 @@ describe("security", () => {
     expect(res.headers.get("x-frame-options")).toBe("DENY");
     expect(res.headers.get("strict-transport-security")).toContain("max-age=");
     expect(res.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
+    expect(res.headers.get("cross-origin-opener-policy")).toBe("same-origin");
+    expect(res.headers.get("cross-origin-resource-policy")).toBe("same-origin");
     expect(res.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
   });
   test("HTML revalidates, other responses keep their caching", () => {

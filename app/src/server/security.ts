@@ -18,6 +18,10 @@ export const STATIC_HEADERS: Record<string, string> = {
   "X-Frame-Options": "DENY",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(self), microphone=(), geolocation=()",
+  "Cross-Origin-Opener-Policy": "same-origin",
+  /* Covers are fetched (CORS) and shown as blob: URLs, including from the
+     iOS shell, so same-origin CORP does not block them. */
+  "Cross-Origin-Resource-Policy": "same-origin",
 };
 
 export function contentSecurityPolicy(nonce: string) {

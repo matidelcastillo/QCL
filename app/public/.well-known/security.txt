@@ -1,0 +1,5 @@
+Contact: mailto:ciao@pepperhotstudio.com
+Expires: 2027-11-17T03:00:00.000Z
+Preferred-Languages: es
+Canonical: https://qcl.matidelcastillo.workers.dev/.well-known/security.txt
+Policy: https://qcl.matidelcastillo.workers.dev/privacidad
