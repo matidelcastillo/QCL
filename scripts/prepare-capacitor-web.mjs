@@ -37,8 +37,8 @@ const hashes = inlineScripts.map(
 const csp = [
   "default-src 'self'",
   ["script-src 'self' 'wasm-unsafe-eval'", ...hashes].join(" "),
-  "style-src 'self' https://fonts.googleapis.com",
-  "font-src https://fonts.gstatic.com",
+  "style-src 'self'",
+  "font-src 'self'",
   "img-src 'self' data: blob: https://qcl.matidelcastillo.workers.dev",
   "connect-src 'self' https://qcl.matidelcastillo.workers.dev https://mdytuysdombxyydqnsmj.supabase.co",
   "media-src 'self' blob:",

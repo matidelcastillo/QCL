@@ -3,6 +3,14 @@
  * QC/src/styles.css unless another file is cited. Same names, same values.
  * --qcl-* aliases name QC literals that QC only writes inline (TSX/CSS).
  */
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("/fonts/plus-jakarta-sans-latin-wght-normal.woff2") format("woff2");
+}
+
 :root {
   /* QC styles.css l. 36-40, 180-218: color. */
   --bg: #f5f0eb;

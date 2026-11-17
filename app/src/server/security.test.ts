@@ -31,6 +31,10 @@ describe("security", () => {
     expect(csp).toContain("connect-src 'self' https://mdytuysdombxyydqnsmj.supabase.co");
     expect(csp).toContain("script-src 'self' 'nonce-abc' 'wasm-unsafe-eval'");
     expect(csp).toContain("img-src 'self' data: blob:");
+    expect(csp).toContain("font-src 'self'");
+    expect(csp).toContain("style-src 'self'");
+    expect(csp).not.toContain("fonts.googleapis.com");
+    expect(csp).not.toContain("fonts.gstatic.com");
     expect(csp).not.toContain("'unsafe-inline'");
     expect(csp).not.toContain("'unsafe-eval'");
   });

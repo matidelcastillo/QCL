@@ -24,8 +24,8 @@ export function contentSecurityPolicy(nonce: string) {
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval'`,
-    "style-src 'self' https://fonts.googleapis.com",
-    "font-src https://fonts.gstatic.com",
+    "style-src 'self'",
+    "font-src 'self'",
     "img-src 'self' data: blob:",
     `connect-src 'self' ${SUPABASE_ORIGIN}`,
     "media-src 'self' blob:",
