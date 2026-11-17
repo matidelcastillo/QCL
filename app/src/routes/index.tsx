@@ -18,7 +18,7 @@ type View = "list" | "grid";
 const filters: Array<[Filter, string]> = [
   ["todos", "Todos."],
   ["lei", "Leí."],
-  ["quiero", "Quiero leer."],
+  ["quiero", "Quiero."],
 ];
 
 export const Route = createFileRoute("/")({
