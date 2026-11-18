@@ -1075,7 +1075,7 @@ button:disabled {
 .progress {
   display: flex;
   gap: var(--space-1);
-  margin: var(--space-4) var(--qcl-page-px) var(--space-5);
+  margin: var(--space-3) var(--qcl-page-px) var(--space-4);
 }
 .progress-seg {
   flex: 1;
@@ -1112,7 +1112,9 @@ button:disabled {
   align-items: center;
   justify-content: center;
   width: 100%;
-  margin: var(--space-4) 0 0;
+  margin: var(--space-2) 0 0;
+  padding-inline: var(--qcl-page-px);
+  box-sizing: border-box;
 }
 .leo-anchor-grid {
   padding-bottom: 0;

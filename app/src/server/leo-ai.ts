@@ -133,7 +133,11 @@ export function sanitizeLine(
   flags: { inGilada?: boolean; inQuiero?: boolean; anchor?: LeoAnchor | null },
 ): string {
   const fallback = valueLine(book, flags);
-  const line = (raw ?? "").trim().replace(/\s+/g, " ").slice(0, LINE_MAX);
+  const line = (raw ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/\b(\d{2,4})\s*p(?:ágs?|ags?|ages?)?\.?(?=\s|$)/gi, "$1 pág.")
+    .slice(0, LINE_MAX);
   if (!line || BANNED.test(line)) return fallback;
   const numbers = line.match(/\d{2,4}/g) ?? [];
   const allowed = new Set(
@@ -230,10 +234,11 @@ export function buildCandidates(
     }
   }
 
-  return [...byId.values()]
+  const ranked = [...byId.values()]
     .map((book) => ({ ...book, score: scoreBook(book, answers) }))
-    .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, "es"))
-    .slice(0, CANDIDATE_CAP);
+    .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, "es"));
+  const preferred = ranked.filter((book) => isSpanish(book.language) !== false);
+  return (preferred.length >= LEO_PICKS ? preferred : ranked).slice(0, CANDIDATE_CAP);
 }
 
 export function fillPicks(
@@ -290,7 +295,7 @@ export function leoPrompt(answers: LeoAnswers, candidates: LeoCandidate[]): stri
       const flags = [
         book.inQuiero ? "quiero" : "",
         book.inGilada ? "gilada" : "",
-        book.page_count ? `${book.page_count}p` : "",
+        book.page_count ? `${book.page_count} pág.` : "",
       ]
         .filter(Boolean)
         .join(", ");

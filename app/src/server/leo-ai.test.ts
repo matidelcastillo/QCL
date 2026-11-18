@@ -102,6 +102,20 @@ describe("buildCandidates", () => {
     expect(candidates[0]?.inQuiero).toBe(true);
     expect(candidates.find((book) => book.title === "De la gilada")?.inGilada).toBe(true);
   });
+
+  test("drops known non-Spanish books when there are enough Spanish candidates", () => {
+    const catalogBooks = Array.from({ length: 8 }, (_, index) =>
+      catalog(`ES ${index}`, {
+        language: "es",
+        isbn: `978000000000${index}`,
+        externalId: `/works/es${index}`,
+      }),
+    );
+    catalogBooks.push(catalog("English only", { language: "en", isbn: "9780999999999", externalId: "/works/en" }));
+    const built = buildCandidates(answers, catalogBooks, [], []);
+    expect(built).toHaveLength(8);
+    expect(built.some((book) => book.title === "English only")).toBe(false);
+  });
 });
 
 describe("value lines and sanitizing", () => {
@@ -118,6 +132,7 @@ describe("value lines and sanitizing", () => {
     expect(sanitizeLine("450 pág.", book, flags)).toBe("200 pág. Como Rayuela (746 pág.).");
     expect(sanitizeLine("Perfecto para vos", book, flags)).toBe("200 pág. Como Rayuela (746 pág.).");
     expect(sanitizeLine("200 pág.", book, flags)).toBe("200 pág.");
+    expect(sanitizeLine("200p", book, flags)).toBe("200 pág.");
   });
 });
 
