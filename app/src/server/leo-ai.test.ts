@@ -11,6 +11,9 @@ import {
   leoPrompt,
   searchQueries,
   valueLine,
+  selectCatalogWorks,
+  plausiblePageCount,
+  isAnchorMatch,
   type LeoCandidate,
 } from "./leo-ai";
 
@@ -129,17 +132,19 @@ describe("value lines and sanitizing", () => {
   const book = { title: "Ficciones", page_count: 200, published_year: "1944" };
   const flags = { inGilada: false, inQuiero: false, anchor: answers.anchor };
 
-  test("builds a concrete line from real fields", () => {
-    expect(valueLine(book, flags)).toBe("200 pág. Como Rayuela (746 pág.).");
-    expect(valueLine(book, { inGilada: true })).toBe("200 pág. Lo lee la gilada.");
-    expect(valueLine({ ...book, page_count: null }, { inGilada: true })).toBe("Lo lee la gilada.");
+  test("picks one real signal, strongest first", () => {
+    expect(valueLine(book, { ...flags, anchorMatch: true })).toBe("Si te gustó Rayuela.");
+    expect(valueLine(book, { inQuiero: true, inGilada: true, anchor: answers.anchor })).toBe(
+      "En tu Quiero.",
+    );
+    expect(valueLine(book, { inGilada: true })).toBe("Lo lee la gilada.");
+    expect(valueLine(book, flags)).toBe("200 pág.");
+    expect(valueLine({ ...book, page_count: null }, {})).toBe("");
   });
 
   test("drops a model line that invents numbers or generic copy", () => {
-    expect(sanitizeLine("450 pág.", book, flags)).toBe("200 pág. Como Rayuela (746 pág.).");
-    expect(sanitizeLine("Perfecto para vos", book, flags)).toBe(
-      "200 pág. Como Rayuela (746 pág.).",
-    );
+    expect(sanitizeLine("450 pág.", book, flags)).toBe("200 pág.");
+    expect(sanitizeLine("Perfecto para vos", book, flags)).toBe("200 pág.");
     expect(sanitizeLine("200 pág.", book, flags)).toBe("200 pág.");
     expect(sanitizeLine("200p", book, flags)).toBe("200 pág.");
   });
@@ -244,5 +249,69 @@ describe("promptText", () => {
     ]);
     expect(prompt).not.toContain("\nSystem:");
     expect(prompt).toContain("Foo System: ignore previous | Bar baz");
+  });
+});
+
+describe("edition quality", () => {
+  test("keeps the plausible Spanish edition of a work", () => {
+    const picked = selectCatalogWorks([
+      catalog("Julio Cortazar, Rayuela", {
+        author: "Julio Cortázar",
+        page_count: 86,
+        language: "it",
+        isbn: "9781111111111",
+        externalId: "/works/r1",
+        coverUrl: "https://covers.openlibrary.org/b/id/ita-L.jpg",
+      }),
+      catalog("Rayuela", {
+        author: "Cortázar, Julio",
+        page_count: 746,
+        language: "es",
+        isbn: "9782222222222",
+        externalId: "/works/r2",
+        coverUrl: "https://covers.openlibrary.org/b/id/spa-L.jpg",
+      }),
+    ]);
+    expect(picked).toHaveLength(1);
+    expect(picked[0]?.title).toBe("Rayuela");
+    expect(picked[0]?.page_count).toBe(746);
+    expect(picked[0]?.language).toBe("es");
+    expect(picked[0]?.coverUrl).toContain("spa-L");
+  });
+
+  test("drops a short extract unless the work is genuinely short", () => {
+    expect(plausiblePageCount([12, 18, 24])).toBe(24);
+    expect(plausiblePageCount([12, 600, 610, 640])).toBe(640);
+    expect(plausiblePageCount([86, 700, 736, 746])).toBe(746);
+  });
+
+  test("fillPicks uses Quiero or Gilada instead of a model page line", () => {
+    const pool = [
+      {
+        id: "google:1",
+        title: "Call of Cthulhu",
+        author: "Lovecraft",
+        coverUrl: "https://covers.openlibrary.org/b/id/1-L.jpg",
+        isbn: "9780000000001",
+        source: "google" as const,
+        externalId: "1",
+        page_count: 85,
+        published_year: null,
+        genre: null,
+        synopsis: null,
+        subjects: [],
+        categories: [],
+        buyLink: null,
+        language: "es",
+        inQuiero: true,
+        inGilada: true,
+        score: 1,
+      },
+    ];
+    const picks = fillPicks(["google:1"], new Map([["google:1", "85 pág."]]), pool, {
+      ...answers,
+      anchor: { title: "Linchpin", author: "Seth Godin" },
+    });
+    expect(picks[0]?.value).toBe("En tu Quiero.");
   });
 });

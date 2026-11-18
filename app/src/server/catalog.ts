@@ -114,6 +114,19 @@ function googleBooks(data: unknown): CatalogBook[] {
   });
 }
 
+function openLibraryLanguage(language: unknown): string | null {
+  const codes = Array.isArray(language)
+    ? language.filter((code): code is string => typeof code === "string")
+    : typeof language === "string"
+      ? [language]
+      : [];
+  const spanish = codes.find((code) => {
+    const value = code.toLowerCase();
+    return value === "spa" || value === "es" || value === "es-419" || value.startsWith("es-");
+  });
+  return spanish ?? codes[0] ?? null;
+}
+
 function openLibraryCover(doc: OpenDoc, isbn: string | null): string | null {
   if (typeof doc.cover_i === "number" && Number.isInteger(doc.cover_i) && doc.cover_i > 0)
     return `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg?default=false`;
@@ -143,9 +156,7 @@ function openLibraryBooks(data: unknown): CatalogBook[] {
         synopsis: null,
         source: "openlibrary" as const,
         externalId: String(doc.key ?? doc.title),
-        language: Array.isArray(doc.language)
-          ? String(doc.language.find((code: unknown) => typeof code === "string") ?? "") || null
-          : null,
+        language: openLibraryLanguage(doc.language),
       },
     ];
   });
@@ -388,8 +399,69 @@ export function withCover(books: CatalogBookWithFallback[]): CatalogBook[] {
   return books.filter((book) => Boolean(book.coverUrl)).map(withoutFallback);
 }
 
+/* Same ISBN is the same edition. Different ISBNs of one work stay
+   separate so a later pass can keep the plausible Spanish copy. */
+function spanishRank(language: string | null | undefined): number {
+  if (!language) return 1;
+  const value = language.toLowerCase();
+  return value === "spa" || value === "es" || value === "es-419" || value.startsWith("es-") ? 0 : 2;
+}
+
+export function mergeSameEditions(groups: CatalogBook[][]): CatalogBookWithFallback[] {
+  const byIsbn = new Map<string, CatalogBookWithFallback>();
+  const withoutIsbn: CatalogBookWithFallback[] = [];
+  const mergePair = (
+    current: CatalogBookWithFallback,
+    incoming: CatalogBook,
+  ): CatalogBookWithFallback => {
+    const preferIncoming = spanishRank(incoming.language) < spanishRank(current.language);
+    const preferred = preferIncoming ? incoming : current;
+    const other = preferIncoming ? current : incoming;
+    const pages =
+      preferred.page_count &&
+      other.page_count &&
+      preferred.page_count < 40 &&
+      other.page_count >= 40
+        ? other.page_count
+        : (preferred.page_count ?? other.page_count);
+    return {
+      ...other,
+      ...preferred,
+      page_count: pages,
+      coverUrl: preferred.coverUrl ?? other.coverUrl,
+      isbn: preferred.isbn ?? other.isbn,
+      subjects: preferred.subjects.length ? preferred.subjects : other.subjects,
+      categories: preferred.categories.length ? preferred.categories : other.categories,
+      synopsis: preferred.synopsis ?? other.synopsis,
+      buyLink: preferred.buyLink ?? other.buyLink,
+    };
+  };
+  for (const book of groups.flat()) {
+    if (!book.isbn) {
+      withoutIsbn.push(book);
+      continue;
+    }
+    const previous = byIsbn.get(book.isbn);
+    byIsbn.set(book.isbn, previous ? mergePair(previous, book) : book);
+  }
+  return [...byIsbn.values(), ...withoutIsbn];
+}
+
 /* Recommendation search: same merge and cover-URL filter, no cover
    verification hops, so a few queries stay inside the subrequest cap. */
+export async function searchCatalogEditions(
+  query: string,
+  googleKey?: string,
+  langRestrict?: string,
+): Promise<CatalogBook[]> {
+  const results = await Promise.all([
+    openLibrary(query, null),
+    google(query, null, googleKey, langRestrict),
+  ]);
+  if (results.every((result) => !result.ok)) throw new CatalogUnavailable();
+  return withCover(mergeSameEditions(results.map((result) => result.books)));
+}
+
 export async function searchCatalogQuick(
   query: string,
   googleKey?: string,

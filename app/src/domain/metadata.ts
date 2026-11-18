@@ -69,3 +69,116 @@ export function identity(value: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+export function isSpanish(language: string | null | undefined): boolean | null {
+  if (!language) return null;
+  const code = language.trim().toLowerCase();
+  if (!code) return null;
+  if (
+    code === "es" ||
+    code === "spa" ||
+    code === "es-419" ||
+    code.startsWith("es-") ||
+    code === "español"
+  )
+    return true;
+  return false;
+}
+
+/* "Cortázar, Julio" and "Julio Cortázar" must hash to the same work. */
+export function authorKey(author: string): string {
+  return identity(author).split(" ").filter(Boolean).sort().join(" ");
+}
+
+function authorVariants(author: string): string[] {
+  const cleaned = cleanText(author);
+  if (!cleaned) return [];
+  const variants = [cleaned];
+  const comma = cleaned
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (comma.length === 2 && !comma[0].includes(" ")) {
+    variants.push(`${comma[1]} ${comma[0]}`);
+    variants.push(comma[0]);
+  } else {
+    const words = cleaned.split(" ");
+    if (words.length >= 2) {
+      variants.push(words[words.length - 1]);
+      variants.push(`${words[words.length - 1]}, ${words.slice(0, -1).join(" ")}`);
+    }
+  }
+  const seen = new Set<string>();
+  return variants
+    .filter((variant) => {
+      const key = identity(variant);
+      if (!key || key.length < 3 || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => identity(b).length - identity(a).length);
+}
+
+function titleWords(title: string): string[] {
+  return title
+    .trim()
+    .split(/[\s,.:;/+|\\/\-–—]+/u)
+    .filter(Boolean);
+}
+
+const LINK_WORDS = new Set(["by", "de", "del", "por", "von", "van"]);
+
+function hasPunctuationBoundary(title: string, side: "prefix" | "suffix"): boolean {
+  const pattern =
+    side === "prefix" ? /^[^,.:;/\-–—]+[,.:;/\-–—]\s+\S/ : /\S\s*[,.:;/\-–—]\s*[^,.:;/\-–—]+$/;
+  return pattern.test(title.trim());
+}
+
+function stripAuthorSegment(
+  title: string,
+  variant: string,
+  side: "prefix" | "suffix",
+): string | null {
+  const words = titleWords(title);
+  const target = identity(variant);
+  if (!target || words.length < 2) return null;
+  const singleWord = !target.includes(" ");
+  if (singleWord && !hasPunctuationBoundary(title, side)) return null;
+  if (side === "prefix") {
+    for (let count = 1; count < words.length; count++) {
+      if (identity(words.slice(0, count).join(" ")) !== target) continue;
+      const rest = words
+        .slice(count)
+        .filter((word, index) => !(index === 0 && LINK_WORDS.has(identity(word))));
+      return rest.length ? rest.join(" ") : null;
+    }
+    return null;
+  }
+  for (let count = 1; count < words.length; count++) {
+    const chunk = words.slice(words.length - count);
+    const name = LINK_WORDS.has(identity(chunk[0] ?? "")) ? chunk.slice(1) : chunk;
+    if (!name.length || identity(name.join(" ")) !== target) continue;
+    const rest = words.slice(0, words.length - count);
+    return rest.length ? rest.join(" ") : null;
+  }
+  return null;
+}
+
+/* Catalog titles often repeat the author ("Julio Cortazar, Rayuela").
+   The card should show the work name only. */
+export function workTitle(title: string, author?: string | null): string {
+  let result = cleanText(title);
+  result = result
+    .replace(/\s*\(([^)]{1,20})\)\s*$/u, (all, inner: string) => (/\d/.test(inner) ? all : ""))
+    .trim();
+  if (!author?.trim()) return result;
+  for (const variant of authorVariants(author)) {
+    result = stripAuthorSegment(result, variant, "prefix") ?? result;
+    result = stripAuthorSegment(result, variant, "suffix") ?? result;
+  }
+  return result || cleanText(title);
+}
+
+export function workKey(book: { title: string; author: string }): string {
+  return `${identity(workTitle(book.title, book.author))}|${authorKey(book.author)}`;
+}

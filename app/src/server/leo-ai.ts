@@ -1,7 +1,7 @@
-import { identity } from "../domain/metadata";
+import { authorKey, identity, isSpanish, workKey, workTitle } from "../domain/metadata";
 import type { LeoAnchor, LeoAnswers } from "../domain/leo";
 import type { Book, CatalogBook, SharedBook } from "../domain/types";
-import { CatalogUnavailable, searchCatalogQuick } from "./catalog";
+import { CatalogUnavailable, searchCatalogEditions } from "./catalog";
 import type { Ai } from "./genre-ai";
 
 export const LEO_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
@@ -67,27 +67,16 @@ export function searchQueries(answers: LeoAnswers): string[] {
   const queries: string[] = [];
   if (parts.length) queries.push(parts.join(" "));
   if (answers.anchor?.title) {
-    const seed = [answers.anchor.title, answers.anchor.author].filter(Boolean).join(" ");
+    const seed = [workTitle(answers.anchor.title, answers.anchor.author), answers.anchor.author]
+      .filter(Boolean)
+      .join(" ");
     if (seed) queries.push(seed);
   }
   if (!queries.length) queries.push("novela");
   return queries.slice(0, 3);
 }
 
-export function isSpanish(language: string | null | undefined): boolean | null {
-  if (!language) return null;
-  const code = language.trim().toLowerCase();
-  if (!code) return null;
-  if (
-    code === "es" ||
-    code === "spa" ||
-    code === "es-419" ||
-    code.startsWith("es-") ||
-    code === "español"
-  )
-    return true;
-  return false;
-}
+export { isSpanish };
 
 export function candidateId(book: {
   source?: string | null;
@@ -108,27 +97,42 @@ function sameBook(
   b: { title: string; author: string; isbn?: string | null },
 ) {
   if (a.isbn && b.isbn && a.isbn === b.isbn) return true;
-  return identity(a.title) === identity(b.title) && identity(a.author) === identity(b.author);
+  return workKey(a) === workKey(b);
 }
 
+export function isAnchorMatch(
+  book: { title: string; author: string },
+  anchor?: LeoAnchor | null,
+): boolean {
+  if (!anchor?.author || !book.author) return false;
+  return authorKey(book.author) === authorKey(anchor.author);
+}
+
+/* One concrete signal, strongest first: a real Leí anchor match, then
+   Quiero, Gilada, then pages. Never invent a relationship. */
 export function valueLine(
-  book: { title: string; page_count: number | null; published_year: string | null },
-  flags: { inGilada?: boolean; inQuiero?: boolean; anchor?: LeoAnchor | null },
+  book: {
+    title: string;
+    page_count: number | null;
+    published_year: string | null;
+    author?: string;
+  },
+  flags: {
+    inGilada?: boolean;
+    inQuiero?: boolean;
+    anchor?: LeoAnchor | null;
+    anchorMatch?: boolean;
+  },
 ): string {
-  const pages = book.page_count ? `${book.page_count} pág.` : "";
-  const anchor = flags.anchor?.title
-    ? flags.anchor.page_count
-      ? `Como ${flags.anchor.title} (${flags.anchor.page_count} pág.).`
-      : `Como ${flags.anchor.title}.`
-    : "";
-  if (pages && flags.inGilada) return `${pages} Lo lee la gilada.`;
-  if (pages && anchor) return `${pages} ${anchor}`;
-  if (pages) return pages;
-  if (anchor) return anchor;
-  if (flags.inGilada) return "Lo lee la gilada.";
+  const anchor = flags.anchor;
+  if (flags.anchorMatch && anchor?.title) {
+    const name = workTitle(anchor.title, anchor.author);
+    return name ? `Si te gustó ${name}.` : "";
+  }
   if (flags.inQuiero) return "En tu Quiero.";
-  if (book.published_year) return book.published_year;
-  return pages;
+  if (flags.inGilada) return "Lo lee la gilada.";
+  if (book.page_count) return `${book.page_count} pág.`;
+  return "";
 }
 
 const BANNED = /https?:|@|qcl|usuario|recomiendo|perfecto para|te (va a|puede) gustar/i;
@@ -178,7 +182,7 @@ export function toCandidate(
   if (!cover || !id) return null;
   return {
     id,
-    title: book.title,
+    title: workTitle(book.title, book.author),
     author: book.author,
     coverUrl: cover,
     isbn: book.isbn,
@@ -196,6 +200,123 @@ export function toCandidate(
     inGilada: Boolean(flags.inGilada),
     score: 0,
   };
+}
+
+const MIN_PAGES = 40;
+
+export function plausiblePageCount(counts: Array<number | null | undefined>): number | null {
+  const values = counts.filter(
+    (value): value is number => Number.isInteger(value) && (value as number) > 0,
+  );
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)] ?? null;
+  if (median == null) return null;
+  const shortWork = median < MIN_PAGES;
+  const plausible = values.filter((value) => {
+    if (!shortWork && value < MIN_PAGES) return false;
+    if (median >= MIN_PAGES && (value < median * 0.4 || value > median * 2.5)) return false;
+    return true;
+  });
+  const pool = plausible.length
+    ? plausible
+    : shortWork
+      ? values
+      : values.filter((value) => value >= MIN_PAGES);
+  if (!pool.length) return null;
+  const frequency = new Map<number, number>();
+  for (const value of pool) frequency.set(value, (frequency.get(value) ?? 0) + 1);
+  let best = pool[0]!;
+  let bestCount = 0;
+  for (const [value, count] of frequency) {
+    if (count > bestCount || (count === bestCount && value > best)) {
+      best = value;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
+function editionQuality(
+  book: { language?: string | null; page_count: number | null; coverUrl?: string | null },
+  pages: number | null,
+): number {
+  let score = 0;
+  if (isSpanish(book.language) === true) score += 8;
+  else if (isSpanish(book.language) === false) score -= 8;
+  if (pages && book.page_count === pages) score += 4;
+  else if (book.page_count && book.page_count >= MIN_PAGES) score += 1;
+  if (book.coverUrl) score += 1;
+  return score;
+}
+
+export function selectCatalogWorks(books: CatalogBook[]): CatalogBook[] {
+  const groups = new Map<string, CatalogBook[]>();
+  for (const book of books) {
+    const key = workKey(book);
+    const list = groups.get(key) ?? [];
+    list.push(book);
+    groups.set(key, list);
+  }
+  const selected: CatalogBook[] = [];
+  for (const editions of groups.values()) {
+    const pages = plausiblePageCount(editions.map((book) => book.page_count));
+    const usable =
+      pages == null
+        ? editions
+        : editions.filter(
+            (book) =>
+              book.page_count == null ||
+              book.page_count === pages ||
+              Math.abs((book.page_count ?? 0) - pages) <= Math.max(20, pages * 0.15),
+          );
+    const pool = usable.length ? usable : editions;
+    const pick = [...pool].sort((a, b) => editionQuality(b, pages) - editionQuality(a, pages))[0];
+    if (!pick) continue;
+    if (
+      pages &&
+      (pick.page_count == null || Math.abs(pick.page_count - pages) > Math.max(20, pages * 0.15))
+    ) {
+      selected.push({ ...pick, title: workTitle(pick.title, pick.author), page_count: pages });
+    } else {
+      selected.push({
+        ...pick,
+        title: workTitle(pick.title, pick.author),
+        page_count: pick.page_count ?? pages,
+      });
+    }
+  }
+  return selected;
+}
+
+function selectWorkCandidates(books: LeoCandidate[]): LeoCandidate[] {
+  const groups = new Map<string, LeoCandidate[]>();
+  for (const book of books) {
+    const key = workKey(book);
+    const list = groups.get(key) ?? [];
+    list.push(book);
+    groups.set(key, list);
+  }
+  const selected: LeoCandidate[] = [];
+  for (const editions of groups.values()) {
+    const pages = plausiblePageCount(editions.map((book) => book.page_count));
+    const pick = [...editions].sort(
+      (a, b) => editionQuality(b, pages) - editionQuality(a, pages) || b.score - a.score,
+    )[0];
+    if (!pick) continue;
+    selected.push({
+      ...pick,
+      title: workTitle(pick.title, pick.author),
+      page_count:
+        pick.page_count && pages && Math.abs(pick.page_count - pages) <= Math.max(20, pages * 0.15)
+          ? pick.page_count
+          : (pages ?? pick.page_count),
+      inQuiero: editions.some((book) => book.inQuiero),
+      inGilada: editions.some((book) => book.inGilada),
+      score: Math.max(...editions.map((book) => book.score)),
+    });
+  }
+  return selected;
 }
 
 export function buildCandidates(
@@ -240,9 +361,9 @@ export function buildCandidates(
     }
   }
 
-  const ranked = [...byId.values()]
-    .map((book) => ({ ...book, score: scoreBook(book, answers) }))
-    .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, "es"));
+  const ranked = selectWorkCandidates(
+    [...byId.values()].map((book) => ({ ...book, score: scoreBook(book, answers) })),
+  ).sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, "es"));
   const preferred = ranked.filter((book) => isSpanish(book.language) !== false);
   return (preferred.length >= LEO_PICKS ? preferred : ranked).slice(0, CANDIDATE_CAP);
 }
@@ -268,10 +389,11 @@ export function fillPicks(
     const { score: _score, language: _language, ...rest } = book;
     return {
       ...rest,
-      value: sanitizeLine(lines.get(book.id), book, {
+      value: valueLine(book, {
         inGilada: book.inGilada,
         inQuiero: book.inQuiero,
         anchor: answers.anchor,
+        anchorMatch: isAnchorMatch(book, answers.anchor),
       }),
     };
   });
@@ -319,7 +441,7 @@ export function leoPrompt(answers: LeoAnswers, candidates: LeoCandidate[]): stri
     })
     .join("\n");
   const anchor = answers.anchor
-    ? `${promptText(answers.anchor.title)}${answers.anchor.page_count ? ` (${answers.anchor.page_count} pág.)` : ""}`
+    ? `${promptText(workTitle(answers.anchor.title, answers.anchor.author))}${answers.anchor.page_count ? ` (${answers.anchor.page_count} pág.)` : ""}`
     : "ninguno";
   return [
     "Elegí exactamente 6 ids de la lista, en orden, para recomendar qué leer.",
@@ -402,7 +524,7 @@ export async function collectCatalog(
   const groups = await Promise.all(
     queries.map(async (query) => {
       try {
-        return await searchCatalogQuick(query, googleKey, "es");
+        return await searchCatalogEditions(query, googleKey, "es");
       } catch (error) {
         if (error instanceof CatalogUnavailable) {
           failed += 1;
@@ -421,5 +543,5 @@ export async function collectCatalog(
     seen.add(id);
     merged.push(book);
   }
-  return merged;
+  return selectCatalogWorks(merged);
 }
