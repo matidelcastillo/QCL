@@ -1,5 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { authorKey, firstAuthors, plainText, sameWork, workKey, workTitle, year } from "./metadata";
+import {
+  authorKey,
+  displayTitle,
+  firstAuthors,
+  plainText,
+  sameWork,
+  workKey,
+  workTitle,
+  year,
+} from "./metadata";
 
 describe("catalog metadata", () => {
   test("uses two authors only when exactly two exist", () => {
@@ -74,5 +83,25 @@ describe("work titles", () => {
 
   test("authorKey treats inverted names as the same person", () => {
     expect(authorKey("Julio Cortázar")).toBe(authorKey("Cortázar, Julio"));
+  });
+});
+
+describe("displayTitle", () => {
+  test("title-cases English words that arrived in lowercase", () => {
+    expect(displayTitle("The colour out of space")).toBe("The Colour Out of Space");
+    expect(displayTitle("a tale of two cities")).toBe("A Tale of Two Cities");
+  });
+
+  test("leaves already-cased English and Spanish sentence case alone", () => {
+    expect(displayTitle("The Colour Out of Space")).toBe("The Colour Out of Space");
+    expect(displayTitle("At the Mountains of Madness")).toBe("At the Mountains of Madness");
+    expect(displayTitle("Blood Meridian")).toBe("Blood Meridian");
+    expect(displayTitle("El quinto jinete")).toBe("El quinto jinete");
+    expect(displayTitle("El existencialismo es un humanismo")).toBe(
+      "El existencialismo es un humanismo",
+    );
+    expect(displayTitle("El Existencialismo Es Un Humanismo")).toBe(
+      "El Existencialismo Es Un Humanismo",
+    );
   });
 });

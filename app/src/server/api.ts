@@ -8,8 +8,8 @@ import {
   collectCatalog,
   buildCandidates,
   pickWithModel,
+  presentLeo,
   refineWithSpanishEditions,
-  type LeoPick,
 } from "./leo-ai";
 import type { Book, SharedBook } from "../domain/types";
 
@@ -199,8 +199,8 @@ async function leoResponse(request: Request, env: Env): Promise<Response> {
       buildCandidates(answers, catalog, library, gilada),
       env.GOOGLE_BOOKS_API_KEY,
     );
-    const picks: LeoPick[] = await pickWithModel(env.AI, answers, candidates);
-    return json({ results: picks });
+    const picks = await pickWithModel(env.AI, answers, candidates);
+    return json(presentLeo(picks, answers));
   } catch (error) {
     return error instanceof CatalogUnavailable
       ? json({ error: "Catálogo no disponible." }, 503)

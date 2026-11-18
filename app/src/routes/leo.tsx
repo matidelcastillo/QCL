@@ -66,6 +66,7 @@ function Leo() {
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft>({ anchor: null });
   const [results, setResults] = useState<LeoResult[] | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
   const [selected, setSelected] = useState<LeoResult | null>(null);
@@ -91,8 +92,11 @@ function Leo() {
     setPending(true);
     setError(false);
     setResults(null);
+    setNote(null);
     try {
-      setResults(await requestLeo(answers));
+      const payload = await requestLeo(answers);
+      setResults(payload.results);
+      setNote(payload.note);
     } catch {
       setError(true);
     } finally {
@@ -143,24 +147,27 @@ function Leo() {
           </EmptyState>
         </section>
       ) : onResults ? (
-        <section className="leo-grid" aria-live="polite">
-          {(results ?? []).map((book) => (
-            <button
-              type="button"
-              className="leo-card qc-press-card"
-              key={book.id}
-              onClick={() => setSelected(book)}
-            >
-              <span className="leo-card-cover">
-                <BookCover url={book.coverUrl} isbn={book.isbn} size="tile" />
-              </span>
-              <span className="leo-card-copy">
-                <span className="leo-card-title">{book.title}</span>
-                <span className="leo-card-value">{book.value}</span>
-              </span>
-            </button>
-          ))}
-        </section>
+        <>
+          {note && <p className="leo-note">{note}</p>}
+          <section className="leo-grid" aria-live="polite">
+            {(results ?? []).map((book) => (
+              <button
+                type="button"
+                className="leo-card qc-press-card"
+                key={book.id}
+                onClick={() => setSelected(book)}
+              >
+                <span className="leo-card-cover">
+                  <BookCover url={book.coverUrl} isbn={book.isbn} size="tile" />
+                </span>
+                <span className="leo-card-copy">
+                  <span className="leo-card-title">{book.title}</span>
+                  <span className="leo-card-value">{book.value}</span>
+                </span>
+              </button>
+            ))}
+          </section>
+        </>
       ) : current.key === "anchor" ? (
         <div className="question-body">
           {read.length > 0 && (

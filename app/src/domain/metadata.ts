@@ -257,3 +257,106 @@ export function sameWork(
   const authorB = splitAuthorTitle(b.title)?.author || b.author;
   return authorsMatch(authorA, authorB);
 }
+
+const ENGLISH_SMALL = new Set([
+  "a",
+  "an",
+  "the",
+  "and",
+  "or",
+  "but",
+  "for",
+  "nor",
+  "of",
+  "to",
+  "in",
+  "on",
+  "at",
+  "by",
+]);
+
+const SPANISH_MARKERS = new Set([
+  "el",
+  "la",
+  "los",
+  "las",
+  "un",
+  "una",
+  "unos",
+  "unas",
+  "lo",
+  "al",
+  "del",
+  "de",
+  "y",
+  "e",
+  "o",
+  "u",
+  "que",
+  "en",
+  "por",
+  "con",
+  "para",
+  "es",
+  "su",
+  "sus",
+]);
+
+function lettersOf(word: string): string {
+  return word.replace(/[^\p{L}]/gu, "");
+}
+
+function isLowerWord(word: string): boolean {
+  const letters = lettersOf(word);
+  if (letters.length < 2) return false;
+  return letters === letters.toLocaleLowerCase("es") && letters !== letters.toLocaleUpperCase("es");
+}
+
+export function looksSpanishTitle(title: string): boolean {
+  if (/[áéíóúñüÁÉÍÓÚÑÜ]/.test(title)) return true;
+  const tokens = title
+    .trim()
+    .split(/\s+/)
+    .map((word) => fold(lettersOf(word)))
+    .filter(Boolean);
+  return tokens.some((token) => SPANISH_MARKERS.has(token));
+}
+
+function hasLowerContentWords(title: string): boolean {
+  const parts = title.trim().split(/\s+/).filter(Boolean);
+  return parts.slice(1).some((word) => {
+    const letters = lettersOf(word);
+    if (letters.length < 2) return false;
+    if (ENGLISH_SMALL.has(fold(letters))) return false;
+    return isLowerWord(word);
+  });
+}
+
+function titleCaseWord(word: string, first: boolean): string {
+  return word
+    .split("-")
+    .map((part, index) => {
+      const letters = lettersOf(part);
+      if (!letters) return part;
+      const key = fold(letters);
+      if (!first && index === 0 && ENGLISH_SMALL.has(key)) return part.toLocaleLowerCase("en-US");
+      const cap =
+        letters.charAt(0).toLocaleUpperCase("en-US") + letters.slice(1).toLocaleLowerCase("en-US");
+      const start = part.search(/\p{L}/u);
+      if (start < 0) return part;
+      return part.slice(0, start) + cap + part.slice(start + letters.length);
+    })
+    .join("-");
+}
+
+/* Fix English titles that arrived with mid-words in lowercase.
+   Leave Spanish sentence case alone. */
+export function displayTitle(title: string): string {
+  const cleaned = cleanText(title);
+  if (!cleaned || looksSpanishTitle(cleaned) || !hasLowerContentWords(cleaned)) return cleaned;
+  return cleaned
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word, index) => titleCaseWord(word, index === 0))
+    .join(" ");
+}

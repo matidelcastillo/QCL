@@ -11,6 +11,8 @@ import {
   leoPrompt,
   searchQueries,
   valueLine,
+  presentLeo,
+  GILADA_NOTE,
   selectCatalogWorks,
   plausiblePageCount,
   isAnchorMatch,
@@ -163,7 +165,8 @@ describe("value lines and sanitizing", () => {
     );
     expect(valueLine(book, { inGilada: true })).toBe("Lo lee la gilada.");
     expect(valueLine(book, flags)).toBe("200 pág.");
-    expect(valueLine({ ...book, page_count: null }, {})).toBe("");
+    expect(valueLine({ ...book, page_count: null }, {})).toBe("1944");
+    expect(valueLine({ ...book, page_count: null, published_year: null }, {})).toBe("");
   });
 
   test("drops a model line that invents numbers or generic copy", () => {
@@ -337,5 +340,77 @@ describe("edition quality", () => {
       anchor: { title: "Linchpin", author: "Seth Godin" },
     });
     expect(picks[0]?.value).toBe("En tu Quiero.");
+  });
+});
+
+describe("presentLeo", () => {
+  test("lifts a repeated Gilada line and differentiates with pages", () => {
+    const pool = ["a", "b", "c", "d", "e", "f"].map((id, index) => ({
+      id,
+      title: id === "d" ? "The colour out of space" : id.toUpperCase(),
+      author: "Autor",
+      coverUrl: "https://covers.openlibrary.org/b/id/1-L.jpg",
+      isbn: `978000000000${index}`,
+      source: "openlibrary" as const,
+      externalId: id,
+      page_count: 50 + index * 10,
+      published_year: "2010",
+      genre: null,
+      synopsis: null,
+      subjects: [],
+      categories: [],
+      buyLink: null,
+      value: "Lo lee la gilada.",
+      inQuiero: false,
+      inGilada: true,
+    }));
+    const presented = presentLeo(pool, { ...answers, anchor: null });
+    expect(presented.note).toBe(GILADA_NOTE);
+    expect(presented.results.map((book) => book.value)).toEqual([
+      "50 pág.",
+      "60 pág.",
+      "70 pág.",
+      "80 pág.",
+      "90 pág.",
+      "100 pág.",
+    ]);
+    expect(presented.results[3]?.title).toBe("The Colour Out of Space");
+    expect(new Set(presented.results.map((book) => book.value)).size).toBe(6);
+  });
+
+  test("keeps Gilada on the card when only a couple share it", () => {
+    const book = {
+      title: "Ficciones",
+      author: "Borges",
+      coverUrl: "https://covers.openlibrary.org/b/id/1-L.jpg",
+      isbn: "9780000000000",
+      source: "openlibrary" as const,
+      externalId: "f",
+      page_count: 200,
+      published_year: "1944",
+      genre: null,
+      synopsis: null,
+      subjects: [],
+      categories: [],
+      buyLink: null,
+      value: "",
+      inQuiero: false,
+      inGilada: false,
+    };
+    const presented = presentLeo(
+      [
+        { ...book, id: "g1", title: "Uno", inGilada: true, page_count: 120 },
+        { ...book, id: "g2", title: "Dos", inGilada: true, page_count: 130 },
+        { ...book, id: "q1", title: "Tres", inQuiero: true, page_count: 140 },
+        { ...book, id: "n1", title: "Cuatro", page_count: 150 },
+        { ...book, id: "n2", title: "Cinco", page_count: 160 },
+        { ...book, id: "n3", title: "Seis", page_count: 170 },
+      ],
+      { ...answers, anchor: null },
+    );
+    expect(presented.note).toBeNull();
+    expect(presented.results[0]?.value).toBe("Lo lee la gilada.");
+    expect(presented.results[2]?.value).toBe("En tu Quiero.");
+    expect(presented.results[3]?.value).toBe("150 pág.");
   });
 });

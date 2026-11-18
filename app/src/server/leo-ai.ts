@@ -1,6 +1,7 @@
 import {
   authorKey,
   authorsMatch,
+  displayTitle,
   isSpanish,
   sameWork,
   splitAuthorTitle,
@@ -139,6 +140,7 @@ export function valueLine(
   if (flags.inQuiero) return "En tu Quiero.";
   if (flags.inGilada) return "Lo lee la gilada.";
   if (book.page_count) return `${book.page_count} pág.`;
+  if (book.published_year) return book.published_year;
   return "";
 }
 
@@ -189,7 +191,7 @@ export function toCandidate(
   if (!cover || !id) return null;
   return {
     id,
-    title: workTitle(book.title, book.author),
+    title: displayTitle(workTitle(book.title, book.author)),
     author: splitAuthorTitle(book.title)?.author || book.author,
     coverUrl: cover,
     isbn: book.isbn,
@@ -373,6 +375,32 @@ export function buildCandidates(
   ).sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, "es"));
   const preferred = ranked.filter((book) => isSpanish(book.language) !== false);
   return (preferred.length >= LEO_PICKS ? preferred : ranked).slice(0, CANDIDATE_CAP);
+}
+
+export const GILADA_NOTE = "De lo que lee la gilada.";
+const SHARED_SIGNAL = 3;
+
+export function presentLeo(
+  picks: LeoPick[],
+  answers: LeoAnswers,
+): { results: LeoPick[]; note: string | null } {
+  const results = picks.map((book) => ({ ...book, title: displayTitle(book.title) }));
+  const hideGilada = results.filter((book) => book.inGilada).length >= SHARED_SIGNAL;
+  const hideQuiero = results.filter((book) => book.inQuiero).length >= SHARED_SIGNAL;
+  const hideAnchor =
+    results.filter((book) => isAnchorMatch(book, answers.anchor)).length >= SHARED_SIGNAL;
+  return {
+    note: hideGilada ? GILADA_NOTE : null,
+    results: results.map((book) => ({
+      ...book,
+      value: valueLine(book, {
+        inGilada: book.inGilada && !hideGilada,
+        inQuiero: book.inQuiero && !hideQuiero,
+        anchor: answers.anchor,
+        anchorMatch: isAnchorMatch(book, answers.anchor) && !hideAnchor,
+      }),
+    })),
+  };
 }
 
 export function fillPicks(

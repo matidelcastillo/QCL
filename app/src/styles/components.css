@@ -1125,7 +1125,9 @@ button:disabled {
 .leo-fab {
   position: fixed;
   right: var(--space-5);
-  bottom: calc(var(--nav-block-pad) + var(--nav-height) + var(--nav-block-pad) + var(--safe-bottom));
+  bottom: calc(
+    var(--nav-block-pad) + var(--nav-height) + var(--nav-block-pad) + var(--safe-bottom)
+  );
   z-index: 51;
   display: flex;
   align-items: center;
@@ -1158,6 +1160,16 @@ button:disabled {
   width: 100%;
   justify-content: flex-start;
   text-align: left;
+}
+.progress:has(+ .leo-note) {
+  margin-bottom: var(--space-2);
+}
+.leo-note {
+  margin: 0 var(--qcl-page-px) var(--space-2);
+  color: var(--gray-text);
+  font-size: var(--text-micro-qcba);
+  font-weight: 500;
+  line-height: var(--leading-micro-qcba);
 }
 .leo-grid {
   display: grid;
