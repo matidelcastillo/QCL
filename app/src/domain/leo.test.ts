@@ -37,5 +37,11 @@ describe("leo steps", () => {
       { status: "lei", read_at: "2026-11-01", created_at: "2026-11-01", title: "C" },
     ];
     expect(recentRead(books, 1).map((book) => book.title)).toEqual(["C"]);
+    const many = Array.from({ length: 6 }, (_, index) => ({
+      status: "lei" as const,
+      read_at: `2026-0${index + 1}-01`,
+      title: String(index),
+    }));
+    expect(recentRead(many)).toHaveLength(3);
   });
 });

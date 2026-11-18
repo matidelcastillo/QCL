@@ -109,7 +109,7 @@ export function parseLeoAnswers(body: unknown): LeoAnswers | null {
   };
 }
 
-export const LEO_RECENT = 8;
+export const LEO_RECENT = 3;
 
 export function recentRead<T extends { status: string; read_at: string | null; created_at?: string }>(
   books: T[],
