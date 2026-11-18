@@ -9,6 +9,7 @@ import { BookTile } from "../components/book-tile";
 import { EmptyState, LoadError } from "../components/feedback";
 import { LoadingTiles } from "../components/skeleton";
 import { useDeferredPending } from "../components/use-deferred-pending";
+import { isCoverRevealed, useCoverStatus } from "../components/use-cover-status";
 
 export const Route = createFileRoute("/gilada")({ component: Gilada });
 
@@ -18,26 +19,39 @@ function Gilada() {
   const books = useSharedBooks(Boolean(user));
   const [selected, setSelected] = useState<SharedBook | null>(null);
   const showSkeleton = useDeferredPending(books.isPending);
+  const { status, report } = useCoverStatus();
+  const coverKey = (book: SharedBook) =>
+    `${book.source}:${book.externalId ?? book.isbn ?? book.title}`;
+  const shared = books.data ?? [];
+  const waitingForCovers =
+    shared.length > 0 && !shared.some((book) => isCoverRevealed(status, coverKey(book)));
 
   return (
     <main className="page-pb-nav">
       <BrandHeader />
       <ScreenHeading>Qué lee la gilada</ScreenHeading>
-      <section className="feed app-gutter" aria-busy={books.isPending}>
-        {showSkeleton ? (
+      <section className="feed app-gutter" aria-busy={books.isPending || waitingForCovers}>
+        {showSkeleton || (!books.isPending && !books.isError && waitingForCovers) ? (
           <LoadingTiles count={9} />
-        ) : books.isPending ? null : books.isError ? (
+        ) : null}
+        {showSkeleton || books.isPending ? null : books.isError ? (
           <LoadError retry={() => void books.refetch()} />
-        ) : books.data.length > 0 ? (
-          <div className="book-grid">
-            {books.data.map((book, index) => (
-              <BookTile
-                key={`${book.source}:${book.externalId ?? book.isbn ?? book.title}`}
-                book={book}
-                index={index}
-                onOpen={() => setSelected(book)}
-              />
-            ))}
+        ) : shared.length > 0 ? (
+          <div className="book-grid" hidden={waitingForCovers}>
+            {shared.map((book, index) => {
+              const key = coverKey(book);
+              return (
+                <div key={key} hidden={!isCoverRevealed(status, key)}>
+                  <BookTile
+                    book={book}
+                    index={index}
+                    eager
+                    onCover={(value) => report(key, value)}
+                    onOpen={() => setSelected(book)}
+                  />
+                </div>
+              );
+            })}
           </div>
         ) : (
           <EmptyState text="Todavía nada." art />

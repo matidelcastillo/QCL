@@ -2,7 +2,7 @@
 
 Documento de control para no fallar en TestFlight App Review ni en App Review. No cambia el comportamiento de la app. Fuentes: solo documentación oficial de Apple, consultada el 16 de noviembre de 2026 (America/Buenos_Aires). Las [App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) vigentes están actualizadas al 16 de octubre de 2026.
 
-**Estado al 16 de noviembre de 2026 (America/Buenos_Aires).** Worker `qcl` desplegado, versión `0b5ea06e-b4bf-4c1d-9762-fedf1e403c99` (`https://qcl.matidelcastillo.workers.dev`). Contacto de la política: `matidelcastillo@gmail.com` (email de la cuenta Cloudflare del usuario; no se usó el mail del agente).
+**Estado al 18 de noviembre de 2026 (America/Buenos_Aires).** Worker `qcl` en `https://qcl.matidelcastillo.workers.dev` (host fijo; la versión exacta queda en el reporte de deploy). Contacto de la política: `matidelcastillo@gmail.com` (email de la cuenta Cloudflare del usuario; no se usó el mail del agente).
 
 **App:** shell Capacitor 8 (`com.quecarajolees.app`) que carga `https://qcl.matidelcastillo.workers.dev`. Alta por email (Supabase), biblioteca personal, feed de lecturas de otras personas, escáner de ISBN con cámara.
 
@@ -18,22 +18,22 @@ Documento de control para no fallar en TestFlight App Review ni en App Review. N
 
 ## 1. Funcionalidad mínima y wrapper web — **Mitigado (riesgo residual)**
 
-**Qué pide Apple.** La app tiene que tener funciones, contenido y UI que la eleven por encima de un sitio web empaquetado. Si no es útil, única o “app-like”, no corresponde al App Store. Salvo catálogos, no debe ser principalmente material de marketing, recortes web, agregadores o una colección de enlaces.
+**Qué pide Apple.** En el [guideline 4.2 Minimum Functionality](https://developer.apple.com/app-store/review/guidelines/): “Your app should include features, content, and UI that elevate it beyond a repackaged website. If your app is not particularly useful, unique, or ‘app-like,’ it doesn’t belong on the App Store.” El 4.2.2 rechaza apps que son sobre todo material de marketing, recortes web, agregadores o una colección de enlaces.
 
 **Fuentes**
 
 - [Guideline 4.2 Minimum Functionality](https://developer.apple.com/app-store/review/guidelines/)
 - [Guideline 4.2.2](https://developer.apple.com/app-store/review/guidelines/)
 
-**En el repo.** El binario iOS empaqueta la UI en `capacitor-web` (ya no hay `server.url` remoto). Las APIs van al worker por HTTPS. Plugins: App, Keyboard, StatusBar y `@capacitor/barcode-scanner` (oficial, con `Package.swift`, compatible con el proyecto SPM y con `codemagic.yaml`). En la web se sigue usando el escáner de `app/src/components/scanner.tsx`.
+**En el repo.** El binario iOS es un shell de Capacitor 8 que carga el host fijo `https://qcl.matidelcastillo.workers.dev` (`server.url`, `allowNavigation` solo a ese host). No es un visor de un URL: incluye el plugin nativo `@capacitor/barcode-scanner` (cámara para ISBN, con `NSCameraUsageDescription`), y una pantalla local de “Sin conexión.” con “Reintentar.” (`errorPath`: `capacitor-shell/offline.html`) cuando el remoto no carga. Plugins también: App, Keyboard y StatusBar. En el browser se sigue usando el escáner de `app/src/components/scanner.tsx`. Los links externos (`target=_blank`, Comprar) se abren fuera del WebView.
 
 **Riesgos oficiales relacionados**
 
 - La [introducción de las Guidelines](https://developer.apple.com/app-store/review/guidelines/) dice que el App Store no es el mejor canal para una app que solo querés mostrar a familia y amigos (sugiere instalación con Xcode o distribución Ad Hoc). El [guideline 2.2](https://developer.apple.com/app-store/review/guidelines/) exige que una beta en TestFlight esté pensada para distribución pública y cumpla las mismas guidelines.
-- [Guideline 2.5.2](https://developer.apple.com/app-store/review/guidelines/): la app debe ser autocontenida y no descargar ni ejecutar código que introduzca o cambie funciones. Hoy todo el JS de la UI se baja de Workers en cada arranque.
-- [Guideline 4.2.3(ii)](https://developer.apple.com/app-store/review/guidelines/): si hace falta bajar recursos extra para funcionar en el primer arranque, hay que informar el tamaño y avisar antes. El shell no lo hace.
+- [Guideline 2.5.2](https://developer.apple.com/app-store/review/guidelines/): “Apps should be self-contained in their bundles, and may not … download, install, or execute code which introduces or changes features or functionality of the app.” El JS de la UI se baja del worker en cada arranque. Queda un riesgo residual: un deploy no debe agregar funciones que el binario no tenga (el escáner nativo vive en el binario; un cambio de plugin pide un build nuevo).
+- [Guideline 4.2.3(ii)](https://developer.apple.com/app-store/review/guidelines/): si hace falta bajar recursos extra para funcionar en el primer arranque, hay que informar el tamaño y avisar antes. El shell no lo hace; si Review lo observa, hay que avisar en las notas.
 
-**Para no fallar (sin implementar en este commit).** En las notas de revisión, describir con precisión las funciones (biblioteca propia, feed de lecturas, escáner de ISBN con cámara) y no presentar QCL como “app privada para un grupo chico”. El camino más seguro contra 4.2 / 2.5.2 es empaquetar la web en el bundle o sumar capacidad nativa real (por ejemplo el escáner) para que el binario no sea solo un visor de un URL.
+**Para no fallar.** En las notas de revisión, describir con precisión las funciones nativas y offline (biblioteca propia, feed de lecturas, escáner de ISBN con cámara, pantalla sin conexión) y no presentar QCL como “app privada para un grupo chico” ni como un atajo a un sitio.
 
 ---
 

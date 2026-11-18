@@ -35,6 +35,9 @@ export type Env = {
   SUPABASE_PUBLISHABLE_KEY?: string;
 };
 
+/* Kept for App Store binaries that still load the bundled UI from
+   capacitor://localhost. The live-load shell is same-origin with the
+   worker and does not send this Origin. */
 const CAPACITOR_ORIGIN = "capacitor://localhost";
 
 export function isCapacitorOrigin(request: Request) {

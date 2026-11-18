@@ -14,10 +14,14 @@ export function BookTile({
   book,
   index,
   onOpen,
+  eager,
+  onCover,
 }: {
   book: TileBook;
   index: number;
   onOpen: () => void;
+  eager?: boolean;
+  onCover?: (status: "ready" | "miss") => void;
 }) {
   return (
     <button
@@ -27,7 +31,13 @@ export function BookTile({
       aria-label={`Ver ${book.title}`}
       onClick={onOpen}
     >
-      <BookCover url={book.cover_url ?? book.coverUrl} isbn={book.isbn} size="tile" />
+      <BookCover
+        url={book.cover_url ?? book.coverUrl}
+        isbn={book.isbn}
+        size="tile"
+        eager={eager}
+        onCover={onCover}
+      />
     </button>
   );
 }

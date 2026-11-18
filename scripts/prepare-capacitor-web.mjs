@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+/* Unused while the iOS shell live-loads the worker (webDir is
+   capacitor-shell). Kept to roll back to a bundled SPA: set webDir
+   to capacitor-web, drop server.url, and run a QCL_TARGET=ios vite
+   build before this script. */
 /* Copy the iOS static build (app/dist/client, from `QCL_TARGET=ios vite build`)
    into capacitor-web/ and add a CSP to its index.html.
 

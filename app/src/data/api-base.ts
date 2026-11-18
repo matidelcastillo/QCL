@@ -1,7 +1,8 @@
 const WORKER_ORIGIN = "https://qcl.matidelcastillo.workers.dev";
 
-/* The iOS shell is a bundled build on capacitor://localhost. Same-origin
-   /api/... would miss the worker, so those calls go to the live origin. */
+/* Live iOS loads the worker origin (same-origin /api/...). Older App Store
+   binaries still run the bundled UI on capacitor://localhost and need the
+   absolute worker URL. */
 export function isNativeShell() {
   return typeof window !== "undefined" && window.location.protocol === "capacitor:";
 }

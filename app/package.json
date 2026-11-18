@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "test": "bun test src",
     "format": "prettier --write .",
-    "deploy": "bun run build && wrangler deploy --config .output/server/wrangler.json"
+    "deploy": "bun run build && wrangler deploy --config .output/server/wrangler.json && bun ../scripts/verify-worker.mjs"
   },
   "dependencies": {
     "@capacitor/barcode-scanner": "3.1.3",

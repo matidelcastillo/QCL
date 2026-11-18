@@ -12,15 +12,9 @@
       body {
         margin: 0;
         background: #f5f0eb; /* --bg in app/src/styles/tokens.css */
+        min-height: 100%;
       }
     </style>
-    <script>
-      // Thin shell: load the live web app. Keep a same-origin fallback
-      // if the remote URL is ever unset in capacitor.config.
-      if (!window.Capacitor || !window.Capacitor.getServerUrl) {
-        location.replace("https://qcl.matidelcastillo.workers.dev");
-      }
-    </script>
   </head>
   <body></body>
 </html>

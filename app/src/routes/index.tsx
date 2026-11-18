@@ -12,6 +12,7 @@ import { BookTile } from "../components/book-tile";
 import { EmptyState, LoadError } from "../components/feedback";
 import { LoadingList, LoadingTiles } from "../components/skeleton";
 import { useDeferredPending } from "../components/use-deferred-pending";
+import { isCoverRevealed, useCoverStatus } from "../components/use-cover-status";
 import { buttonClass } from "../components/button";
 
 type Filter = "todos" | BookStatus;
@@ -43,6 +44,9 @@ function Home() {
   const books = useBooks(user?.id);
   const visible = (books.data ?? []).filter((book) => filter === "todos" || book.status === filter);
   const showSkeleton = useDeferredPending(books.isPending);
+  const { status, report } = useCoverStatus();
+  const waitingForCovers =
+    visible.length > 0 && !visible.some((book) => isCoverRevealed(status, book.id));
 
   return (
     <main className="page-pb-nav">
@@ -79,34 +83,51 @@ function Home() {
           </span>
         </button>
       </div>
-      <section className="feed app-gutter" aria-busy={books.isPending}>
-        {showSkeleton ? (
+      <section className="feed app-gutter" aria-busy={books.isPending || waitingForCovers}>
+        {showSkeleton ||
+        (visible.length > 0 && !books.isPending && !books.isError && waitingForCovers) ? (
           view === "grid" ? (
             <LoadingTiles count={9} />
           ) : (
             <LoadingList />
           )
-        ) : books.isPending ? null : books.isError ? (
+        ) : null}
+        {showSkeleton || books.isPending ? null : books.isError ? (
           <LoadError retry={() => void books.refetch()} />
         ) : visible.length > 0 ? (
-          <div key={`${filter}-${view}`} className="content-fade">
+          <div key={`${filter}-${view}`} className="content-fade" hidden={waitingForCovers}>
             {view === "grid" ? (
               <div className="book-grid">
                 {libraryViewBooks(visible).map((book, index) => (
-                  <BookTile
-                    key={book.id}
-                    book={book}
-                    index={index}
-                    onOpen={() => setSelected(book)}
-                  />
+                  <div key={book.id} hidden={!isCoverRevealed(status, book.id)}>
+                    <BookTile
+                      book={book}
+                      index={index}
+                      eager
+                      onCover={(value) => report(book.id, value)}
+                      onOpen={() => setSelected(book)}
+                    />
+                  </div>
                 ))}
               </div>
             ) : (
               libraryViewGroups(visible).map(([genre, items]) => (
-                <section key={genre} className="feed-group" aria-label={genre}>
+                <section
+                  key={genre}
+                  className="feed-group"
+                  aria-label={genre}
+                  hidden={!items.some((book) => isCoverRevealed(status, book.id))}
+                >
                   <h2 className="feed-group-label">{genre.toLowerCase()}</h2>
                   {items.map((book) => (
-                    <BookRow key={book.id} book={book} onOpen={() => setSelected(book)} />
+                    <div key={book.id} hidden={!isCoverRevealed(status, book.id)}>
+                      <BookRow
+                        book={book}
+                        eager
+                        onCover={(value) => report(book.id, value)}
+                        onOpen={() => setSelected(book)}
+                      />
+                    </div>
                   ))}
                 </section>
               ))

@@ -11,6 +11,7 @@ import { BookSheet } from "../components/book-sheet";
 import { LoadError } from "../components/feedback";
 import { LoadingCounts } from "../components/skeleton";
 import { useDeferredPending } from "../components/use-deferred-pending";
+import { isCoverRevealed, useCoverStatus } from "../components/use-cover-status";
 import { Sheet } from "../components/sheet";
 import { buttonClass } from "../components/button";
 import { useSheetOpen } from "../components/sheet-visibility";
@@ -33,6 +34,7 @@ function Profile() {
   const library = books.data ?? [];
   const want = library.filter((book) => book.status === "quiero").length;
   const read = library.filter((book) => book.status === "lei");
+  const { status, report } = useCoverStatus();
   const latest = read.filter((book) => book.read_at).sort(compareReadBooks)[0];
 
   async function leave() {
@@ -90,9 +92,14 @@ function Profile() {
               </button>
             </div>
             {latest && (
-              <section>
+              <section hidden={!isCoverRevealed(status, latest.id)}>
                 <p className="section-label">Último leído</p>
-                <BookRow book={latest} onOpen={() => setSelected(latest)} />
+                <BookRow
+                  book={latest}
+                  eager
+                  onCover={(value) => report(latest.id, value)}
+                  onOpen={() => setSelected(latest)}
+                />
               </section>
             )}
           </>

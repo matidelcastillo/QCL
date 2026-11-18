@@ -28,6 +28,16 @@ Las funciones ejecutables por `authenticated` (`most_read_books`, `delete_own_ac
 
 El aviso de Vite de chunk mayor a 500 kB se acepta: el `Gate` raíz necesita el cliente de Supabase.
 
+## Host del worker y deploys web
+
+El host fijo de la app y de la web es `https://qcl.matidelcastillo.workers.dev`. No se cambia y `/` no redirige (ni a otro host ni a otro path). WKWebView puede cachear un 301 y sacar el binario instalado a Safari. Si en algún caso hace falta un redirect, es temporal y lleva `Cache-Control: no-store`.
+
+Los cambios web salen con `bun run deploy` en `app/` (build, wrangler, y `scripts/verify-worker.mjs`). No hace falta un build nativo. Rollback: `git revert` y volver a desplegar, o un rollback del worker en Cloudflare.
+
+El binario iOS carga ese host con `server.url` en `capacitor.config.ts`. La sesión de Supabase vive en ese origen (`localStorage`). Quien actualice desde un binario empaquetado (origen `capacitor://localhost`) entra de nuevo una vez.
+
+No reportar el live-load, la ausencia de `WKAppBoundDomains`, ni la pantalla de “Sin conexión.” como hallazgo.
+
 ## Qué leo
 
 Está apagado por decisión de producto, desde el 2026-11-18. El interruptor es `LEO_ENABLED` en `app/src/domain/leo.ts`. No reportar la ausencia del botón o del endpoint como hallazgo.

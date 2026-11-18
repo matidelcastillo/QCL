@@ -22,8 +22,10 @@ async function handle(request: Request, env: Env, context: unknown) {
 
 export default {
   async fetch(request: Request, env: Env, context: unknown) {
+    /* `/` and every app path must stay 200 on this host. httpsRedirect
+       is protocol-only, never a host or path change. */
     const redirect = httpsRedirect(request);
     if (redirect) return redirect;
-    return secure(await handle(request, env, context));
+    return secure(await handle(request, env, context), request);
   },
 };
