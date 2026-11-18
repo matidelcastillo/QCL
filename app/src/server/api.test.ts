@@ -294,7 +294,11 @@ test("genre route rejects an oversized body before reading it", async () => {
 
 test("wrangler.jsonc declares the bindings the worker uses", async () => {
   const raw = await Bun.file(new URL("../../wrangler.jsonc", import.meta.url)).text();
-  const parsed = JSON.parse(raw.replace(/("(?:\\.|[^"\\])*")|\/\/.*$/gm, (chunk, str) => str ?? "").replace(/,(\s*[}\]])/g, "$1"));
+  const parsed = JSON.parse(
+    raw
+      .replace(/("(?:\\.|[^"\\])*")|\/\/.*$/gm, (chunk, str) => str ?? "")
+      .replace(/,(\s*[}\]])/g, "$1"),
+  );
   const names = new Set((parsed.ratelimits ?? []).map((entry: { name: string }) => entry.name));
   expect(names).toEqual(new Set(["CATALOG_LIMIT", "GENRE_LIMIT", "TAPA_LIMIT", "LEO_LIMIT"]));
   expect(parsed.ai?.binding).toBe("AI");
@@ -342,8 +346,12 @@ test("leo route: POST only, needs a session, validates the body, fails closed", 
     pace: "vuele",
   };
   expect(
-    (await apiResponse(new Request(`${base}/api/leo`, { method: "POST", body: JSON.stringify(valid) }), env))
-      ?.status,
+    (
+      await apiResponse(
+        new Request(`${base}/api/leo`, { method: "POST", body: JSON.stringify(valid) }),
+        env,
+      )
+    )?.status,
   ).toBe(401);
   const bad = await apiResponse(
     new Request(`${base}/api/leo`, {
@@ -358,7 +366,12 @@ test("leo route: POST only, needs a session, validates the body, fails closed", 
     new Request(`${base}/api/leo`, {
       method: "POST",
       headers: { authorization: "Bearer token" },
-      body: JSON.stringify({ purpose: "escaparme", mood: "oscuro", topic: "policial", pace: "vuele" }),
+      body: JSON.stringify({
+        purpose: "escaparme",
+        mood: "oscuro",
+        topic: "policial",
+        pace: "vuele",
+      }),
     }),
     { ...env, LEO_LIMIT: { limit: async () => ({ success: false }) } },
   );

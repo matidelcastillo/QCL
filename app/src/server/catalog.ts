@@ -393,8 +393,15 @@ export async function searchCatalogQuick(
   googleKey?: string,
   langRestrict?: string,
 ): Promise<CatalogBook[]> {
-  const results = await Promise.all([openLibrary(query, null), google(query, null, googleKey, langRestrict)]);
+  const results = await Promise.all([
+    openLibrary(query, null),
+    google(query, null, googleKey, langRestrict),
+  ]);
   if (results.every((result) => !result.ok)) throw new CatalogUnavailable();
-  return withCover(mergeBooks(query, results.map((result) => result.books)));
+  return withCover(
+    mergeBooks(
+      query,
+      results.map((result) => result.books),
+    ),
+  );
 }
-

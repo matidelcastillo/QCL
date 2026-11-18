@@ -98,7 +98,12 @@ function Profile() {
           </>
         )}
         <div className="action-grid">
-          <button type="button" className="text-action qc-press" disabled={busy} onClick={() => void leave()}>
+          <button
+            type="button"
+            className="text-action qc-press"
+            disabled={busy}
+            onClick={() => void leave()}
+          >
             Salir
           </button>
           <button

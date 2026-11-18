@@ -20,7 +20,10 @@ export function mercadoLibreSearch(isbn: string): string {
   return `https://listado.mercadolibre.com.ar/${encodeURIComponent(isbn)}`;
 }
 
-export function buyUrl(buyLink: string | null | undefined, isbn: string | null | undefined): URL | null {
+export function buyUrl(
+  buyLink: string | null | undefined,
+  isbn: string | null | undefined,
+): URL | null {
   if (buyLink) {
     const url = allowedExternalUrl(buyLink);
     if (url) return url;

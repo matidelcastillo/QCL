@@ -6,7 +6,9 @@ describe("external buy links", () => {
     expect(allowedExternalUrl("https://listado.mercadolibre.com.ar/9780307705501")?.host).toBe(
       "listado.mercadolibre.com.ar",
     );
-    expect(allowedExternalUrl("https://books.google.com.ar/books?id=x")?.host).toBe("books.google.com.ar");
+    expect(allowedExternalUrl("https://books.google.com.ar/books?id=x")?.host).toBe(
+      "books.google.com.ar",
+    );
     expect(allowedExternalUrl("https://evil.com")).toBeNull();
     expect(allowedExternalUrl("javascript:alert(1)")).toBeNull();
     expect(allowedExternalUrl("http://listado.mercadolibre.com.ar/x")).toBeNull();
@@ -14,7 +16,9 @@ describe("external buy links", () => {
 
   test("falls back to Mercado Libre by ISBN when there is no buy link", () => {
     expect(buyUrl(null, "9780307705501")?.toString()).toBe(mercadoLibreSearch("9780307705501"));
-    expect(buyUrl("https://evil.com/buy", "9780307705501")?.host).toBe("listado.mercadolibre.com.ar");
+    expect(buyUrl("https://evil.com/buy", "9780307705501")?.host).toBe(
+      "listado.mercadolibre.com.ar",
+    );
     expect(buyUrl(null, null)).toBeNull();
   });
 });

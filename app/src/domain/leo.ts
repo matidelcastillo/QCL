@@ -111,12 +111,13 @@ export function parseLeoAnswers(body: unknown): LeoAnswers | null {
 
 export const LEO_RECENT = 3;
 
-export function recentRead<T extends { status: string; read_at: string | null; created_at?: string }>(
-  books: T[],
-  limit = LEO_RECENT,
-): T[] {
+export function recentRead<
+  T extends { status: string; read_at: string | null; created_at?: string },
+>(books: T[], limit = LEO_RECENT): T[] {
   return books
     .filter((book) => book.status === "lei")
-    .sort((a, b) => (b.read_at ?? b.created_at ?? "").localeCompare(a.read_at ?? a.created_at ?? ""))
+    .sort((a, b) =>
+      (b.read_at ?? b.created_at ?? "").localeCompare(a.read_at ?? a.created_at ?? ""),
+    )
     .slice(0, limit);
 }

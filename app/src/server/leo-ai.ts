@@ -78,7 +78,13 @@ export function isSpanish(language: string | null | undefined): boolean | null {
   if (!language) return null;
   const code = language.trim().toLowerCase();
   if (!code) return null;
-  if (code === "es" || code === "spa" || code === "es-419" || code.startsWith("es-") || code === "español")
+  if (
+    code === "es" ||
+    code === "spa" ||
+    code === "es-419" ||
+    code.startsWith("es-") ||
+    code === "español"
+  )
     return true;
   return false;
 }
@@ -302,7 +308,9 @@ export function leoPrompt(answers: LeoAnswers, candidates: LeoCandidate[]): stri
       return `${book.id} | ${book.title} | ${book.author}${flags ? ` | ${flags}` : ""}`;
     })
     .join("\n");
-  const anchor = answers.anchor ? `${answers.anchor.title}${answers.anchor.page_count ? ` (${answers.anchor.page_count} pág.)` : ""}` : "ninguno";
+  const anchor = answers.anchor
+    ? `${answers.anchor.title}${answers.anchor.page_count ? ` (${answers.anchor.page_count} pág.)` : ""}`
+    : "ninguno";
   return [
     "Elegí exactamente 6 ids de la lista, en orden, para recomendar qué leer.",
     "La línea (line) es una sola, corta, en español, con un dato real: páginas, el ancla, o «Lo lee la gilada».",
@@ -315,7 +323,9 @@ export function leoPrompt(answers: LeoAnswers, candidates: LeoCandidate[]): stri
 
 function parsePicks(output: unknown): { ids: string[]; lines: Map<string, string> } {
   const response =
-    output && typeof output === "object" && "response" in output ? (output as { response: unknown }).response : output;
+    output && typeof output === "object" && "response" in output
+      ? (output as { response: unknown }).response
+      : output;
   const raw =
     typeof response === "string"
       ? (() => {
@@ -326,14 +336,19 @@ function parsePicks(output: unknown): { ids: string[]; lines: Map<string, string
           }
         })()
       : response;
-  const picks = raw && typeof raw === "object" && "picks" in raw ? (raw as { picks: unknown }).picks : null;
+  const picks =
+    raw && typeof raw === "object" && "picks" in raw ? (raw as { picks: unknown }).picks : null;
   const ids: string[] = [];
   const lines = new Map<string, string>();
   if (Array.isArray(picks)) {
     for (const item of picks) {
       if (!item || typeof item !== "object") continue;
-      const id = typeof (item as { id?: unknown }).id === "string" ? (item as { id: string }).id.trim() : "";
-      const line = typeof (item as { line?: unknown }).line === "string" ? (item as { line: string }).line : "";
+      const id =
+        typeof (item as { id?: unknown }).id === "string" ? (item as { id: string }).id.trim() : "";
+      const line =
+        typeof (item as { line?: unknown }).line === "string"
+          ? (item as { line: string }).line
+          : "";
       if (!id) continue;
       ids.push(id);
       if (line) lines.set(id, line);

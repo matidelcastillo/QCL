@@ -109,7 +109,6 @@ async function genreResponse(request: Request, env: Env): Promise<Response> {
   }
 }
 
-
 export const LEO_MAX_BYTES = 8_192;
 
 type LeoUser = { token: string; url: string; key: string };
@@ -170,22 +169,20 @@ async function leoResponse(request: Request, env: Env): Promise<Response> {
         method: "POST",
         body: "{}",
       }).then((rows) =>
-        rows.map(
-          (row): SharedBook => ({
-            title: String(row.title ?? ""),
-            author: String(row.author ?? ""),
-            coverUrl: typeof row.cover_url === "string" ? row.cover_url : null,
-            isbn: typeof row.isbn === "string" ? row.isbn : null,
-            source: row.source === "google" || row.source === "openlibrary" ? row.source : "manual",
-            externalId: typeof row.external_id === "string" ? row.external_id : null,
-            page_count: typeof row.page_count === "number" ? row.page_count : null,
-            published_year: typeof row.published_year === "string" ? row.published_year : null,
-            genre: typeof row.genre === "string" ? row.genre : null,
-            synopsis: typeof row.synopsis === "string" ? row.synopsis : null,
-            leiCount: Number(row.lei_count) || 0,
-            quieroCount: Number(row.quiero_count) || 0,
-          }),
-        ),
+        rows.map((row): SharedBook => ({
+          title: String(row.title ?? ""),
+          author: String(row.author ?? ""),
+          coverUrl: typeof row.cover_url === "string" ? row.cover_url : null,
+          isbn: typeof row.isbn === "string" ? row.isbn : null,
+          source: row.source === "google" || row.source === "openlibrary" ? row.source : "manual",
+          externalId: typeof row.external_id === "string" ? row.external_id : null,
+          page_count: typeof row.page_count === "number" ? row.page_count : null,
+          published_year: typeof row.published_year === "string" ? row.published_year : null,
+          genre: typeof row.genre === "string" ? row.genre : null,
+          synopsis: typeof row.synopsis === "string" ? row.synopsis : null,
+          leiCount: Number(row.lei_count) || 0,
+          quieroCount: Number(row.quiero_count) || 0,
+        })),
       ),
       collectCatalog(answers, env.GOOGLE_BOOKS_API_KEY),
     ]);

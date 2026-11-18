@@ -160,7 +160,11 @@ function Leo() {
               ))}
             </div>
           )}
-          <button type="button" className="text-action skip-action qc-press" onClick={() => choose("anchor", null)}>
+          <button
+            type="button"
+            className="text-action skip-action qc-press"
+            onClick={() => choose("anchor", null)}
+          >
             Saltar
           </button>
         </div>
@@ -183,7 +187,11 @@ function Leo() {
         </div>
       )}
       {selected && (
-        <BookSheet book={toSheetBook(selected)} buyLink={selected.buyLink} onClose={() => setSelected(null)} />
+        <BookSheet
+          book={toSheetBook(selected)}
+          buyLink={selected.buyLink}
+          onClose={() => setSelected(null)}
+        />
       )}
     </main>
   );

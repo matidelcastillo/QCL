@@ -26,8 +26,18 @@ describe("leo steps", () => {
     expect(answers?.purpose).toBe("escaparme");
     expect(answers?.anchor?.title).toBe("Rayuela");
     expect(answers?.anchor?.page_count).toBe(746);
-    expect(parseLeoAnswers({ purpose: "escaparme", mood: "oscuro", topic: "policial", pace: "ya" })).toBeNull();
-    expect(parseLeoAnswers({ purpose: "escaparme", mood: "oscuro", topic: "policial", pace: "vuele", anchor: {} })).toBeNull();
+    expect(
+      parseLeoAnswers({ purpose: "escaparme", mood: "oscuro", topic: "policial", pace: "ya" }),
+    ).toBeNull();
+    expect(
+      parseLeoAnswers({
+        purpose: "escaparme",
+        mood: "oscuro",
+        topic: "policial",
+        pace: "vuele",
+        anchor: {},
+      }),
+    ).toBeNull();
   });
 
   test("recentRead keeps a few of the latest Leí books", () => {

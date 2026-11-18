@@ -94,7 +94,10 @@ describe("buildCandidates", () => {
   });
 
   test("puts matching Quiero books first and boosts Gilada", () => {
-    const want = libraryBook("En la lista", "quiero", { isbn: "9783333333333", external_id: "/works/w" });
+    const want = libraryBook("En la lista", "quiero", {
+      isbn: "9783333333333",
+      external_id: "/works/w",
+    });
     const gilada = shared("De la gilada", { isbn: "9782222222222" });
     const extra = catalog("Otro", { isbn: "9780000000009", externalId: "/works/o" });
     const candidates = buildCandidates(answers, [extra], [want], [gilada]);
@@ -111,7 +114,9 @@ describe("buildCandidates", () => {
         externalId: `/works/es${index}`,
       }),
     );
-    catalogBooks.push(catalog("English only", { language: "en", isbn: "9780999999999", externalId: "/works/en" }));
+    catalogBooks.push(
+      catalog("English only", { language: "en", isbn: "9780999999999", externalId: "/works/en" }),
+    );
     const built = buildCandidates(answers, catalogBooks, [], []);
     expect(built).toHaveLength(8);
     expect(built.some((book) => book.title === "English only")).toBe(false);
@@ -130,7 +135,9 @@ describe("value lines and sanitizing", () => {
 
   test("drops a model line that invents numbers or generic copy", () => {
     expect(sanitizeLine("450 pág.", book, flags)).toBe("200 pág. Como Rayuela (746 pág.).");
-    expect(sanitizeLine("Perfecto para vos", book, flags)).toBe("200 pág. Como Rayuela (746 pág.).");
+    expect(sanitizeLine("Perfecto para vos", book, flags)).toBe(
+      "200 pág. Como Rayuela (746 pág.).",
+    );
     expect(sanitizeLine("200 pág.", book, flags)).toBe("200 pág.");
     expect(sanitizeLine("200p", book, flags)).toBe("200 pág.");
   });
@@ -167,7 +174,15 @@ describe("fillPicks and the model", () => {
   });
 
   test("uses the ranked fallback when the model fails or returns junk", async () => {
-    const failed = await pickWithModel({ run: async () => { throw new Error("down"); } }, answers, pool);
+    const failed = await pickWithModel(
+      {
+        run: async () => {
+          throw new Error("down");
+        },
+      },
+      answers,
+      pool,
+    );
     expect(failed.map((book) => book.id)).toEqual(["a", "b", "c", "d", "e", "f"]);
     const junk = await pickWithModel({ run: async () => ({ response: "no json" }) }, answers, pool);
     expect(junk).toHaveLength(6);
@@ -178,13 +193,23 @@ describe("fillPicks and the model", () => {
     const ai = {
       run: async (model: string, body: unknown) => {
         calls.push([model, body]);
-        return { response: { picks: [{ id: "g", line: "120 pág." }, { id: "a", line: "120 pág." }] } };
+        return {
+          response: {
+            picks: [
+              { id: "g", line: "120 pág." },
+              { id: "a", line: "120 pág." },
+            ],
+          },
+        };
       },
     };
     const picks = await pickWithModel(ai, answers, pool);
     expect(picks[0]?.id).toBe("g");
     expect(picks[1]?.id).toBe("a");
-    const [, body] = calls[0] as [string, { response_format: { type: string }; temperature: number }];
+    const [, body] = calls[0] as [
+      string,
+      { response_format: { type: string }; temperature: number },
+    ];
     expect(body.temperature).toBe(0);
     expect(body.response_format.type).toBe("json_schema");
   });
