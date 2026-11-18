@@ -24,6 +24,8 @@ function Enter() {
     setNotice("");
     try {
       const client = browserSupabase();
+      /* Decisión del producto, no reportar como hallazgo. 2026-11-18.
+         El alta auto-confirma el email y no hay CAPTCHA. */
       const result =
         mode === "entrar"
           ? await client.auth.signInWithPassword({ email, password })

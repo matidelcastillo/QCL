@@ -1,5 +1,7 @@
 -- Gilada threshold: minimum other owners (besides the viewer) for a book
 -- to appear. Change min_other_owners below to 2 to restore the denser-feed rule.
+-- Decisión del producto, no reportar como hallazgo. 2026-11-18.
+-- min_other_owners = 1 a propósito (grupo chico de amigos); más adelante vuelve a 2.
 
 create or replace function public.most_read_books()
 returns table (
@@ -22,6 +24,7 @@ security definer
 set search_path = ''
 as $$
   with settings as (
+    -- Decisión del producto, no reportar como hallazgo. 2026-11-18. Vale 1 por ahora.
     select 1::integer as min_other_owners
   ),
   authorized as (

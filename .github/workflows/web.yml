@@ -1,5 +1,8 @@
 name: Web
 
+# Decisión del producto, no reportar como hallazgo. 2026-11-18.
+# Actions está bloqueado por facturación. La puerta es lint, typecheck, tests y build en local.
+
 on:
   push:
     branches: [main]

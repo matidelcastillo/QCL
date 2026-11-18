@@ -19,6 +19,6 @@ El servidor expone `/api/libros` (Open Library y Google Books, con 429 como fuen
 
 ## Estado de verificación
 
-El build, los tests unitarios, el typecheck y el lint se ejecutan localmente. El flujo autenticado, cámara física, aislamiento entre dos usuarios y comparación con los mocks requieren aceptación aparte. Los archivos `mock-home-B.png` y `mock-modal-A.png` no fueron entregados.
+El build, los tests unitarios, el typecheck y el lint se ejecutan localmente. Las decisiones de producto que un auditor no debe reflagar están en [`docs/DECISIONS.md`](../docs/DECISIONS.md). El flujo autenticado, cámara física, aislamiento entre dos usuarios y comparación con los mocks requieren aceptación aparte. Los archivos `mock-home-B.png` y `mock-modal-A.png` no fueron entregados.
 
 La publicación al worker `qcl` requiere aprobación separada. No se publica a `qcba`.

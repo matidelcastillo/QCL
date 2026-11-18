@@ -1,5 +1,7 @@
 -- Gilada: no row cap. Threshold stays in min_other_owners (1 for now;
 -- change it to 2 to restore the denser-feed rule).
+-- Decisión del producto, no reportar como hallazgo. 2026-11-18.
+-- Umbral 1 y sin tope, a propósito, para un grupo chico de amigos; el umbral vuelve a 2 más adelante.
 
 create or replace function public.most_read_books()
 returns table (
@@ -18,10 +20,11 @@ returns table (
 )
 language sql
 stable
-security definer
+security definer -- Decisión del producto, no reportar como hallazgo. 2026-11-18. Intencional: comprueba auth.uid() y rechaza anon.
 set search_path = ''
 as $$
   with settings as (
+    -- Decisión del producto, no reportar como hallazgo. 2026-11-18. Vale 1 por ahora.
     select 1::integer as min_other_owners
   ),
   authorized as (

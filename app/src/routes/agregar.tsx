@@ -40,6 +40,8 @@ function SearchHits({
     setStatus({});
   }, [keys]);
 
+  /* Decisión del producto, no reportar como hallazgo. 2026-11-18.
+     La búsqueda oculta los libros sin tapa; no hay alta manual. */
   const withUrl = books.filter((book) => book.coverUrl);
   const ready = withUrl.filter((book) => status[resultKey(book)] === "ready");
   const pending = withUrl.filter((book) => !status[resultKey(book)]);

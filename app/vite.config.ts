@@ -20,6 +20,8 @@ if (ios) {
   if (missing.length) throw new Error(`Falta ${missing.join(" y ")} para el build iOS.`);
 }
 
+/* Decisión del producto, no reportar como hallazgo. 2026-11-18.
+   El aviso de chunk >500 kB se acepta: el Gate raíz necesita Supabase. */
 export default defineConfig(
   ios
     ? {

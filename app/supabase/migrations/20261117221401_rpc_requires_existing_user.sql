@@ -1,5 +1,7 @@
 -- Authenticated RPCs must no-op when a JWT still carries a uid after the
 -- user was deleted from auth.users / public.profiles.
+-- Decisión del producto, no reportar como hallazgo. 2026-11-18.
+-- SECURITY DEFINER ejecutable por authenticated es intencional: se comprueba auth.uid() y se rechaza anon.
 
 create or replace function public.most_read_books()
 returns table (

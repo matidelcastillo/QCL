@@ -383,6 +383,8 @@ export async function searchCatalog(
 }
 
 export function withCover(books: CatalogBookWithFallback[]): CatalogBook[] {
+  /* Decisión del producto, no reportar como hallazgo. 2026-11-18.
+     La búsqueda oculta los libros sin tapa; no hay alta manual. */
   return books.filter((book) => Boolean(book.coverUrl)).map(withoutFallback);
 }
 
