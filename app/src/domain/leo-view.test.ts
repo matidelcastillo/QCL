@@ -16,7 +16,9 @@ describe("Qué leo UI", () => {
 
   test("the flow stays in the code, and /leo redirects to /vos while it is off", () => {
     expect(leo).toContain("LEO_ENABLED");
-    expect(leo).toContain('redirect({ to: "/vos" })');
+    expect(leo).toContain('to: "/vos"');
+    expect(leo).toContain("Cache-Control");
+    expect(leo).toContain("no-store");
     expect(leo).toContain("chip-stack");
     expect(leo).toContain("LoadingTiles");
     expect(leo).toContain("useDeferredPending");

@@ -27,7 +27,15 @@ import { useDeferredPending } from "../components/use-deferred-pending";
 
 export const Route = createFileRoute("/leo")({
   beforeLoad: () => {
-    if (!LEO_ENABLED) throw redirect({ to: "/vos" });
+    if (!LEO_ENABLED) {
+      /* Temporary, never 301, and never stored: WKWebView caches permanent
+         redirects and can keep /leo closed after the feature is turned back on. */
+      throw redirect({
+        to: "/vos",
+        statusCode: 302,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
   },
   component: Leo,
 });

@@ -68,9 +68,22 @@ for (const path of assets) {
   assertNoRedirect(check, path);
 }
 
-for (const path of ["/entrar", "/vos", "/gilada", "/leo"]) {
+for (const path of ["/entrar", "/vos", "/gilada"]) {
   const check = await request(path);
   assertNoRedirect(check, `GET ${path}`);
+}
+
+const leoPage = await request("/leo");
+if (leoPage.status === 200) {
+  if (leoPage.location) fail("GET /leo sent a redirect");
+} else if (leoPage.status === 302 || leoPage.status === 307) {
+  if (leoPage.location !== "/vos" && leoPage.location !== "https://qcl.matidelcastillo.workers.dev/vos") {
+    fail(`GET /leo redirected to ${leoPage.location || "(none)"}, expected /vos`);
+  }
+  const cache = header(leoPage.res, "cache-control");
+  if (cache !== "no-store") fail(`GET /leo redirect cache-control is ${cache || "missing"}, expected no-store`);
+} else {
+  fail(`GET /leo returned ${leoPage.status}`);
 }
 
 const leo = await request("/api/leo", { method: "POST" });
