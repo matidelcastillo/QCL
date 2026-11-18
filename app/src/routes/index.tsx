@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { LayoutGrid, List } from "lucide-react";
 import { useState } from "react";
-import { groupByGenre } from "../domain/genre";
+import { libraryViewBooks, libraryViewGroups } from "../domain/library-order";
 import type { Book, BookStatus } from "../domain/types";
 import { useSession } from "../data/session-context";
 import { useBooks } from "../data/use-books";
@@ -32,7 +32,7 @@ export const Route = createFileRoute("/")({
 /* QC routes/index.tsx home: brand header, filter tabs row with the view
    toggle (l. 1941-1968, not persisted, like QC). The list groups by genre the
    way QC groups the feed by day (AgendaTimeline l. 3536-3640); the grid shows
-   every cover in one grid. */
+   every cover in one grid, in the same order as the list. */
 function Home() {
   const { user } = useSession();
   const { f } = Route.useSearch();
@@ -92,7 +92,7 @@ function Home() {
           <div key={`${filter}-${view}`} className="content-fade">
             {view === "grid" ? (
               <div className="book-grid">
-                {visible.map((book, index) => (
+                {libraryViewBooks(visible).map((book, index) => (
                   <BookTile
                     key={book.id}
                     book={book}
@@ -102,7 +102,7 @@ function Home() {
                 ))}
               </div>
             ) : (
-              groupByGenre(visible).map(([genre, items]) => (
+              libraryViewGroups(visible).map(([genre, items]) => (
                 <section key={genre} className="feed-group" aria-label={genre}>
                   <h2 className="feed-group-label">{genre.toLowerCase()}</h2>
                   {items.map((book) => (

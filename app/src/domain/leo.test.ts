@@ -57,5 +57,10 @@ describe("leo steps", () => {
       title: String(index),
     }));
     expect(recentRead(many)).toHaveLength(3);
+    const tied = [
+      { id: "a", status: "lei" as const, read_at: "2026-11-01", title: "A" },
+      { id: "b", status: "lei" as const, read_at: "2026-11-01", title: "B" },
+    ];
+    expect(recentRead(tied, 2).map((book) => book.id)).toEqual(["b", "a"]);
   });
 });

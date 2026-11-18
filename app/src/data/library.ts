@@ -11,7 +11,8 @@ export async function listBooks(ownerId: string): Promise<Book[]> {
     .from("books")
     .select("*")
     .eq("owner_id", ownerId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
   if (error) throw error;
   return (data ?? []) as Book[];
 }

@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import type { Book } from "../domain/types";
+import { compareReadBooks } from "../domain/library-order";
 import { deleteAccount, signOut } from "../data/auth-actions";
 import { useSession } from "../data/session-context";
 import { useBooks } from "../data/use-books";
@@ -32,9 +33,7 @@ function Profile() {
   const library = books.data ?? [];
   const want = library.filter((book) => book.status === "quiero").length;
   const read = library.filter((book) => book.status === "lei");
-  const latest = read
-    .filter((book) => book.read_at)
-    .sort((a, b) => (b.read_at ?? "").localeCompare(a.read_at ?? ""))[0];
+  const latest = read.filter((book) => book.read_at).sort(compareReadBooks)[0];
 
   async function leave() {
     setBusy(true);

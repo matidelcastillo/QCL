@@ -1,3 +1,4 @@
+import { compareReadBooks } from "./library-order";
 /* Decisión del producto, no reportar como hallazgo. 2026-11-18.
    Qué leo está apagado. Poner en true para volver a encenderlo. */
 export const LEO_ENABLED = false;
@@ -116,12 +117,10 @@ export function parseLeoAnswers(body: unknown): LeoAnswers | null {
 export const LEO_RECENT = 3;
 
 export function recentRead<
-  T extends { status: string; read_at: string | null; created_at?: string },
+  T extends { id?: string; status: string; read_at: string | null; created_at?: string },
 >(books: T[], limit = LEO_RECENT): T[] {
   return books
     .filter((book) => book.status === "lei")
-    .sort((a, b) =>
-      (b.read_at ?? b.created_at ?? "").localeCompare(a.read_at ?? a.created_at ?? ""),
-    )
+    .sort(compareReadBooks)
     .slice(0, limit);
 }
