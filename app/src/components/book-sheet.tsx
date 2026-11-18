@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Heart, X } from "lucide-react";
+import { Check, Heart, ShoppingBag, X } from "lucide-react";
 import type { Book, BookStatus, CatalogBook, SharedBook } from "../domain/types";
 import { today } from "../domain/date";
 import { knownGenre } from "../domain/genre";
@@ -17,6 +17,7 @@ import { useSession } from "../data/session-context";
 import { sessionEpoch } from "../data/session-epoch";
 import { BookCover } from "./book-cover";
 import { Sheet } from "./sheet";
+import { buyUrl, openExternal } from "../data/external-link";
 
 /* Book sheet = QC event drawer (routes/index.tsx l. 2690-3010): handle,
    hero, .drawer-title, .drawer-meta, .drawer-action-dock (no synopsis shown).
@@ -26,9 +27,11 @@ import { Sheet } from "./sheet";
    StoryGraph book page). */
 export function BookSheet({
   book,
+  buyLink,
   onClose,
 }: {
   book: Book | CatalogBook | SharedBook;
+  buyLink?: string | null;
   onClose: () => void;
 }) {
   const { user } = useSession();
@@ -36,11 +39,13 @@ export function BookSheet({
   const queryKey = ["books", user?.id];
   const { data: books = [] } = useBooks(user?.id);
   const saved = "id" in book ? books.find((item) => item.id === book.id) : duplicate(books, book);
+  const alreadyWant = saved?.status === "quiero";
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [popped, setPopped] = useState<BookStatus | null>(null);
   const cover = "cover_url" in book ? book.cover_url : book.coverUrl;
+  const store = buyUrl("buyLink" in book ? (book.buyLink ?? buyLink) : buyLink, book.isbn);
   /* A catalog result has no genre until it is saved and classified. */
   const genre = knownGenre(saved?.genre ?? ("genre" in book ? book.genre : null));
 
@@ -112,6 +117,7 @@ export function BookSheet({
             {genre && <span>{genre}</span>}
           </div>
         )}
+        {alreadyWant && <p className="rec-mark">En tu Quiero.</p>}
         <div className="drawer-action-dock">
           <button
             type="button"
@@ -128,22 +134,34 @@ export function BookSheet({
             />
             <span className="drawer-action-label">LEÍ</span>
           </button>
-          <button
-            type="button"
-            className="drawer-action"
-            aria-label="Quiero"
-            aria-pressed={saved?.status === "quiero"}
-            onClick={() => void choose("quiero")}
-          >
-            <Heart
-              className={`drawer-action-icon${popped === "quiero" ? " heart-pop" : ""}`}
-              strokeWidth={2}
-              fill={saved?.status === "quiero" ? "currentColor" : "none"}
-              onAnimationEnd={() => setPopped(null)}
-              aria-hidden="true"
-            />
-            <span className="drawer-action-label">QUIERO</span>
-          </button>
+          {!alreadyWant && (
+            <button
+              type="button"
+              className="drawer-action"
+              aria-label="Quiero"
+              onClick={() => void choose("quiero")}
+            >
+              <Heart
+                className={`drawer-action-icon${popped === "quiero" ? " heart-pop" : ""}`}
+                strokeWidth={2}
+                fill="none"
+                onAnimationEnd={() => setPopped(null)}
+                aria-hidden="true"
+              />
+              <span className="drawer-action-label">QUIERO</span>
+            </button>
+          )}
+          {store && (
+            <button
+              type="button"
+              className="drawer-action"
+              aria-label="Comprar"
+              onClick={() => openExternal(store.toString())}
+            >
+              <ShoppingBag className="drawer-action-icon" strokeWidth={2} aria-hidden="true" />
+              <span className="drawer-action-label">COMPRAR</span>
+            </button>
+          )}
           {saved && (
             <button
               type="button"

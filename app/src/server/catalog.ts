@@ -22,7 +22,11 @@ type GoogleInfo = {
   categories?: unknown;
   description?: unknown;
 };
-type GoogleItem = { id?: unknown; volumeInfo?: GoogleInfo };
+type GoogleItem = {
+  id?: unknown;
+  volumeInfo?: GoogleInfo & { language?: unknown };
+  saleInfo?: { buyLink?: unknown };
+};
 type OpenDoc = {
   title?: unknown;
   isbn?: unknown;
@@ -38,6 +42,7 @@ type OpenDoc = {
   publish_date?: unknown;
   subjects?: unknown;
   description?: unknown;
+  language?: unknown;
 };
 
 async function getJson(url: string): Promise<{ ok: boolean; data: unknown }> {
@@ -99,6 +104,11 @@ function googleBooks(data: unknown): CatalogBook[] {
         synopsis: plainText(info.description),
         source: "google" as const,
         externalId: String(item.id ?? info.title),
+        language: typeof info.language === "string" ? info.language : null,
+        buyLink:
+          typeof item.saleInfo?.buyLink === "string" && item.saleInfo.buyLink.startsWith("https:")
+            ? item.saleInfo.buyLink
+            : null,
       },
     ];
   });
@@ -133,6 +143,9 @@ function openLibraryBooks(data: unknown): CatalogBook[] {
         synopsis: null,
         source: "openlibrary" as const,
         externalId: String(doc.key ?? doc.title),
+        language: Array.isArray(doc.language)
+          ? String(doc.language.find((code: unknown) => typeof code === "string") ?? "") || null
+          : null,
       },
     ];
   });
@@ -142,7 +155,7 @@ async function openLibrary(query: string, isbn: string | null): Promise<SourceRe
   const params = new URLSearchParams({
     limit: "20",
     fields:
-      "key,title,author_name,first_publish_year,publish_date,isbn,cover_i,cover_edition_key,number_of_pages_median,subject",
+      "key,title,author_name,first_publish_year,publish_date,isbn,cover_i,cover_edition_key,number_of_pages_median,subject,language",
   });
   params.set(isbn ? "isbn" : "q", query);
   const search = await getJson(`https://openlibrary.org/search.json?${params}`);
@@ -185,6 +198,7 @@ async function google(
   query: string,
   isbn: string | null,
   key: string | undefined,
+  langRestrict?: string,
 ): Promise<SourceResult> {
   const params = new URLSearchParams({
     q: isbn ? `isbn:${isbn}` : query,
@@ -194,6 +208,7 @@ async function google(
        geo-restricted requests without a country. */
     country: "AR",
   });
+  if (langRestrict) params.set("langRestrict", langRestrict);
   if (key) params.set("key", key);
   const result = await getJson(`https://www.googleapis.com/books/v1/volumes?${params}`);
   return { ok: result.ok, books: googleBooks(result.data) };
@@ -370,3 +385,16 @@ export async function searchCatalog(
 export function withCover(books: CatalogBookWithFallback[]): CatalogBook[] {
   return books.filter((book) => Boolean(book.coverUrl)).map(withoutFallback);
 }
+
+/* Recommendation search: same merge and cover-URL filter, no cover
+   verification hops, so a few queries stay inside the subrequest cap. */
+export async function searchCatalogQuick(
+  query: string,
+  googleKey?: string,
+  langRestrict?: string,
+): Promise<CatalogBook[]> {
+  const results = await Promise.all([openLibrary(query, null), google(query, null, googleKey, langRestrict)]);
+  if (results.every((result) => !result.ok)) throw new CatalogUnavailable();
+  return withCover(mergeBooks(query, results.map((result) => result.books)));
+}
+

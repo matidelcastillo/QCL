@@ -3,6 +3,9 @@ import { CatalogUnavailable, searchCatalog } from "./catalog";
 import { allowedCoverUrl, readBody } from "./cover";
 import { findCover } from "./cover-search";
 import { type Ai, classifyGenre, genreInput } from "./genre-ai";
+import { parseLeoAnswers } from "../domain/leo";
+import { collectCatalog, buildCandidates, pickWithModel, type LeoPick } from "./leo-ai";
+import type { Book, SharedBook } from "../domain/types";
 
 /* Bump when the CatalogBook shape or cleaning rules change, so cached
    responses from an older worker are not served. */
@@ -12,14 +15,17 @@ type RateLimit = { limit: (options: { key: string }) => Promise<{ success: boole
 
 /* Worker bindings. GOOGLE_BOOKS_API_KEY is a secret; without it Google Books
    is called keyless (shared quota). CATALOG_LIMIT, GENRE_LIMIT and TAPA_LIMIT
-   are the Workers rate limiters and AI the Workers AI binding, all declared
+   and LEO_LIMIT are the Workers rate limiters and AI the Workers AI binding, all declared
    in wrangler.jsonc. */
 export type Env = {
   GOOGLE_BOOKS_API_KEY?: string;
   CATALOG_LIMIT?: RateLimit;
   GENRE_LIMIT?: RateLimit;
   TAPA_LIMIT?: RateLimit;
+  LEO_LIMIT?: RateLimit;
   AI?: Ai;
+  SUPABASE_URL?: string;
+  SUPABASE_PUBLISHABLE_KEY?: string;
 };
 
 const CAPACITOR_ORIGIN = "capacitor://localhost";
@@ -33,13 +39,13 @@ export function withCors(request: Request, response: Response) {
   const out = new Response(response.body, response);
   out.headers.set("Access-Control-Allow-Origin", CAPACITOR_ORIGIN);
   out.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  out.headers.set("Access-Control-Allow-Headers", "content-type");
+  out.headers.set("Access-Control-Allow-Headers", "content-type, authorization");
   out.headers.set("Access-Control-Expose-Headers", "x-qcl-cover-url");
   out.headers.set("Vary", "Origin");
   return out;
 }
 
-const API_PATHS = new Set(["/api/libros", "/api/tapa", "/api/genero"]);
+const API_PATHS = new Set(["/api/libros", "/api/tapa", "/api/genero", "/api/leo"]);
 
 const json = (body: unknown, status = 200, cache = "no-store") =>
   new Response(JSON.stringify(body), {
@@ -103,6 +109,96 @@ async function genreResponse(request: Request, env: Env): Promise<Response> {
   }
 }
 
+
+export const LEO_MAX_BYTES = 8_192;
+
+type LeoUser = { token: string; url: string; key: string };
+
+async function leoAuth(request: Request, env: Env): Promise<LeoUser | Response> {
+  const header = request.headers.get("authorization") ?? "";
+  const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
+  if (!token || !env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY)
+    return json({ error: "No autenticado." }, token ? 503 : 401);
+  const url = env.SUPABASE_URL.replace(/\/$/, "");
+  const key = env.SUPABASE_PUBLISHABLE_KEY;
+  const response = await fetch(`${url}/auth/v1/user`, {
+    headers: { apikey: key, authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!response.ok) return json({ error: "No autenticado." }, 401);
+  return { token, url, key };
+}
+
+async function leoJson<T>(user: LeoUser, path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${user.url}${path}`, {
+    ...init,
+    headers: {
+      apikey: user.key,
+      authorization: `Bearer ${user.token}`,
+      "content-type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!response.ok) throw new Error("supabase");
+  return (await response.json()) as T;
+}
+
+async function leoResponse(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") return json({ error: "Método no permitido." }, 405);
+  if (contentLengthTooLarge(request, LEO_MAX_BYTES))
+    return json({ error: "Pedido demasiado grande." }, 413);
+  const limited = await allow(env.LEO_LIMIT, request, "Muchos pedidos. Probá en un rato.");
+  if (limited) return limited;
+  const bytes = await readBody(request, LEO_MAX_BYTES);
+  if (!bytes) return json({ error: "Pedido demasiado grande." }, 413);
+  let parsed: unknown = null;
+  try {
+    parsed = JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    parsed = null;
+  }
+  const answers = parseLeoAnswers(parsed);
+  if (!answers) return json({ error: "Pedido inválido." }, 400);
+  const auth = await leoAuth(request, env);
+  if (auth instanceof Response) return auth;
+  if (!env.AI) return json({ error: "Recomendador no disponible." }, 503);
+  try {
+    const [library, gilada, catalog] = await Promise.all([
+      leoJson<Book[]>(auth, "/rest/v1/books?select=*&order=created_at.desc"),
+      leoJson<Array<Record<string, unknown>>>(auth, "/rest/v1/rpc/most_read_books", {
+        method: "POST",
+        body: "{}",
+      }).then((rows) =>
+        rows.map(
+          (row): SharedBook => ({
+            title: String(row.title ?? ""),
+            author: String(row.author ?? ""),
+            coverUrl: typeof row.cover_url === "string" ? row.cover_url : null,
+            isbn: typeof row.isbn === "string" ? row.isbn : null,
+            source: row.source === "google" || row.source === "openlibrary" ? row.source : "manual",
+            externalId: typeof row.external_id === "string" ? row.external_id : null,
+            page_count: typeof row.page_count === "number" ? row.page_count : null,
+            published_year: typeof row.published_year === "string" ? row.published_year : null,
+            genre: typeof row.genre === "string" ? row.genre : null,
+            synopsis: typeof row.synopsis === "string" ? row.synopsis : null,
+            leiCount: Number(row.lei_count) || 0,
+            quieroCount: Number(row.quiero_count) || 0,
+          }),
+        ),
+      ),
+      collectCatalog(answers, env.GOOGLE_BOOKS_API_KEY),
+    ]);
+    const candidates = buildCandidates(answers, catalog, library, gilada);
+    const picks: LeoPick[] = await pickWithModel(env.AI, answers, candidates);
+    return json({ results: picks });
+  } catch (error) {
+    return error instanceof CatalogUnavailable
+      ? json({ error: "Catálogo no disponible." }, 503)
+      : json({ error: "No se pudo recomendar." }, 502);
+  }
+}
+
 export async function apiResponse(request: Request, env: Env = {}): Promise<Response | null> {
   const url = new URL(request.url);
   if (!API_PATHS.has(url.pathname)) return null;
@@ -114,6 +210,7 @@ export async function apiResponse(request: Request, env: Env = {}): Promise<Resp
   }
   const respond = async (pending: Promise<Response> | Response) => withCors(request, await pending);
   if (url.pathname === "/api/genero") return respond(genreResponse(request, env));
+  if (url.pathname === "/api/leo") return respond(leoResponse(request, env));
   if (url.pathname !== "/api/libros" && url.pathname !== "/api/tapa") return null;
   if (request.method !== "GET") return respond(json({ error: "Método no permitido." }, 405));
   if (url.pathname === "/api/libros") {

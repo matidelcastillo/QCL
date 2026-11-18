@@ -12,6 +12,8 @@ import { LoadingCounts } from "../components/skeleton";
 import { useDeferredPending } from "../components/use-deferred-pending";
 import { Sheet } from "../components/sheet";
 import { buttonClass } from "../components/button";
+import { useSheetOpen } from "../components/sheet-visibility";
+import { Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/vos")({ component: Profile });
 
@@ -24,6 +26,7 @@ function Profile() {
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const showSkeleton = useDeferredPending(books.isPending);
+  const sheetOpen = useSheetOpen();
 
   const library = books.data ?? [];
   const want = library.filter((book) => book.status === "quiero").length;
@@ -58,7 +61,7 @@ function Profile() {
   }
 
   return (
-    <main className="page-pb-nav">
+    <main className="page-pb-nav page-pb-fab">
       <BrandHeader />
       <ScreenHeading>Tu racconto</ScreenHeading>
       <div className="stack-loose app-gutter feed" aria-busy={books.isPending}>
@@ -94,37 +97,41 @@ function Profile() {
             )}
           </>
         )}
-        <button
-          type="button"
-          className="text-action qc-press"
-          disabled={busy}
-          onClick={() => void leave()}
-        >
-          Salir
-        </button>
-        <button
-          type="button"
-          className="text-action qc-press"
-          disabled={busy}
-          onClick={() => {
-            setError("");
-            setConfirmDelete(true);
-          }}
-        >
-          Eliminar cuenta
-        </button>
-        <Link to="/privacidad" className="text-action">
-          Privacidad
-        </Link>
-        <Link to="/soporte" className="text-action">
-          Soporte
-        </Link>
+        <div className="action-grid">
+          <button type="button" className="text-action qc-press" disabled={busy} onClick={() => void leave()}>
+            Salir
+          </button>
+          <button
+            type="button"
+            className="text-action qc-press"
+            disabled={busy}
+            onClick={() => {
+              setError("");
+              setConfirmDelete(true);
+            }}
+          >
+            Eliminar cuenta
+          </button>
+          <Link to="/privacidad" className="text-action">
+            Privacidad
+          </Link>
+          <Link to="/soporte" className="text-action">
+            Soporte
+          </Link>
+        </div>
         {error && (
           <p className="error-text" role="alert">
             {error}
           </p>
         )}
       </div>
+      <Link
+        to="/leo"
+        className={`leo-fab glass glass-orange glass-orange-treatment glass-orange-nav-material sheen-top glass-blur-in${sheetOpen ? " is-hidden" : ""}`}
+        aria-label="Qué leo"
+      >
+        <Sparkles className="nav-icon" size={26} strokeWidth={2} aria-hidden="true" />
+      </Link>
       {selected && <BookSheet book={selected} onClose={() => setSelected(null)} />}
       {confirmDelete && (
         <Sheet onClose={() => !busy && setConfirmDelete(false)} label="Eliminar cuenta">

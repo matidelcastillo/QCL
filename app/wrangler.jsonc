@@ -8,7 +8,13 @@
   "assets": {
     "directory": ".output/public",
   },
-  // /api/libros cache misses, /api/tapa, and /api/genero, per client IP.
+  // Public client config (same values baked into the web app). Used by
+  // /api/leo to read the caller's library with their JWT.
+  "vars": {
+    "SUPABASE_URL": "https://mdytuysdombxyydqnsmj.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_pCfoSYyZSDDxvvnbmq_EHw_7BUhKzYm",
+  },
+  // /api/libros cache misses, /api/tapa, /api/genero and /api/leo, per client IP.
   "ratelimits": [
     {
       "name": "CATALOG_LIMIT",
@@ -26,7 +32,12 @@
       // 120/min covers a whole library; cached hits do not spend the limit.
       "simple": { "limit": 120, "period": 60 },
     },
+    {
+      "name": "LEO_LIMIT",
+      "namespace_id": "1004",
+      "simple": { "limit": 15, "period": 60 },
+    },
   ],
-  // Workers AI: genre classifier (src/server/genre-ai.ts).
+  // Workers AI: genre classifier and Qué leo (src/server/genre-ai.ts, leo-ai.ts).
   "ai": { "binding": "AI" },
 }

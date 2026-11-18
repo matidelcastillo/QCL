@@ -24,6 +24,7 @@ export type Ai = {
       messages: Array<{ role: "system" | "user"; content: string }>;
       max_tokens: number;
       temperature: number;
+      response_format?: unknown;
     },
   ) => Promise<unknown>;
 };

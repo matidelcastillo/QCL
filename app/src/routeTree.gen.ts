@@ -14,6 +14,7 @@ import { Route as AgregarRouteImport } from './routes/agregar'
 import { Route as ClaveRouteImport } from './routes/clave'
 import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as GiladaRouteImport } from './routes/gilada'
+import { Route as LeoRouteImport } from './routes/leo'
 import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as SoporteRouteImport } from './routes/soporte'
 import { Route as VosRouteImport } from './routes/vos'
@@ -43,6 +44,11 @@ const GiladaRoute = GiladaRouteImport.update({
   path: '/gilada',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeoRoute = LeoRouteImport.update({
+  id: '/leo',
+  path: '/leo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacidadRoute = PrivacidadRouteImport.update({
   id: '/privacidad',
   path: '/privacidad',
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/clave': typeof ClaveRoute
   '/entrar': typeof EntrarRoute
   '/gilada': typeof GiladaRoute
+  '/leo': typeof LeoRoute
   '/privacidad': typeof PrivacidadRoute
   '/soporte': typeof SoporteRoute
   '/vos': typeof VosRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/clave': typeof ClaveRoute
   '/entrar': typeof EntrarRoute
   '/gilada': typeof GiladaRoute
+  '/leo': typeof LeoRoute
   '/privacidad': typeof PrivacidadRoute
   '/soporte': typeof SoporteRoute
   '/vos': typeof VosRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/clave': typeof ClaveRoute
   '/entrar': typeof EntrarRoute
   '/gilada': typeof GiladaRoute
+  '/leo': typeof LeoRoute
   '/privacidad': typeof PrivacidadRoute
   '/soporte': typeof SoporteRoute
   '/vos': typeof VosRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/clave'
     | '/entrar'
     | '/gilada'
+    | '/leo'
     | '/privacidad'
     | '/soporte'
     | '/vos'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/clave'
     | '/entrar'
     | '/gilada'
+    | '/leo'
     | '/privacidad'
     | '/soporte'
     | '/vos'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/clave'
     | '/entrar'
     | '/gilada'
+    | '/leo'
     | '/privacidad'
     | '/soporte'
     | '/vos'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   ClaveRoute: typeof ClaveRoute
   EntrarRoute: typeof EntrarRoute
   GiladaRoute: typeof GiladaRoute
+  LeoRoute: typeof LeoRoute
   PrivacidadRoute: typeof PrivacidadRoute
   SoporteRoute: typeof SoporteRoute
   VosRoute: typeof VosRoute
@@ -171,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GiladaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/leo': {
+      id: '/leo'
+      path: '/leo'
+      fullPath: '/leo'
+      preLoaderRoute: typeof LeoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacidad': {
       id: '/privacidad'
       path: '/privacidad'
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClaveRoute: ClaveRoute,
   EntrarRoute: EntrarRoute,
   GiladaRoute: GiladaRoute,
+  LeoRoute: LeoRoute,
   PrivacidadRoute: PrivacidadRoute,
   SoporteRoute: SoporteRoute,
   VosRoute: VosRoute,

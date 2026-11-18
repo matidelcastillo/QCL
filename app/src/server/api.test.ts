@@ -239,6 +239,19 @@ test("rate limiters fail closed when the binding is missing", async () => {
     }),
   );
   expect(genre?.status).toBe(503);
+  const leo = await apiResponse(
+    new Request(`${base}/api/leo`, {
+      method: "POST",
+      headers: { authorization: "Bearer token" },
+      body: JSON.stringify({
+        purpose: "escaparme",
+        mood: "oscuro",
+        topic: "policial",
+        pace: "vuele",
+      }),
+    }),
+  );
+  expect(leo?.status).toBe(503);
   expect(fetched).toBe(0);
 });
 
@@ -281,9 +294,9 @@ test("genre route rejects an oversized body before reading it", async () => {
 
 test("wrangler.jsonc declares the bindings the worker uses", async () => {
   const raw = await Bun.file(new URL("../../wrangler.jsonc", import.meta.url)).text();
-  const parsed = JSON.parse(raw.replace(/\/\/.*$/gm, "").replace(/,(\s*[}\]])/g, "$1"));
+  const parsed = JSON.parse(raw.replace(/("(?:\\.|[^"\\])*")|\/\/.*$/gm, (chunk, str) => str ?? "").replace(/,(\s*[}\]])/g, "$1"));
   const names = new Set((parsed.ratelimits ?? []).map((entry: { name: string }) => entry.name));
-  expect(names).toEqual(new Set(["CATALOG_LIMIT", "GENRE_LIMIT", "TAPA_LIMIT"]));
+  expect(names).toEqual(new Set(["CATALOG_LIMIT", "GENRE_LIMIT", "TAPA_LIMIT", "LEO_LIMIT"]));
   expect(parsed.ai?.binding).toBe("AI");
 });
 
@@ -311,4 +324,43 @@ test("CORS is only set for capacitor://localhost on API routes", async () => {
     new Response("", { headers: { "x-qcl-cover-url": "https://example.com/c.jpg" } }),
   );
   expect(wrapped.headers.get("access-control-expose-headers")).toContain("x-qcl-cover-url");
+});
+
+test("leo route: POST only, needs a session, validates the body, fails closed", async () => {
+  const allow = { limit: async () => ({ success: true }) };
+  const env = {
+    LEO_LIMIT: allow,
+    SUPABASE_URL: "https://mdytuysdombxyydqnsmj.supabase.co",
+    SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
+    AI: { run: async () => ({ response: { picks: [] } }) },
+  };
+  expect((await apiResponse(new Request(`${base}/api/leo`)))?.status).toBe(405);
+  const valid = {
+    purpose: "escaparme",
+    mood: "oscuro",
+    topic: "policial",
+    pace: "vuele",
+  };
+  expect(
+    (await apiResponse(new Request(`${base}/api/leo`, { method: "POST", body: JSON.stringify(valid) }), env))
+      ?.status,
+  ).toBe(401);
+  const bad = await apiResponse(
+    new Request(`${base}/api/leo`, {
+      method: "POST",
+      headers: { authorization: "Bearer token" },
+      body: JSON.stringify({ purpose: "nope", mood: "oscuro", topic: "policial", pace: "vuele" }),
+    }),
+    env,
+  );
+  expect(bad?.status).toBe(400);
+  const limited = await apiResponse(
+    new Request(`${base}/api/leo`, {
+      method: "POST",
+      headers: { authorization: "Bearer token" },
+      body: JSON.stringify({ purpose: "escaparme", mood: "oscuro", topic: "policial", pace: "vuele" }),
+    }),
+    { ...env, LEO_LIMIT: { limit: async () => ({ success: false }) } },
+  );
+  expect(limited?.status).toBe(429);
 });

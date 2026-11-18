@@ -1058,3 +1058,172 @@ button:disabled {
 .legal-copy a {
   color: inherit;
 }
+
+/* Qué leo: flow chrome, stacked options, FAB, 6-up result grid. */
+.flow-bar {
+  display: flex;
+  align-items: center;
+  padding-inline: var(--qcl-page-px);
+}
+.flow-bar .text-action {
+  margin: 0;
+}
+.flow-screen .screen-heading {
+  min-height: unset;
+  padding-bottom: 0;
+}
+.progress {
+  display: flex;
+  gap: var(--space-1);
+  margin: var(--space-4) var(--qcl-page-px) var(--space-5);
+}
+.progress-seg {
+  flex: 1;
+  height: var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--gray-light);
+}
+.progress-seg.is-on {
+  background: var(--qcl-orange);
+}
+.progress + .feed {
+  padding-top: 0;
+}
+.question-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.chip-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+  padding-inline: var(--qcl-page-px);
+}
+.chip-stack .filter-tab {
+  display: flex;
+  width: 100%;
+  min-height: var(--nav-hit-size);
+  justify-content: flex-start;
+}
+.skip-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin: var(--space-4) 0 0;
+}
+.leo-anchor-grid {
+  padding-bottom: 0;
+}
+.page-pb-fab {
+  padding-bottom: calc(var(--page-pb-nav) + var(--nav-height) + var(--space-3));
+}
+.leo-fab {
+  position: fixed;
+  right: var(--space-5);
+  bottom: calc(var(--nav-block-pad) + var(--nav-height) + var(--nav-block-pad) + var(--safe-bottom));
+  z-index: 51;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--nav-height);
+  height: var(--nav-height);
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 50%;
+  color: var(--nav-active-color);
+  text-decoration: none;
+}
+.leo-fab .nav-icon {
+  width: var(--nav-icon-size);
+  height: var(--nav-icon-size);
+}
+.leo-fab.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-4);
+}
+.action-grid .text-action {
+  margin: 0;
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+.leo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-3);
+  padding-inline: var(--qcl-page-px);
+  /* Two rows of covers + titles must clear the nav in a 390×844 frame. */
+  overflow: hidden;
+}
+.leo-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.leo-card-cover {
+  position: relative;
+  display: block;
+  aspect-ratio: var(--qcl-cover-ratio);
+  overflow: hidden;
+  border-radius: var(--qcl-tile-radius);
+  background: var(--black);
+}
+.leo-card-cover > .cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+}
+.leo-card-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.leo-card-title,
+.leo-card-value {
+  display: block;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+  -webkit-line-clamp: unset;
+}
+.leo-card-title {
+  color: var(--foreground);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.leo-card-value {
+  color: var(--gray-text);
+  font-size: var(--text-micro-qcba);
+  font-weight: 500;
+  line-height: var(--leading-micro-qcba);
+}
+.rec-mark {
+  margin: 0;
+  color: var(--qcl-meta-gray);
+  font-size: var(--text-micro-qcba);
+  font-weight: 600;
+  line-height: var(--leading-micro-qcba);
+  text-align: center;
+}

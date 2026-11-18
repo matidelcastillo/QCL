@@ -30,6 +30,8 @@ export type CatalogBook = Pick<
   externalId: string;
   subjects: string[];
   categories: string[];
+  language?: string | null;
+  buyLink?: string | null;
 };
 
 /* Row of public.most_read_books(): one shared book, counts only, no identities. */
