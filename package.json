@@ -1,6 +1,7 @@
 {
   "name": "qcl-ios",
   "private": true,
+  "packageManager": "bun@1.3.14",
   "description": "Capacitor 8 iOS shell for qué carajo lees",
   "scripts": {
     "cap:sync": "cap sync ios",
