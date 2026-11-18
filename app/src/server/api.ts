@@ -147,6 +147,9 @@ async function leoResponse(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") return json({ error: "Método no permitido." }, 405);
   if (contentLengthTooLarge(request, LEO_MAX_BYTES))
     return json({ error: "Pedido demasiado grande." }, 413);
+  const header = request.headers.get("authorization") ?? "";
+  if (!header.toLowerCase().startsWith("bearer ") || !header.slice(7).trim())
+    return json({ error: "No autenticado." }, 401);
   const limited = await allow(env.LEO_LIMIT, request, "Muchos pedidos. Probá en un rato.");
   if (limited) return limited;
   const bytes = await readBody(request, LEO_MAX_BYTES);

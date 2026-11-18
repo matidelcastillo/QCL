@@ -18,8 +18,9 @@ import { BrandHeader, ScreenHeading } from "../components/brand-header";
 import { BookCover } from "../components/book-cover";
 import { BookTile } from "../components/book-tile";
 import { BookSheet } from "../components/book-sheet";
-import { LoadError } from "../components/feedback";
+import { EmptyState, LoadError } from "../components/feedback";
 import { LoadingTiles } from "../components/skeleton";
+import { buttonClass } from "../components/button";
 import { useDeferredPending } from "../components/use-deferred-pending";
 
 export const Route = createFileRoute("/leo")({ component: Leo });
@@ -38,9 +39,20 @@ function toAnswers(draft: Draft): LeoAnswers | null {
 
 function Progress({ step, total }: { step: number; total: number }) {
   return (
-    <div className="progress" aria-hidden="true">
+    <div
+      className="progress"
+      role="progressbar"
+      aria-label={`Paso ${step + 1} de ${total}`}
+      aria-valuemin={1}
+      aria-valuemax={total}
+      aria-valuenow={step + 1}
+    >
       {Array.from({ length: total }, (_, index) => (
-        <span key={index} className={`progress-seg${index <= step ? " is-on" : ""}`} />
+        <span
+          key={index}
+          className={`progress-seg${index <= step ? " is-on" : ""}`}
+          aria-hidden="true"
+        />
       ))}
     </div>
   );
@@ -117,6 +129,18 @@ function Leo() {
       ) : error ? (
         <section className="feed app-gutter">
           <LoadError retry={() => void finish(draft)} />
+        </section>
+      ) : onResults && (results ?? []).length === 0 ? (
+        <section className="feed app-gutter">
+          <EmptyState text="Nada esta vez.">
+            <button
+              type="button"
+              className={buttonClass("primary")}
+              onClick={() => void finish(draft)}
+            >
+              Probar de nuevo
+            </button>
+          </EmptyState>
         </section>
       ) : onResults ? (
         <section className="leo-grid" aria-live="polite">

@@ -376,4 +376,22 @@ test("leo route: POST only, needs a session, validates the body, fails closed", 
     { ...env, LEO_LIMIT: { limit: async () => ({ success: false }) } },
   );
   expect(limited?.status).toBe(429);
+  let spent = 0;
+  const unauth = await apiResponse(
+    new Request(`${base}/api/leo`, {
+      method: "POST",
+      body: JSON.stringify(valid),
+    }),
+    {
+      ...env,
+      LEO_LIMIT: {
+        limit: async () => {
+          spent += 1;
+          return { success: true };
+        },
+      },
+    },
+  );
+  expect(unauth?.status).toBe(401);
+  expect(spent).toBe(0);
 });

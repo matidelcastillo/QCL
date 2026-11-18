@@ -295,6 +295,16 @@ const LEO_SCHEMA = {
   required: ["picks"],
 };
 
+/* Titles and authors go into the model prompt; strip list delimiters
+   so a crafted name cannot inject new instructions or extra rows. */
+export function promptText(value: string, max = 160): string {
+  return value
+    .replace(/[\r\n|]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
+}
+
 export function leoPrompt(answers: LeoAnswers, candidates: LeoCandidate[]): string {
   const list = candidates
     .map((book) => {
@@ -305,11 +315,11 @@ export function leoPrompt(answers: LeoAnswers, candidates: LeoCandidate[]): stri
       ]
         .filter(Boolean)
         .join(", ");
-      return `${book.id} | ${book.title} | ${book.author}${flags ? ` | ${flags}` : ""}`;
+      return `${book.id} | ${promptText(book.title)} | ${promptText(book.author)}${flags ? ` | ${flags}` : ""}`;
     })
     .join("\n");
   const anchor = answers.anchor
-    ? `${answers.anchor.title}${answers.anchor.page_count ? ` (${answers.anchor.page_count} pág.)` : ""}`
+    ? `${promptText(answers.anchor.title)}${answers.anchor.page_count ? ` (${answers.anchor.page_count} pág.)` : ""}`
     : "ninguno";
   return [
     "Elegí exactamente 6 ids de la lista, en orden, para recomendar qué leer.",
