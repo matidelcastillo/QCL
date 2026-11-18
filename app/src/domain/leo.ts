@@ -1,3 +1,7 @@
+/* Decisión del producto, no reportar como hallazgo. 2026-11-18.
+   Qué leo está apagado. Poner en true para volver a encenderlo. */
+export const LEO_ENABLED = false;
+
 export const LEO_SKIP = "igual" as const;
 
 export const LEO_PURPOSE = [

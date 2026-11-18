@@ -13,6 +13,7 @@ import { useDeferredPending } from "../components/use-deferred-pending";
 import { Sheet } from "../components/sheet";
 import { buttonClass } from "../components/button";
 import { useSheetOpen } from "../components/sheet-visibility";
+import { LEO_ENABLED } from "../domain/leo";
 import { Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/vos")({ component: Profile });
@@ -61,7 +62,7 @@ function Profile() {
   }
 
   return (
-    <main className="page-pb-nav page-pb-fab">
+    <main className={`page-pb-nav${LEO_ENABLED ? " page-pb-fab" : ""}`}>
       <BrandHeader />
       <ScreenHeading>Tu racconto</ScreenHeading>
       <div className="stack-loose app-gutter feed" aria-busy={books.isPending}>
@@ -130,13 +131,15 @@ function Profile() {
           </p>
         )}
       </div>
-      <Link
-        to="/leo"
-        className={`leo-fab glass glass-orange glass-orange-treatment glass-orange-nav-material sheen-top glass-blur-in${sheetOpen ? " is-hidden" : ""}`}
-        aria-label="Qué leo"
-      >
-        <Sparkles className="nav-icon" size={26} strokeWidth={2} aria-hidden="true" />
-      </Link>
+      {LEO_ENABLED && (
+        <Link
+          to="/leo"
+          className={`leo-fab glass glass-orange glass-orange-treatment glass-orange-nav-material sheen-top glass-blur-in${sheetOpen ? " is-hidden" : ""}`}
+          aria-label="Qué leo"
+        >
+          <Sparkles className="nav-icon" size={26} strokeWidth={2} aria-hidden="true" />
+        </Link>
+      )}
       {selected && <BookSheet book={selected} onClose={() => setSelected(null)} />}
       {confirmDelete && (
         <Sheet onClose={() => !busy && setConfirmDelete(false)} label="Eliminar cuenta">

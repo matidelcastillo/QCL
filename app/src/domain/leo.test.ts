@@ -1,7 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { LEO_STEPS, parseLeoAnswers, recentRead } from "./leo";
+import { LEO_ENABLED, LEO_STEPS, parseLeoAnswers, recentRead } from "./leo";
 
 describe("leo steps", () => {
+  test("Qué leo is off until the product flag is turned back on", () => {
+    expect(LEO_ENABLED).toBe(false);
+  });
+
   test("copy is the five questions, each with Da igual or Saltar", () => {
     expect(LEO_STEPS.map((step) => step.title)).toEqual([
       "¿Para qué?",

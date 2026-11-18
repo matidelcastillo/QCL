@@ -5,15 +5,18 @@ const leo = await Bun.file(new URL("../routes/leo.tsx", import.meta.url)).text()
 const sheet = await Bun.file(new URL("../components/book-sheet.tsx", import.meta.url)).text();
 
 describe("Qué leo UI", () => {
-  test("Perfil has the FAB, the 2-column actions, and never says QCL", () => {
+  test("Perfil hides the FAB while Qué leo is off, and never says QCL", () => {
+    expect(vos).toContain("LEO_ENABLED");
+    expect(vos).toContain("{LEO_ENABLED && (");
     expect(vos).toContain('aria-label="Qué leo"');
     expect(vos).toContain("leo-fab");
     expect(vos).toContain("action-grid");
-    expect(vos).toContain("page-pb-fab");
     expect(vos).not.toMatch(/\bQCL\b/);
   });
 
-  test("the flow uses stacked options, deferred tiles, and a 6-up grid", () => {
+  test("the flow stays in the code, and /leo redirects to /vos while it is off", () => {
+    expect(leo).toContain("LEO_ENABLED");
+    expect(leo).toContain('redirect({ to: "/vos" })');
     expect(leo).toContain("chip-stack");
     expect(leo).toContain("LoadingTiles");
     expect(leo).toContain("useDeferredPending");

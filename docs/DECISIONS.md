@@ -27,3 +27,7 @@ Las funciones ejecutables por `authenticated` (`most_read_books`, `delete_own_ac
 ## Bundle
 
 El aviso de Vite de chunk mayor a 500 kB se acepta: el `Gate` raíz necesita el cliente de Supabase.
+
+## Qué leo
+
+Está apagado por decisión de producto, desde el 2026-11-18. El interruptor es `LEO_ENABLED` en `app/src/domain/leo.ts`. No reportar la ausencia del botón o del endpoint como hallazgo.

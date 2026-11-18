@@ -1,8 +1,9 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import type { CatalogBook } from "../domain/types";
 import { swapFailedCover } from "../domain/leo-results";
 import {
+  LEO_ENABLED,
   LEO_STEPS,
   parseLeoAnswers,
   recentRead,
@@ -24,7 +25,12 @@ import { LoadingTiles } from "../components/skeleton";
 import { buttonClass } from "../components/button";
 import { useDeferredPending } from "../components/use-deferred-pending";
 
-export const Route = createFileRoute("/leo")({ component: Leo });
+export const Route = createFileRoute("/leo")({
+  beforeLoad: () => {
+    if (!LEO_ENABLED) throw redirect({ to: "/vos" });
+  },
+  component: Leo,
+});
 
 type Draft = {
   purpose?: LeoPurpose;

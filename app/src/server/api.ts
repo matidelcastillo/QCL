@@ -3,7 +3,7 @@ import { CatalogUnavailable, searchCatalog } from "./catalog";
 import { allowedCoverUrl, readBody } from "./cover";
 import { findCover } from "./cover-search";
 import { type Ai, classifyGenre, genreInput } from "./genre-ai";
-import { parseLeoAnswers } from "../domain/leo";
+import { LEO_ENABLED, parseLeoAnswers } from "../domain/leo";
 import {
   collectCatalog,
   buildCandidates,
@@ -222,7 +222,10 @@ export async function apiResponse(request: Request, env: Env = {}): Promise<Resp
   }
   const respond = async (pending: Promise<Response> | Response) => withCors(request, await pending);
   if (url.pathname === "/api/genero") return respond(genreResponse(request, env));
-  if (url.pathname === "/api/leo") return respond(leoResponse(request, env));
+  if (url.pathname === "/api/leo") {
+    if (!LEO_ENABLED) return respond(json({ error: "Recomendador no disponible." }, 503));
+    return respond(leoResponse(request, env));
+  }
   if (url.pathname !== "/api/libros" && url.pathname !== "/api/tapa") return null;
   if (request.method !== "GET") return respond(json({ error: "Método no permitido." }, 405));
   if (url.pathname === "/api/libros") {

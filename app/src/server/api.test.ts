@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
 import { apiResponse, withCors } from "./api";
+import { LEO_ENABLED } from "../domain/leo";
 
 const base = "https://qcl.example";
 const allow = { limit: async () => ({ success: true }) };
@@ -330,7 +331,41 @@ test("CORS is only set for capacitor://localhost on API routes", async () => {
   expect(wrapped.headers.get("access-control-expose-headers")).toContain("x-qcl-cover-url");
 });
 
+test("leo is off: /api/leo is unavailable and does not spend the limiter", async () => {
+  expect(LEO_ENABLED).toBe(false);
+  let spent = 0;
+  const env = {
+    LEO_LIMIT: {
+      limit: async () => {
+        spent += 1;
+        return { success: true };
+      },
+    },
+    SUPABASE_URL: "https://mdytuysdombxyydqnsmj.supabase.co",
+    SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
+    AI: { run: async () => ({ response: { picks: [] } }) },
+  };
+  const response = await apiResponse(
+    new Request(`${base}/api/leo`, {
+      method: "POST",
+      headers: { authorization: "Bearer token" },
+      body: JSON.stringify({
+        purpose: "escaparme",
+        mood: "oscuro",
+        topic: "policial",
+        pace: "vuele",
+      }),
+    }),
+    env,
+  );
+  expect(response?.status).toBe(503);
+  expect(await response?.json()).toEqual({ error: "Recomendador no disponible." });
+  expect(spent).toBe(0);
+  expect((await apiResponse(new Request(`${base}/api/leo`)))?.status).toBe(503);
+});
+
 test("leo route: POST only, needs a session, validates the body, fails closed", async () => {
+  if (!LEO_ENABLED) return;
   const allow = { limit: async () => ({ success: true }) };
   const env = {
     LEO_LIMIT: allow,
