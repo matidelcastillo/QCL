@@ -164,21 +164,96 @@ function stripAuthorSegment(
   return null;
 }
 
-/* Catalog titles often repeat the author ("Julio Cortazar, Rayuela").
-   The card should show the work name only. */
+const EDITION_TAIL =
+  /^(new|nueva|nuevo|revised|revisada|updated|second|third|first|2nd|3rd|1st|edition|edici[oó]n|vol\.?|volume|tomo)\b/i;
+
+/* "Julio Cortazar, Rayuela" is the work plus its author, even when the
+   catalog row credits a critic or a compiler. */
+export function splitAuthorTitle(title: string): { author: string; title: string } | null {
+  const cleaned = cleanText(title);
+  const match = cleaned.match(
+    /^([A-ZÁÉÍÓÚÜÑ][\p{L}'’.-]+(?:\s+[A-ZÁÉÍÓÚÜÑ][\p{L}'’.-]+){1,3}),\s+(.+)$/u,
+  );
+  if (!match || EDITION_TAIL.test(match[2])) return null;
+  return { author: match[1], title: match[2] };
+}
+
+export function workIdentity(title: string, author?: string | null): string {
+  return identity(workTitle(title, author)).replace(
+    /^(the|a|an|el|la|los|las|lo|un|una|unos|unas)\s+/,
+    "",
+  );
+}
+
 export function workTitle(title: string, author?: string | null): string {
   let result = cleanText(title);
   result = result
     .replace(/\s*\(([^)]{1,20})\)\s*$/u, (all, inner: string) => (/\d/.test(inner) ? all : ""))
     .trim();
-  if (!author?.trim()) return result;
-  for (const variant of authorVariants(author)) {
-    result = stripAuthorSegment(result, variant, "prefix") ?? result;
-    result = stripAuthorSegment(result, variant, "suffix") ?? result;
+  const split = splitAuthorTitle(result);
+  if (split) result = split.title;
+  if (author?.trim()) {
+    for (const variant of authorVariants(author)) {
+      result = stripAuthorSegment(result, variant, "prefix") ?? result;
+      result = stripAuthorSegment(result, variant, "suffix") ?? result;
+    }
   }
   return result || cleanText(title);
 }
 
 export function workKey(book: { title: string; author: string }): string {
-  return `${identity(workTitle(book.title, book.author))}|${authorKey(book.author)}`;
+  const author = splitAuthorTitle(book.title)?.author || book.author;
+  return `${workIdentity(book.title, book.author)}|${authorKey(author)}`;
+}
+
+function lastToken(value: string): string {
+  const parts = value.split(" ").filter(Boolean);
+  return parts[parts.length - 1] ?? "";
+}
+
+export function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const row = Array.from({ length: b.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= a.length; i++) {
+    let previous = i - 1;
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const current = row[j]!;
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      row[j] = Math.min(row[j]! + 1, row[j - 1]! + 1, previous + cost);
+      previous = current;
+    }
+  }
+  return row[b.length]!;
+}
+
+export function authorsMatch(a: string, b: string): boolean {
+  const left = authorKey(a);
+  const right = authorKey(b);
+  if (!left || !right) return false;
+  if (left === right) return true;
+  const lastLeft = lastToken(left);
+  const lastRight = lastToken(right);
+  if (lastLeft.length >= 6 && lastLeft === lastRight) return true;
+  if (Math.min(left.length, right.length) >= 6 && levenshtein(left, right) <= 2) return true;
+  return lastLeft.length >= 6 && lastRight.length >= 6 && levenshtein(lastLeft, lastRight) <= 2;
+}
+
+export function sameWork(
+  a: { title: string; author: string; isbn?: string | null },
+  b: { title: string; author: string; isbn?: string | null },
+): boolean {
+  if (a.isbn && b.isbn && a.isbn === b.isbn) return true;
+  const titleA = workIdentity(a.title, a.author);
+  const titleB = workIdentity(b.title, b.author);
+  if (!titleA || !titleB) return false;
+  const close =
+    titleA === titleB ||
+    (Math.min(titleA.length, titleB.length) >= 5 && levenshtein(titleA, titleB) <= 2);
+  if (!close) return false;
+  const authorA = splitAuthorTitle(a.title)?.author || a.author;
+  const authorB = splitAuthorTitle(b.title)?.author || b.author;
+  return authorsMatch(authorA, authorB);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { firstAuthors, plainText, year, workTitle, authorKey } from "./metadata";
+import { authorKey, firstAuthors, plainText, sameWork, workKey, workTitle, year } from "./metadata";
 
 describe("catalog metadata", () => {
   test("uses two authors only when exactly two exist", () => {
@@ -41,6 +41,35 @@ describe("work titles", () => {
 
   test("does not strip a last name that is part of the title", () => {
     expect(workTitle("West of the Sun", "Paul West")).toBe("West of the Sun");
+    expect(workTitle("Purple Cow, New Edition", "Seth Godin")).toBe("Purple Cow, New Edition");
+  });
+
+  test("strips an author prefix even if the row credits someone else", () => {
+    expect(workTitle("Julio Cortazar, Rayuela", "Brody, Robert.")).toBe("Rayuela");
+    expect(workKey({ title: "Julio Cortazar, Rayuela", author: "Brody, Robert." })).toBe(
+      workKey({ title: "Rayuela", author: "Julio Cortázar" }),
+    );
+  });
+
+  test("sameWork ignores a leading article and close translations", () => {
+    expect(
+      sameWork(
+        { title: "The Call of Cthulhu", author: "H.P. Lovecraft" },
+        { title: "Call of Cthulhu", author: "H. P. Lovecraft" },
+      ),
+    ).toBe(true);
+    expect(
+      sameWork(
+        { title: "Antigone", author: "Sophocles" },
+        { title: "Antígona", author: "Sófocles" },
+      ),
+    ).toBe(true);
+    expect(
+      sameWork(
+        { title: "Dune", author: "Frank Herbert" },
+        { title: "Dune Messiah", author: "Frank Herbert" },
+      ),
+    ).toBe(false);
   });
 
   test("authorKey treats inverted names as the same person", () => {

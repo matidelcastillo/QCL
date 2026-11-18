@@ -1,4 +1,12 @@
-import { authorKey, identity, isSpanish, workKey, workTitle } from "../domain/metadata";
+import {
+  authorKey,
+  authorsMatch,
+  isSpanish,
+  sameWork,
+  splitAuthorTitle,
+  workKey,
+  workTitle,
+} from "../domain/metadata";
 import type { LeoAnchor, LeoAnswers } from "../domain/leo";
 import type { Book, CatalogBook, SharedBook } from "../domain/types";
 import { CatalogUnavailable, searchCatalogEditions } from "./catalog";
@@ -96,8 +104,7 @@ function sameBook(
   a: { title: string; author: string; isbn?: string | null },
   b: { title: string; author: string; isbn?: string | null },
 ) {
-  if (a.isbn && b.isbn && a.isbn === b.isbn) return true;
-  return workKey(a) === workKey(b);
+  return sameWork(a, b);
 }
 
 export function isAnchorMatch(
@@ -183,7 +190,7 @@ export function toCandidate(
   return {
     id,
     title: workTitle(book.title, book.author),
-    author: book.author,
+    author: splitAuthorTitle(book.title)?.author || book.author,
     coverUrl: cover,
     isbn: book.isbn,
     source,
@@ -513,6 +520,47 @@ export async function pickWithModel(
   } catch {
     return fillPicks([], new Map(), candidates, answers);
   }
+}
+
+const ENRICH_MAX = 5;
+
+export async function refineWithSpanishEditions(
+  candidates: LeoCandidate[],
+  googleKey?: string,
+): Promise<LeoCandidate[]> {
+  const missing = candidates
+    .filter((book) => isSpanish(book.language) !== true)
+    .slice(0, ENRICH_MAX);
+  if (!missing.length) return candidates;
+  const updates = await Promise.all(
+    missing.map(async (book) => {
+      try {
+        const found = await searchCatalogEditions(
+          [workTitle(book.title, book.author), book.author].filter(Boolean).join(" "),
+          googleKey,
+          "es",
+        );
+        const spanish = found.filter((item) => isSpanish(item.language) === true);
+        const match =
+          spanish.find((item) => sameWork(item, book)) ??
+          spanish.find((item) => authorsMatch(item.author, book.author));
+        if (!match) return null;
+        return { from: book.id, edition: match };
+      } catch {
+        return null;
+      }
+    }),
+  );
+  const byId = new Map(
+    updates.flatMap((item) => (item ? [[item.from, item.edition] as const] : [])),
+  );
+  const merged = candidates.map((book) => {
+    const edition = byId.get(book.id);
+    if (!edition) return book;
+    const candidate = toCandidate(edition, { inQuiero: book.inQuiero, inGilada: book.inGilada });
+    return candidate ? { ...candidate, score: book.score } : book;
+  });
+  return selectWorkCandidates(merged);
 }
 
 export async function collectCatalog(

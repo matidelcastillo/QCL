@@ -111,6 +111,30 @@ describe("buildCandidates", () => {
     expect(candidates.find((book) => book.title === "De la gilada")?.inGilada).toBe(true);
   });
 
+  test("drops a miscredited edition of a work already in Leí", () => {
+    const built = buildCandidates(
+      answers,
+      [
+        catalog("Julio Cortazar, Rayuela", {
+          author: "Brody, Robert.",
+          page_count: 86,
+          isbn: "9780729300148",
+          externalId: "/works/brody",
+        }),
+      ],
+      [
+        libraryBook("Rayuela", "lei", {
+          author: "Julio Cortázar",
+          page_count: 633,
+          isbn: "9788432221552",
+          external_id: "/works/rayuela",
+        }),
+      ],
+      [],
+    );
+    expect(built.some((book) => /rayuela/i.test(book.title))).toBe(false);
+  });
+
   test("drops known non-Spanish books when there are enough Spanish candidates", () => {
     const catalogBooks = Array.from({ length: 8 }, (_, index) =>
       catalog(`ES ${index}`, {

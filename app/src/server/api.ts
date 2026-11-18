@@ -4,7 +4,13 @@ import { allowedCoverUrl, readBody } from "./cover";
 import { findCover } from "./cover-search";
 import { type Ai, classifyGenre, genreInput } from "./genre-ai";
 import { parseLeoAnswers } from "../domain/leo";
-import { collectCatalog, buildCandidates, pickWithModel, type LeoPick } from "./leo-ai";
+import {
+  collectCatalog,
+  buildCandidates,
+  pickWithModel,
+  refineWithSpanishEditions,
+  type LeoPick,
+} from "./leo-ai";
 import type { Book, SharedBook } from "../domain/types";
 
 /* Bump when the CatalogBook shape or cleaning rules change, so cached
@@ -189,7 +195,10 @@ async function leoResponse(request: Request, env: Env): Promise<Response> {
       ),
       collectCatalog(answers, env.GOOGLE_BOOKS_API_KEY),
     ]);
-    const candidates = buildCandidates(answers, catalog, library, gilada);
+    const candidates = await refineWithSpanishEditions(
+      buildCandidates(answers, catalog, library, gilada),
+      env.GOOGLE_BOOKS_API_KEY,
+    );
     const picks: LeoPick[] = await pickWithModel(env.AI, answers, candidates);
     return json({ results: picks });
   } catch (error) {
