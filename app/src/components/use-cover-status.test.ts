@@ -25,4 +25,11 @@ describe("cover reveal", () => {
     expect(source).toContain("isCoverRevealed");
     expect(source).toContain("onCover");
   });
+
+  test("book tiles fill a cover-wait wrapper so the grid does not collapse", async () => {
+    const styles = await Bun.file(new URL("../styles/components.css", import.meta.url)).text();
+    const rule = styles.split(".book-tile {")[1]?.split("}")[0] ?? "";
+    expect(rule).toContain("width: 100%");
+    expect(rule).toContain("aspect-ratio: var(--qcl-cover-ratio)");
+  });
 });

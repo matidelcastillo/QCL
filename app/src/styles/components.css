@@ -1021,6 +1021,9 @@ button:disabled {
 .book-tile {
   position: relative;
   display: block;
+  /* Button with only absolutely positioned children shrinks to 0
+     unless it is a grid item. Cover-wait wrappers need an explicit width. */
+  width: 100%;
   aspect-ratio: var(--qcl-cover-ratio);
   padding: 0;
   overflow: hidden;
