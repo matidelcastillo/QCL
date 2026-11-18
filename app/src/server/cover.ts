@@ -161,3 +161,10 @@ export async function fetchCover(
   }
   return null;
 }
+
+/* True when the URL is allowlisted and fetchCover gets a real image,
+   not a 404 or a known placeholder. */
+export async function coverResolves(raw: string | null | undefined): Promise<boolean> {
+  const url = raw ? allowedCoverUrl(raw) : null;
+  return Boolean(url && (await fetchCover(url)));
+}

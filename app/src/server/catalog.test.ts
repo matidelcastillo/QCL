@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mergeBooks, mergeCovers, withCover } from "./catalog";
+import { mergeBooks, mergeCoverList, mergeCovers, mergeSameEditions, withCover } from "./catalog";
 import type { CatalogBook } from "../domain/types";
 
 const base: CatalogBook = {
@@ -110,4 +110,31 @@ test("mergeCovers prefers Google over an ISBN-only Open Library URL and keeps a 
   expect(mergeCovers(olIsbn, null)).toEqual({ coverUrl: olIsbn });
   expect(mergeCovers(null, google)).toEqual({ coverUrl: google });
   expect(mergeCovers(null, null)).toEqual({ coverUrl: null });
+});
+
+test("mergeSameEditions keeps the other provider as a cover fallback", () => {
+  const openLibrary = {
+    ...base,
+    coverUrl: "https://covers.openlibrary.org/b/id/1-L.jpg",
+  };
+  const google: CatalogBook = {
+    ...base,
+    source: "google",
+    externalId: "g-1",
+    coverUrl: "https://books.google.com/cover",
+  };
+  const [book] = mergeSameEditions([[openLibrary], [google]]);
+  expect(book.coverUrl).toBe(openLibrary.coverUrl);
+  expect(book.coverFallback).toBe("https://books.google.com/cover");
+});
+
+test("mergeCoverList folds several URLs the same way mergeCovers would", () => {
+  const olId = "https://covers.openlibrary.org/b/id/1-L.jpg";
+  const google = "https://books.google.com/cover";
+  const extra = "https://imagessl.casadellibro.com/a/l/t5/1/9788806173678.jpg";
+  expect(mergeCoverList([olId, google, extra])).toEqual({
+    coverUrl: olId,
+    coverFallback: google,
+  });
+  expect(mergeCoverList([null, google])).toEqual({ coverUrl: google });
 });

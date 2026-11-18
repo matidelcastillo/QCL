@@ -12,6 +12,7 @@ import {
   searchQueries,
   valueLine,
   presentLeo,
+  verifyCandidateCovers,
   GILADA_NOTE,
   selectCatalogWorks,
   plausiblePageCount,
@@ -198,12 +199,12 @@ describe("fillPicks and the model", () => {
     inGilada: false,
     score: 1,
   });
-  const pool = ["a", "b", "c", "d", "e", "f", "g"].map((id) => base(id, id.toUpperCase()));
+  const pool = ["a", "b", "c", "d", "e", "f", "g", "h"].map((id) => base(id, id.toUpperCase()));
 
-  test("keeps only ids from the candidates and fills up to 6", () => {
+  test("keeps only ids from the candidates and fills 6 plus 2 backups", () => {
     const picks = fillPicks(["b", "inventado", "a"], new Map([["b", "120 pág."]]), pool, answers);
-    expect(picks.map((book) => book.id)).toEqual(["b", "a", "c", "d", "e", "f"]);
-    expect(picks).toHaveLength(6);
+    expect(picks.map((book) => book.id)).toEqual(["b", "a", "c", "d", "e", "f", "g", "h"]);
+    expect(picks).toHaveLength(8);
     expect(picks[0]?.value).toBe("120 pág.");
   });
 
@@ -217,9 +218,9 @@ describe("fillPicks and the model", () => {
       answers,
       pool,
     );
-    expect(failed.map((book) => book.id)).toEqual(["a", "b", "c", "d", "e", "f"]);
+    expect(failed.map((book) => book.id)).toEqual(["a", "b", "c", "d", "e", "f", "g", "h"]);
     const junk = await pickWithModel({ run: async () => ({ response: "no json" }) }, answers, pool);
-    expect(junk).toHaveLength(6);
+    expect(junk).toHaveLength(8);
   });
 
   test("asks the JSON-schema model and keeps a valid id order", async () => {
@@ -412,5 +413,108 @@ describe("presentLeo", () => {
     expect(presented.results[0]?.value).toBe("Lo lee la gilada.");
     expect(presented.results[2]?.value).toBe("En tu Quiero.");
     expect(presented.results[3]?.value).toBe("150 pág.");
+  });
+
+  test("splits extras into backups without letting them change the note", () => {
+    const pool = ["a", "b", "c", "d", "e", "f", "g", "h"].map((id, index) => ({
+      id,
+      title: id.toUpperCase(),
+      author: "Autor",
+      coverUrl: "https://covers.openlibrary.org/b/id/1-L.jpg",
+      isbn: `978000000000${index}`,
+      source: "openlibrary" as const,
+      externalId: id,
+      page_count: 50 + index * 10,
+      published_year: "2010",
+      genre: null,
+      synopsis: null,
+      subjects: [],
+      categories: [],
+      buyLink: null,
+      value: "",
+      inQuiero: false,
+      inGilada: index < 2,
+    }));
+    const presented = presentLeo(pool, { ...answers, anchor: null });
+    expect(presented.results).toHaveLength(6);
+    expect(presented.backups.map((book) => book.id)).toEqual(["g", "h"]);
+    expect(presented.note).toBeNull();
+    expect(presented.results[0]?.value).toBe("Lo lee la gilada.");
+    expect(presented.backups[0]?.value).toBe("110 pág.");
+  });
+});
+
+describe("verifyCandidateCovers", () => {
+  const book = (
+    id: string,
+    coverUrl: string,
+    extra: Partial<import("./leo-ai").LeoCandidate> = {},
+  ): import("./leo-ai").LeoCandidate => ({
+    id,
+    title: id,
+    author: "Autor",
+    coverUrl,
+    isbn: extra.isbn ?? null,
+    source: "openlibrary",
+    externalId: id,
+    page_count: 120,
+    published_year: "2010",
+    genre: null,
+    synopsis: null,
+    subjects: [],
+    categories: [],
+    buyLink: null,
+    language: "es",
+    inQuiero: false,
+    inGilada: false,
+    score: 1,
+    ...extra,
+  });
+
+  test("keeps a resolving cover and swaps to the other provider when it does not", async () => {
+    const ok = "https://covers.openlibrary.org/b/id/1-L.jpg";
+    const bad = "https://covers.openlibrary.org/b/id/0-L.jpg";
+    const google = "https://books.google.com/cover";
+    const verified = await verifyCandidateCovers(
+      [book("ok", ok), book("swap", bad, { coverFallback: google })],
+      async (url) => url !== bad,
+      async () => [],
+    );
+    expect(verified.map((item) => [item.id, item.coverUrl])).toEqual([
+      ["ok", ok],
+      ["swap", google],
+    ]);
+    expect(verified.every((item) => item.coverFallback === undefined)).toBe(true);
+  });
+
+  test("tries ISBN sources and drops a book when no cover resolves", async () => {
+    const dead = "https://covers.openlibrary.org/b/id/0-L.jpg";
+    const isbnCover =
+      "https://books.google.com/books/content?vid=ISBN9780000000001&printsec=frontcover&img=1&zoom=1";
+    const verified = await verifyCandidateCovers(
+      [book("isbn", dead, { isbn: "9780000000001" }), book("miss", dead, { isbn: null })],
+      async (url) => url === isbnCover,
+      async () => [],
+    );
+    expect(verified).toHaveLength(1);
+    expect(verified[0]?.id).toBe("isbn");
+    expect(verified[0]?.coverUrl).toBe(isbnCover);
+  });
+
+  test("uses a work-level cover only to fill short lists", async () => {
+    const dead = "https://covers.openlibrary.org/b/id/0-L.jpg";
+    const work = "https://covers.openlibrary.org/b/id/99-L.jpg";
+    const workCalls: string[] = [];
+    const verified = await verifyCandidateCovers(
+      [book("a", dead), book("b", dead)],
+      async (url) => url === work,
+      async (title) => {
+        workCalls.push(title);
+        return [work];
+      },
+    );
+    expect(verified.map((item) => item.id)).toEqual(["a", "b"]);
+    expect(workCalls).toEqual(["a", "b"]);
+    expect(verified[0]?.coverUrl).toBe(work);
   });
 });

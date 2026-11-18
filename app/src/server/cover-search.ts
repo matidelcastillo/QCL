@@ -24,7 +24,7 @@ const WORK_COVER_TRIES = 3;
 
 /* Another edition of the same work: Open Library covers for the title and
    author, Spanish editions first. */
-async function workCoverUrls(title: string, author: string): Promise<string[]> {
+export async function workCoverUrls(title: string, author: string): Promise<string[]> {
   if (!title) return [];
   const params = new URLSearchParams({ title, fields: "cover_i,language", limit: "10" });
   if (author) params.set("author", author);

@@ -22,7 +22,7 @@ export type LeoResult = {
   inGilada: boolean;
 };
 
-export type LeoResponse = { results: LeoResult[]; note: string | null };
+export type LeoResponse = { results: LeoResult[]; backups: LeoResult[]; note: string | null };
 
 export async function requestLeo(answers: LeoAnswers): Promise<LeoResponse> {
   const { data } = await browserSupabase().auth.getSession();
@@ -34,9 +34,14 @@ export async function requestLeo(answers: LeoAnswers): Promise<LeoResponse> {
     body: JSON.stringify(answers),
   });
   if (!response.ok) throw new Error(`leo:${response.status}`);
-  const body = (await response.json()) as { results?: LeoResult[]; note?: string | null };
+  const body = (await response.json()) as {
+    results?: LeoResult[];
+    backups?: LeoResult[];
+    note?: string | null;
+  };
   return {
-    results: Array.isArray(body.results) ? body.results : [],
+    results: Array.isArray(body.results) ? body.results.slice(0, 6) : [],
+    backups: Array.isArray(body.backups) ? body.backups.slice(0, 2) : [],
     note: typeof body.note === "string" && body.note.trim() ? body.note : null,
   };
 }

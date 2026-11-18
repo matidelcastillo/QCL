@@ -10,6 +10,7 @@ import {
   pickWithModel,
   presentLeo,
   refineWithSpanishEditions,
+  verifyCandidateCovers,
 } from "./leo-ai";
 import type { Book, SharedBook } from "../domain/types";
 
@@ -195,9 +196,11 @@ async function leoResponse(request: Request, env: Env): Promise<Response> {
       ),
       collectCatalog(answers, env.GOOGLE_BOOKS_API_KEY),
     ]);
-    const candidates = await refineWithSpanishEditions(
-      buildCandidates(answers, catalog, library, gilada),
-      env.GOOGLE_BOOKS_API_KEY,
+    const candidates = await verifyCandidateCovers(
+      await refineWithSpanishEditions(
+        buildCandidates(answers, catalog, library, gilada),
+        env.GOOGLE_BOOKS_API_KEY,
+      ),
     );
     const picks = await pickWithModel(env.AI, answers, candidates);
     return json(presentLeo(picks, answers));

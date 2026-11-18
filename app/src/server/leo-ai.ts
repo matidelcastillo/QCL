@@ -10,12 +10,17 @@ import {
 } from "../domain/metadata";
 import type { LeoAnchor, LeoAnswers } from "../domain/leo";
 import type { Book, CatalogBook, SharedBook } from "../domain/types";
-import { CatalogUnavailable, searchCatalogEditions } from "./catalog";
+import { CatalogUnavailable, searchCatalogEditions, type CatalogBookWithFallback } from "./catalog";
+import { isbnCoverUrls, workCoverUrls } from "./cover-search";
+import { coverResolves } from "./cover";
 import type { Ai } from "./genre-ai";
 
 export const LEO_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 export const LEO_PICKS = 6;
+export const LEO_BACKUPS = 2;
+const RESULT_COUNT = LEO_PICKS + LEO_BACKUPS;
 const CANDIDATE_CAP = 24;
+const VERIFY_MAX = 16;
 const LINE_MAX = 80;
 
 export type LeoCandidate = {
@@ -23,6 +28,7 @@ export type LeoCandidate = {
   title: string;
   author: string;
   coverUrl: string;
+  coverFallback?: string;
   isbn: string | null;
   source: "openlibrary" | "google" | "manual";
   externalId: string;
@@ -39,7 +45,10 @@ export type LeoCandidate = {
   score: number;
 };
 
-export type LeoPick = Omit<LeoCandidate, "score" | "language" | "inQuiero" | "inGilada"> & {
+export type LeoPick = Omit<
+  LeoCandidate,
+  "score" | "language" | "inQuiero" | "inGilada" | "coverFallback"
+> & {
   value: string;
   inQuiero: boolean;
   inGilada: boolean;
@@ -181,10 +190,12 @@ function scoreBook(book: LeoCandidate, answers: LeoAnswers): number {
 }
 
 export function toCandidate(
-  book: CatalogBook | Book | SharedBook,
+  book: CatalogBook | CatalogBookWithFallback | Book | SharedBook,
   flags: { inQuiero?: boolean; inGilada?: boolean } = {},
 ): LeoCandidate | null {
   const cover = "coverUrl" in book ? book.coverUrl : book.cover_url;
+  const rawFallback = "coverFallback" in book ? book.coverFallback : undefined;
+  const coverFallback = typeof rawFallback === "string" ? rawFallback : undefined;
   const externalId = "externalId" in book ? book.externalId : book.external_id;
   const source = book.source === "manual" ? "manual" : book.source;
   const id = candidateId({ ...book, externalId, source });
@@ -194,6 +205,7 @@ export function toCandidate(
     title: displayTitle(workTitle(book.title, book.author)),
     author: splitAuthorTitle(book.title)?.author || book.author,
     coverUrl: cover,
+    coverFallback: coverFallback && coverFallback !== cover ? coverFallback : undefined,
     isbn: book.isbn,
     source,
     externalId: externalId ?? book.isbn ?? book.title,
@@ -330,7 +342,7 @@ function selectWorkCandidates(books: LeoCandidate[]): LeoCandidate[] {
 
 export function buildCandidates(
   answers: LeoAnswers,
-  catalog: CatalogBook[],
+  catalog: Array<CatalogBook | CatalogBookWithFallback>,
   library: Book[],
   gilada: SharedBook[],
 ): LeoCandidate[] {
@@ -383,23 +395,26 @@ const SHARED_SIGNAL = 3;
 export function presentLeo(
   picks: LeoPick[],
   answers: LeoAnswers,
-): { results: LeoPick[]; note: string | null } {
-  const results = picks.map((book) => ({ ...book, title: displayTitle(book.title) }));
-  const hideGilada = results.filter((book) => book.inGilada).length >= SHARED_SIGNAL;
-  const hideQuiero = results.filter((book) => book.inQuiero).length >= SHARED_SIGNAL;
+): { results: LeoPick[]; backups: LeoPick[]; note: string | null } {
+  const prepared = picks.map((book) => ({ ...book, title: displayTitle(book.title) }));
+  const shown = prepared.slice(0, LEO_PICKS);
+  const hideGilada = shown.filter((book) => book.inGilada).length >= SHARED_SIGNAL;
+  const hideQuiero = shown.filter((book) => book.inQuiero).length >= SHARED_SIGNAL;
   const hideAnchor =
-    results.filter((book) => isAnchorMatch(book, answers.anchor)).length >= SHARED_SIGNAL;
+    shown.filter((book) => isAnchorMatch(book, answers.anchor)).length >= SHARED_SIGNAL;
+  const withValue = (book: LeoPick): LeoPick => ({
+    ...book,
+    value: valueLine(book, {
+      inGilada: book.inGilada && !hideGilada,
+      inQuiero: book.inQuiero && !hideQuiero,
+      anchor: answers.anchor,
+      anchorMatch: isAnchorMatch(book, answers.anchor) && !hideAnchor,
+    }),
+  });
   return {
     note: hideGilada ? GILADA_NOTE : null,
-    results: results.map((book) => ({
-      ...book,
-      value: valueLine(book, {
-        inGilada: book.inGilada && !hideGilada,
-        inQuiero: book.inQuiero && !hideQuiero,
-        anchor: answers.anchor,
-        anchorMatch: isAnchorMatch(book, answers.anchor) && !hideAnchor,
-      }),
-    })),
+    results: shown.map(withValue),
+    backups: prepared.slice(LEO_PICKS).map(withValue),
   };
 }
 
@@ -414,14 +429,14 @@ export function fillPicks(
   for (const id of orderedIds) {
     const book = byId.get(id);
     if (book && !picked.some((item) => item.id === book.id)) picked.push(book);
-    if (picked.length === LEO_PICKS) break;
+    if (picked.length === RESULT_COUNT) break;
   }
   for (const book of candidates) {
-    if (picked.length === LEO_PICKS) break;
+    if (picked.length === RESULT_COUNT) break;
     if (!picked.some((item) => item.id === book.id)) picked.push(book);
   }
   return picked.map((book) => {
-    const { score: _score, language: _language, ...rest } = book;
+    const { score: _score, language: _language, coverFallback: _fallback, ...rest } = book;
     return {
       ...rest,
       value: valueLine(book, {
@@ -524,6 +539,74 @@ function parsePicks(output: unknown): { ids: string[]; lines: Map<string, string
   return { ids, lines };
 }
 
+/* Confirm each cover resolves (real image, not a 404 or placeholder)
+   before the model sees the candidate. Try the stored URL, then the
+   other provider, then ISBN sources. Work-level covers only if we still
+   need more than RESULT_COUNT verified books. Caps at VERIFY_MAX so the
+   worker stays inside the subrequest budget. */
+export async function verifyCandidateCovers(
+  candidates: LeoCandidate[],
+  resolves: (url: string) => Promise<boolean> = coverResolves,
+  workUrls: (title: string, author: string) => Promise<string[]> = workCoverUrls,
+): Promise<LeoCandidate[]> {
+  async function firstValid(urls: string[]): Promise<string | null> {
+    const seen = new Set<string>();
+    for (const url of urls) {
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      if (await resolves(url)) return url;
+    }
+    return null;
+  }
+
+  function editionUrls(book: LeoCandidate): string[] {
+    return [
+      book.coverUrl,
+      book.coverFallback,
+      ...(book.isbn ? isbnCoverUrls(book.isbn) : []),
+    ].filter((url): url is string => Boolean(url));
+  }
+
+  function withCover(book: LeoCandidate, coverUrl: string): LeoCandidate {
+    const { coverFallback: _fallback, ...rest } = book;
+    return { ...rest, coverUrl };
+  }
+
+  const verified: LeoCandidate[] = [];
+  const missed: LeoCandidate[] = [];
+  const queue = [...candidates];
+  while (queue.length && verified.length < VERIFY_MAX) {
+    const batch = queue.splice(0, 8);
+    const settled = await Promise.all(
+      batch.map(async (book) => {
+        const coverUrl = await firstValid(editionUrls(book));
+        return coverUrl ? withCover(book, coverUrl) : null;
+      }),
+    );
+    for (let i = 0; i < settled.length; i++) {
+      const hit = settled[i];
+      if (hit) verified.push(hit);
+      else missed.push(batch[i]!);
+    }
+  }
+
+  if (verified.length < RESULT_COUNT && missed.length) {
+    const retry = missed.slice(0, RESULT_COUNT - verified.length + 4);
+    const settled = await Promise.all(
+      retry.map(async (book) => {
+        const coverUrl = await firstValid(await workUrls(book.title, book.author));
+        return coverUrl ? withCover(book, coverUrl) : null;
+      }),
+    );
+    for (const hit of settled) {
+      if (hit && verified.length < VERIFY_MAX) verified.push(hit);
+    }
+  }
+
+  const order = new Map(candidates.map((book, index) => [book.id, index]));
+  return verified.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+}
+
 export async function pickWithModel(
   ai: Ai,
   answers: LeoAnswers,
@@ -594,7 +677,7 @@ export async function refineWithSpanishEditions(
 export async function collectCatalog(
   answers: LeoAnswers,
   googleKey?: string,
-): Promise<CatalogBook[]> {
+): Promise<CatalogBookWithFallback[]> {
   const queries = searchQueries(answers);
   let failed = 0;
   const groups = await Promise.all(
@@ -604,7 +687,7 @@ export async function collectCatalog(
       } catch (error) {
         if (error instanceof CatalogUnavailable) {
           failed += 1;
-          return [] as CatalogBook[];
+          return [] as CatalogBookWithFallback[];
         }
         throw error;
       }
@@ -612,7 +695,7 @@ export async function collectCatalog(
   );
   if (queries.length > 0 && failed === queries.length) throw new CatalogUnavailable();
   const seen = new Set<string>();
-  const merged: CatalogBook[] = [];
+  const merged: CatalogBookWithFallback[] = [];
   for (const book of groups.flat()) {
     const id = candidateId(book);
     if (!id || seen.has(id)) continue;

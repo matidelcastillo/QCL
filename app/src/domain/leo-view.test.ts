@@ -18,6 +18,8 @@ describe("Qué leo UI", () => {
     expect(leo).toContain("LoadingTiles");
     expect(leo).toContain("useDeferredPending");
     expect(leo).toContain("leo-grid");
+    expect(leo).toContain("swapFailedCover");
+    expect(leo).toContain("onCover");
     expect(leo).toContain("Saltar");
     expect(leo).toContain('to: "/vos"');
     expect(leo).not.toMatch(/\bQCL\b/);

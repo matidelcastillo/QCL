@@ -8,7 +8,7 @@ import {
   year,
 } from "../domain/metadata";
 import type { CatalogBook } from "../domain/types";
-import { allowedCoverUrl, fetchCover } from "./cover";
+import { coverResolves } from "./cover";
 import { SUBJECT_LIMIT } from "./genre-ai";
 
 type SourceResult = { ok: boolean; books: CatalogBook[] };
@@ -269,6 +269,24 @@ export function mergeCovers(a: string | null, b: string | null): MergedCover {
   return { coverUrl: other ?? isbnOnly ?? null };
 }
 
+export function mergeCoverList(urls: Array<string | null | undefined>): MergedCover {
+  return urls
+    .filter((url): url is string => Boolean(url))
+    .reduce<MergedCover>(
+      (acc, url) => {
+        const merged = mergeCovers(acc.coverUrl, url);
+        const fallback =
+          (acc.coverFallback && acc.coverFallback !== merged.coverUrl
+            ? acc.coverFallback
+            : undefined) ?? merged.coverFallback;
+        return fallback
+          ? { coverUrl: merged.coverUrl, coverFallback: fallback }
+          : { coverUrl: merged.coverUrl };
+      },
+      { coverUrl: null },
+    );
+}
+
 export function mergeBooks(query: string, groups: CatalogBook[][]): CatalogBookWithFallback[] {
   const byIsbn = new Map<string, number>();
   const byName = new Map<string, number>();
@@ -323,11 +341,6 @@ type Edition = {
   isbn_10?: unknown;
 };
 
-async function coverPasses(raw: string | null): Promise<boolean> {
-  const url = raw ? allowedCoverUrl(raw) : null;
-  return Boolean(url && (await fetchCover(url)));
-}
-
 function editionIsbn(edition: Edition): string | null {
   const values = [edition.isbn_13, edition.isbn_10].flatMap((list) =>
     Array.isArray(list) ? list : [],
@@ -350,7 +363,7 @@ async function editionCover(book: CatalogBook): Promise<CatalogBook | null> {
     .slice(0, EDITION_COVER_TRIES);
   for (const edition of candidates) {
     const coverUrl = `https://covers.openlibrary.org/b/id/${Number((edition.covers as unknown[])[0])}-L.jpg?default=false`;
-    if (await coverPasses(coverUrl))
+    if (await coverResolves(coverUrl))
       return { ...book, coverUrl, isbn: editionIsbn(edition) ?? book.isbn };
   }
   return null;
@@ -362,7 +375,7 @@ function withoutFallback(book: CatalogBookWithFallback): CatalogBook {
 }
 
 async function withVerifiedCover(book: CatalogBookWithFallback): Promise<CatalogBook> {
-  if (await coverPasses(book.coverUrl)) return withoutFallback(book);
+  if (await coverResolves(book.coverUrl)) return withoutFallback(book);
   const edition = await editionCover(book);
   if (edition) return withoutFallback(edition);
   if (book.coverFallback) return withoutFallback({ ...book, coverUrl: book.coverFallback });
@@ -407,12 +420,14 @@ function spanishRank(language: string | null | undefined): number {
   return value === "spa" || value === "es" || value === "es-419" || value.startsWith("es-") ? 0 : 2;
 }
 
-export function mergeSameEditions(groups: CatalogBook[][]): CatalogBookWithFallback[] {
+export function mergeSameEditions(
+  groups: Array<Array<CatalogBook | CatalogBookWithFallback>>,
+): CatalogBookWithFallback[] {
   const byIsbn = new Map<string, CatalogBookWithFallback>();
   const withoutIsbn: CatalogBookWithFallback[] = [];
   const mergePair = (
     current: CatalogBookWithFallback,
-    incoming: CatalogBook,
+    incoming: CatalogBookWithFallback,
   ): CatalogBookWithFallback => {
     const preferIncoming = spanishRank(incoming.language) < spanishRank(current.language);
     const preferred = preferIncoming ? incoming : current;
@@ -424,17 +439,26 @@ export function mergeSameEditions(groups: CatalogBook[][]): CatalogBookWithFallb
       other.page_count >= 40
         ? other.page_count
         : (preferred.page_count ?? other.page_count);
-    return {
+    const covers = mergeCoverList([
+      preferred.coverUrl,
+      preferred.coverFallback,
+      other.coverUrl,
+      other.coverFallback,
+    ]);
+    const merged: CatalogBookWithFallback = {
       ...other,
       ...preferred,
       page_count: pages,
-      coverUrl: preferred.coverUrl ?? other.coverUrl,
+      coverUrl: covers.coverUrl,
       isbn: preferred.isbn ?? other.isbn,
       subjects: preferred.subjects.length ? preferred.subjects : other.subjects,
       categories: preferred.categories.length ? preferred.categories : other.categories,
       synopsis: preferred.synopsis ?? other.synopsis,
       buyLink: preferred.buyLink ?? other.buyLink,
     };
+    if (covers.coverFallback) merged.coverFallback = covers.coverFallback;
+    else delete merged.coverFallback;
+    return merged;
   };
   for (const book of groups.flat()) {
     if (!book.isbn) {
@@ -453,13 +477,17 @@ export async function searchCatalogEditions(
   query: string,
   googleKey?: string,
   langRestrict?: string,
-): Promise<CatalogBook[]> {
+): Promise<CatalogBookWithFallback[]> {
   const results = await Promise.all([
     openLibrary(query, null),
     google(query, null, googleKey, langRestrict),
   ]);
   if (results.every((result) => !result.ok)) throw new CatalogUnavailable();
-  return withCover(mergeSameEditions(results.map((result) => result.books)));
+  /* Keep coverFallback so Qué leo can try the other provider if the
+     primary URL later fails to resolve. */
+  return mergeSameEditions(results.map((result) => result.books)).filter((book) =>
+    Boolean(book.coverUrl),
+  );
 }
 
 export async function searchCatalogQuick(

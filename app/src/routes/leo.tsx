@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import type { CatalogBook } from "../domain/types";
+import { swapFailedCover } from "../domain/leo-results";
 import {
   LEO_STEPS,
   parseLeoAnswers,
@@ -65,14 +66,19 @@ function Leo() {
   const read = recentRead(books.data ?? []);
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft>({ anchor: null });
-  const [results, setResults] = useState<LeoResult[] | null>(null);
-  const [note, setNote] = useState<string | null>(null);
+  const [board, setBoard] = useState<{
+    results: LeoResult[];
+    backups: LeoResult[];
+    note: string | null;
+  } | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
   const [selected, setSelected] = useState<LeoResult | null>(null);
   const showSkeleton = useDeferredPending(pending);
   const current = LEO_STEPS[Math.min(step, LEO_STEPS.length - 1)];
-  const onResults = results != null && !pending && !error;
+  const onResults = board != null && !pending && !error;
+  const results = board?.results ?? [];
+  const note = board?.note ?? null;
 
   function goBack() {
     if (onResults || pending || error) {
@@ -91,12 +97,14 @@ function Leo() {
     if (!answers) return;
     setPending(true);
     setError(false);
-    setResults(null);
-    setNote(null);
+    setBoard(null);
     try {
       const payload = await requestLeo(answers);
-      setResults(payload.results);
-      setNote(payload.note);
+      setBoard({
+        results: payload.results,
+        backups: payload.backups,
+        note: payload.note,
+      });
     } catch {
       setError(true);
     } finally {
@@ -134,7 +142,7 @@ function Leo() {
         <section className="feed app-gutter">
           <LoadError retry={() => void finish(draft)} />
         </section>
-      ) : onResults && (results ?? []).length === 0 ? (
+      ) : onResults && results.length === 0 ? (
         <section className="feed app-gutter">
           <EmptyState text="Nada esta vez.">
             <button
@@ -150,7 +158,7 @@ function Leo() {
         <>
           {note && <p className="leo-note">{note}</p>}
           <section className="leo-grid" aria-live="polite">
-            {(results ?? []).map((book) => (
+            {results.map((book) => (
               <button
                 type="button"
                 className="leo-card qc-press-card"
@@ -158,7 +166,20 @@ function Leo() {
                 onClick={() => setSelected(book)}
               >
                 <span className="leo-card-cover">
-                  <BookCover url={book.coverUrl} isbn={book.isbn} size="tile" />
+                  <BookCover
+                    url={book.coverUrl}
+                    isbn={book.isbn}
+                    size="tile"
+                    eager
+                    onCover={(status) => {
+                      if (status !== "miss") return;
+                      setBoard((current) => {
+                        if (!current) return current;
+                        const next = swapFailedCover(current.results, current.backups, book.id);
+                        return { ...current, results: next.shown, backups: next.backups };
+                      });
+                    }}
+                  />
                 </span>
                 <span className="leo-card-copy">
                   <span className="leo-card-title">{book.title}</span>
