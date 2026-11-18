@@ -85,6 +85,26 @@ export function isSpanish(language: string | null | undefined): boolean | null {
   return false;
 }
 
+export function isEnglish(language: string | null | undefined): boolean | null {
+  if (!language) return null;
+  const code = language.trim().toLowerCase();
+  if (!code) return null;
+  if (code === "en" || code === "eng" || code === "english" || code.startsWith("en-")) return true;
+  return false;
+}
+
+/* A display title the user can read: every letter is Latin (accents included).
+   A Greek or other-script title is not, even if a few Latin characters appear. */
+export function isLatinScript(text: string): boolean {
+  let letters = 0;
+  for (const char of text.normalize("NFC")) {
+    if (!/\p{L}/u.test(char)) continue;
+    letters += 1;
+    if (!/\p{Script=Latin}/u.test(char)) return false;
+  }
+  return letters > 0;
+}
+
 /* "Cortázar, Julio" and "Julio Cortázar" must hash to the same work. */
 export function authorKey(author: string): string {
   return identity(author).split(" ").filter(Boolean).sort().join(" ");

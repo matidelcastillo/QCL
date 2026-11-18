@@ -3,6 +3,8 @@ import {
   authorKey,
   displayTitle,
   firstAuthors,
+  isEnglish,
+  isLatinScript,
   plainText,
   sameWork,
   workKey,
@@ -103,5 +105,21 @@ describe("displayTitle", () => {
     expect(displayTitle("El Existencialismo Es Un Humanismo")).toBe(
       "El Existencialismo Es Un Humanismo",
     );
+  });
+});
+
+describe("script and language of a title", () => {
+  test("isLatinScript accepts accented Spanish and rejects Greek", () => {
+    expect(isLatinScript("Apología de Sócrates")).toBe(true);
+    expect(isLatinScript("The Colour Out of Space")).toBe(true);
+    expect(isLatinScript("Ἀπολογία Σωκράτους")).toBe(false);
+    expect(isLatinScript("Война и мир")).toBe(false);
+  });
+  test("isEnglish reads common English language codes", () => {
+    expect(isEnglish("en")).toBe(true);
+    expect(isEnglish("eng")).toBe(true);
+    expect(isEnglish("en-US")).toBe(true);
+    expect(isEnglish("es")).toBe(false);
+    expect(isEnglish(null)).toBeNull();
   });
 });

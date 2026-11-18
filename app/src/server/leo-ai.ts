@@ -2,6 +2,8 @@ import {
   authorKey,
   authorsMatch,
   displayTitle,
+  isEnglish,
+  isLatinScript,
   isSpanish,
   sameWork,
   splitAuthorTitle,
@@ -54,44 +56,92 @@ export type LeoPick = Omit<
   inGilada: boolean;
 };
 
-const PURPOSE_Q: Record<string, string> = {
-  escaparme: "novela inmersiva",
-  sentir: "novela emotiva",
-  aprender: "ensayo divulgación",
-  obsesion: "novela adictiva",
+const TOPIC_Q: Record<string, string> = {
+  historia: "subject:fiction novela",
+  policial: "subject:mystery novela policial",
+  fantasia: "subject:fantasy fantasía",
+  romance: "subject:romance",
+  real: "subject:nonfiction ensayo",
 };
 
 const MOOD_Q: Record<string, string> = {
-  liviano: "ligero",
-  oscuro: "oscuro",
-  tension: "suspenso",
-  reir: "humor",
+  liviano: "subject:humor ligero",
+  oscuro: "subject:horror noir oscuro",
+  tension: "subject:thriller suspenso",
+  reir: "subject:humor",
 };
 
-const TOPIC_Q: Record<string, string> = {
-  historia: "novela",
-  policial: "novela policial",
-  fantasia: "fantasía",
-  romance: "romance",
-  real: "no ficción",
+const PURPOSE_Q: Record<string, string> = {
+  escaparme: "novela",
+  sentir: "novela literaria",
+  aprender: "subject:nonfiction ensayo divulgación",
+  obsesion: "novela",
 };
+
+const PACE_Q: Record<string, string> = {
+  vuele: "short stories relato corto",
+  calma: "novela extensa",
+};
+
+const QUERY_CAP = 4;
 
 export function searchQueries(answers: LeoAnswers): string[] {
-  const parts = [PURPOSE_Q[answers.purpose], MOOD_Q[answers.mood], TOPIC_Q[answers.topic]].filter(
-    Boolean,
-  ) as string[];
-  if (answers.pace === "vuele") parts.push("corto");
-  if (answers.pace === "calma") parts.push("extenso");
   const queries: string[] = [];
-  if (parts.length) queries.push(parts.join(" "));
-  if (answers.anchor?.title) {
-    const seed = [workTitle(answers.anchor.title, answers.anchor.author), answers.anchor.author]
-      .filter(Boolean)
-      .join(" ");
-    if (seed) queries.push(seed);
+  const add = (value?: string) => {
+    const query = value?.trim();
+    if (query && !queries.includes(query)) queries.push(query);
+  };
+  if (answers.topic !== "igual") add(TOPIC_Q[answers.topic]);
+  if (answers.mood !== "igual") add(MOOD_Q[answers.mood]);
+  if (answers.purpose === "aprender") add(PURPOSE_Q.aprender);
+  else if (answers.topic === "igual" && answers.mood === "igual" && answers.purpose !== "igual") {
+    add(PURPOSE_Q[answers.purpose]);
   }
-  if (!queries.length) queries.push("novela");
-  return queries.slice(0, 3);
+  if (answers.pace !== "igual" && answers.pace in PACE_Q) add(PACE_Q[answers.pace]);
+  const reserveAnchor = Boolean(answers.anchor?.author || answers.anchor?.title);
+  const primary = queries.slice(0, reserveAnchor ? QUERY_CAP - 1 : QUERY_CAP);
+  queries.length = 0;
+  queries.push(...primary);
+  if (answers.anchor?.author) add(answers.anchor.author);
+  else if (answers.anchor?.title) add(workTitle(answers.anchor.title, answers.anchor.author));
+  if (!queries.length) add("novela");
+  return queries;
+}
+
+const GENERIC_SUBJECT =
+  /^(fiction|novela|general|literature|adult|juvenile|protected daisy|accessible book|in library|overdrive|nyt|open.?library)$/i;
+
+export function anchorSubjectQueries(
+  anchor: LeoAnchor | null | undefined,
+  books: Array<{
+    title: string;
+    author: string;
+    isbn?: string | null;
+    subjects?: string[];
+    categories?: string[];
+  }>,
+): string[] {
+  if (!anchor?.title && !anchor?.author) return [];
+  const related = books.filter(
+    (book) => sameWork(book, anchor) || (anchor.author && authorsMatch(book.author, anchor.author)),
+  );
+  const subjects: string[] = [];
+  for (const book of related) {
+    for (const value of [...(book.subjects ?? []), ...(book.categories ?? [])]) {
+      const subject = value.trim();
+      if (
+        subject.length >= 3 &&
+        subject.length <= 40 &&
+        !GENERIC_SUBJECT.test(subject) &&
+        !subjects.some((item) => item.toLowerCase() === subject.toLowerCase())
+      ) {
+        subjects.push(subject);
+      }
+      if (subjects.length === 2) break;
+    }
+    if (subjects.length === 2) break;
+  }
+  return subjects.map((subject) => `subject:${subject}`);
 }
 
 export { isSpanish };
@@ -179,10 +229,13 @@ export function sanitizeLine(
 
 function scoreBook(book: LeoCandidate, answers: LeoAnswers): number {
   let score = book.score;
-  if (book.inQuiero) score += 40;
-  if (book.inGilada) score += 12;
+  const anchorMatch = isAnchorMatch(book, answers.anchor);
+  if (anchorMatch) score += 30;
+  if (book.inQuiero) score += 20;
+  if (book.inGilada) score += 8;
   if (isSpanish(book.language) === true) score += 8;
-  if (isSpanish(book.language) === false) score -= 20;
+  else if (isEnglish(book.language) === true) score += 4;
+  else if (isSpanish(book.language) === false && !anchorMatch) score -= 8;
   if (answers.pace === "vuele" && book.page_count && book.page_count <= 250) score += 6;
   if (answers.pace === "calma" && book.page_count && book.page_count >= 350) score += 6;
   if (book.page_count) score += 2;
@@ -259,11 +312,18 @@ export function plausiblePageCount(counts: Array<number | null | undefined>): nu
 }
 
 function editionQuality(
-  book: { language?: string | null; page_count: number | null; coverUrl?: string | null },
+  book: {
+    title?: string;
+    language?: string | null;
+    page_count: number | null;
+    coverUrl?: string | null;
+  },
   pages: number | null,
 ): number {
   let score = 0;
+  if (book.title && !isLatinScript(book.title)) return -1000;
   if (isSpanish(book.language) === true) score += 8;
+  else if (isEnglish(book.language) === true) score += 4;
   else if (isSpanish(book.language) === false) score -= 8;
   if (pages && book.page_count === pages) score += 4;
   else if (book.page_count && book.page_count >= MIN_PAGES) score += 1;
@@ -307,7 +367,7 @@ export function selectCatalogWorks(books: CatalogBook[]): CatalogBook[] {
       });
     }
   }
-  return selected;
+  return selected.filter((book) => isLatinScript(book.title));
 }
 
 function selectWorkCandidates(books: LeoCandidate[]): LeoCandidate[] {
@@ -337,7 +397,7 @@ function selectWorkCandidates(books: LeoCandidate[]): LeoCandidate[] {
       score: Math.max(...editions.map((book) => book.score)),
     });
   }
-  return selected;
+  return selected.filter((book) => isLatinScript(book.title));
 }
 
 export function buildCandidates(
@@ -365,27 +425,22 @@ export function buildCandidates(
     }
   };
 
-  for (const book of want) {
-    const candidate = toCandidate(book, { inQuiero: true });
-    if (candidate) add({ ...candidate, score: 40 });
-  }
-  for (const book of gilada) {
-    const candidate = toCandidate(book, { inGilada: true });
-    if (candidate) add({ ...candidate, score: 12 });
-  }
-  for (const book of catalog) {
-    const candidate = toCandidate(book);
-    if (candidate) {
-      const wantMatch = want.some((item) => sameBook(item, book));
-      const giladaMatch = gilada.some((item) => sameBook(item, book));
-      add({ ...candidate, inQuiero: wantMatch, inGilada: giladaMatch, score: 4 });
-    }
-  }
+  /* Catalog from the answers is the base. Quiero and Gilada only boost
+     a book already in that pool; they do not fill the cap by title. */
+  catalog.forEach((book, index) => {
+    const candidate = toCandidate(book, {
+      inQuiero: want.some((item) => sameBook(item, book)),
+      inGilada: gilada.some((item) => sameBook(item, book)),
+    });
+    if (candidate) add({ ...candidate, score: Math.max(1, 20 - Math.min(index, 19)) });
+  });
 
   const ranked = selectWorkCandidates(
     [...byId.values()].map((book) => ({ ...book, score: scoreBook(book, answers) })),
-  ).sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, "es"));
-  const preferred = ranked.filter((book) => isSpanish(book.language) !== false);
+  ).sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
+  const preferred = ranked.filter(
+    (book) => isSpanish(book.language) !== false || isAnchorMatch(book, answers.anchor),
+  );
   return (preferred.length >= LEO_PICKS ? preferred : ranked).slice(0, CANDIDATE_CAP);
 }
 
@@ -674,33 +729,42 @@ export async function refineWithSpanishEditions(
   return selectWorkCandidates(merged);
 }
 
+async function searchQueryGroup(
+  query: string,
+  googleKey?: string,
+): Promise<{ ok: boolean; books: CatalogBookWithFallback[] }> {
+  try {
+    return { ok: true, books: await searchCatalogEditions(query, googleKey, "es") };
+  } catch (error) {
+    if (error instanceof CatalogUnavailable) return { ok: false, books: [] };
+    throw error;
+  }
+}
+
 export async function collectCatalog(
   answers: LeoAnswers,
   googleKey?: string,
 ): Promise<CatalogBookWithFallback[]> {
   const queries = searchQueries(answers);
-  let failed = 0;
-  const groups = await Promise.all(
-    queries.map(async (query) => {
-      try {
-        return await searchCatalogEditions(query, googleKey, "es");
-      } catch (error) {
-        if (error instanceof CatalogUnavailable) {
-          failed += 1;
-          return [] as CatalogBookWithFallback[];
-        }
-        throw error;
-      }
-    }),
-  );
-  if (queries.length > 0 && failed === queries.length) throw new CatalogUnavailable();
+  const groups = await Promise.all(queries.map((query) => searchQueryGroup(query, googleKey)));
+  if (queries.length > 0 && groups.every((group) => !group.ok)) throw new CatalogUnavailable();
   const seen = new Set<string>();
   const merged: CatalogBookWithFallback[] = [];
-  for (const book of groups.flat()) {
-    const id = candidateId(book);
-    if (!id || seen.has(id)) continue;
-    seen.add(id);
-    merged.push(book);
+  const addAll = (books: CatalogBookWithFallback[]) => {
+    for (const book of books) {
+      const id = candidateId(book);
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      merged.push(book);
+    }
+  };
+  addAll(groups.flatMap((group) => group.books));
+  const extra = anchorSubjectQueries(answers.anchor, merged).filter(
+    (query) => !queries.includes(query),
+  )[0];
+  if (extra) {
+    const follow = await searchQueryGroup(extra, googleKey);
+    addAll(follow.books);
   }
   return selectCatalogWorks(merged);
 }

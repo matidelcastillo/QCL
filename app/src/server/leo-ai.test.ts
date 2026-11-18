@@ -10,6 +10,7 @@ import {
   promptText,
   leoPrompt,
   searchQueries,
+  anchorSubjectQueries,
   valueLine,
   presentLeo,
   verifyCandidateCovers,
@@ -80,11 +81,39 @@ const shared = (title: string, extra: Partial<SharedBook> = {}): SharedBook => (
 });
 
 describe("searchQueries", () => {
-  test("builds Spanish queries from the answers and the Leí seed", () => {
+  test("maps answers to subject queries and an anchor query", () => {
     const queries = searchQueries(answers);
-    expect(queries[0]).toContain("novela policial");
-    expect(queries[0]).toContain("oscuro");
-    expect(queries.some((query) => query.includes("Rayuela"))).toBe(true);
+    expect(queries.some((query) => /policial|mystery/i.test(query))).toBe(true);
+    expect(queries.some((query) => /oscuro|horror|noir/i.test(query))).toBe(true);
+    expect(queries.some((query) => /cort[aá]zar|rayuela/i.test(query))).toBe(true);
+  });
+
+  test("different answers produce different queries", () => {
+    const mystery = searchQueries({
+      purpose: "escaparme",
+      mood: "oscuro",
+      topic: "policial",
+      pace: "vuele",
+      anchor: null,
+    });
+    const nonfiction = searchQueries({
+      purpose: "aprender",
+      mood: "liviano",
+      topic: "real",
+      pace: "calma",
+      anchor: null,
+    });
+    expect(mystery).not.toEqual(nonfiction);
+    expect(mystery.some((query) => /mystery|policial/i.test(query))).toBe(true);
+    expect(nonfiction.some((query) => /nonfiction|ensayo/i.test(query))).toBe(true);
+  });
+
+  test("builds a subject query from the anchor's catalog subjects", () => {
+    expect(
+      anchorSubjectQueries({ title: "Linchpin", author: "Seth Godin" }, [
+        catalog("Linchpin", { author: "Seth Godin", subjects: ["Fiction", "Marketing"] }),
+      ]),
+    ).toEqual(["subject:Marketing"]);
   });
 });
 
@@ -101,17 +130,117 @@ describe("buildCandidates", () => {
     expect(candidateId({ title: "x", author: "y" })).toBeNull();
   });
 
-  test("puts matching Quiero books first and boosts Gilada", () => {
-    const want = libraryBook("En la lista", "quiero", {
-      isbn: "9783333333333",
-      external_id: "/works/w",
+  test("boosts catalog books that are also in Quiero or Gilada, and does not use Gilada as the base", () => {
+    const want = libraryBook("Otro", "quiero", {
+      isbn: "9780000000009",
+      external_id: "/works/o",
     });
-    const gilada = shared("De la gilada", { isbn: "9782222222222" });
+    const listed = catalog("De la gilada", { isbn: "9782222222299", externalId: "/works/g2" });
+    const giladaOnly = shared("Aaa gilado", { isbn: "9782222222222", externalId: "/works/g1" });
+    const giladaMatch = shared("De la gilada", { isbn: "9782222222299", externalId: "/works/g2" });
     const extra = catalog("Otro", { isbn: "9780000000009", externalId: "/works/o" });
-    const candidates = buildCandidates(answers, [extra], [want], [gilada]);
-    expect(candidates[0]?.title).toBe("En la lista");
+    const candidates = buildCandidates(answers, [extra, listed], [want], [giladaOnly, giladaMatch]);
+    expect(candidates[0]?.title).toBe("Otro");
     expect(candidates[0]?.inQuiero).toBe(true);
     expect(candidates.find((book) => book.title === "De la gilada")?.inGilada).toBe(true);
+    expect(candidates.some((book) => book.title === "Aaa gilado")).toBe(false);
+  });
+
+  test("different answers produce different pools, and an anchor keeps a related catalog book", () => {
+    const gilada = Array.from({ length: 30 }, (_, index) =>
+      shared(`${String.fromCharCode(65 + (index % 26))} gilada ${index}`, {
+        isbn: `9789000000${String(index).padStart(3, "0")}`,
+        externalId: `/works/g${index}`,
+      }),
+    );
+    const mystery = [
+      catalog("El nombre de la rosa", {
+        author: "Umberto Eco",
+        language: "es",
+        isbn: "9781000000001",
+        externalId: "/works/rosa",
+      }),
+    ];
+    const fantasy = [
+      catalog("El nombre del viento", {
+        author: "Patrick Rothfuss",
+        language: "es",
+        isbn: "9781000000002",
+        externalId: "/works/viento",
+      }),
+    ];
+    const related = catalog("Purple Cow", {
+      author: "Seth Godin",
+      language: "en",
+      isbn: "9781591842330",
+      externalId: "/works/purple",
+    });
+    const mysteryAnswers: LeoAnswers = {
+      purpose: "escaparme",
+      mood: "oscuro",
+      topic: "policial",
+      pace: "igual",
+      anchor: null,
+    };
+    const fantasyAnswers: LeoAnswers = {
+      purpose: "escaparme",
+      mood: "liviano",
+      topic: "fantasia",
+      pace: "igual",
+      anchor: null,
+    };
+    const mysteryPool = buildCandidates(mysteryAnswers, mystery, [], gilada);
+    const fantasyPool = buildCandidates(fantasyAnswers, fantasy, [], gilada);
+    expect(mysteryPool.map((book) => book.title)).not.toEqual(
+      fantasyPool.map((book) => book.title),
+    );
+    expect(mysteryPool.some((book) => book.title === "El nombre de la rosa")).toBe(true);
+    expect(fantasyPool.some((book) => book.title === "El nombre del viento")).toBe(true);
+    expect(mysteryPool.some((book) => /gilada/i.test(book.title))).toBe(false);
+
+    const withAnchor = buildCandidates(
+      { ...mysteryAnswers, anchor: { title: "Linchpin", author: "Seth Godin" } },
+      [...mystery, related],
+      [],
+      gilada,
+    );
+    expect(withAnchor.some((book) => book.title === "Purple Cow")).toBe(true);
+    expect(
+      isAnchorMatch(
+        withAnchor.find((book) => book.title === "Purple Cow")!,
+        { title: "Linchpin", author: "Seth Godin" },
+      ),
+    ).toBe(true);
+  });
+
+  test("prefers a Latin-script title and drops a Greek-only work", () => {
+    const built = buildCandidates(
+      answers,
+      [
+        catalog("Ἀπολογία Σωκράτους", {
+          author: "Platón",
+          language: "el",
+          isbn: "9780000000100",
+          externalId: "/works/apo-el",
+        }),
+        catalog("Apología de Sócrates", {
+          author: "Platón",
+          language: "es",
+          isbn: "9780000000101",
+          externalId: "/works/apo-es",
+        }),
+        catalog("The Colour Out of Space", {
+          author: "Lovecraft",
+          language: "en",
+          isbn: "9780000000102",
+          externalId: "/works/colour",
+        }),
+      ],
+      [],
+      [],
+    );
+    expect(built.some((book) => /Ἀπολογία|Απολογία/.test(book.title))).toBe(false);
+    expect(built.some((book) => book.title.includes("Apología"))).toBe(true);
   });
 
   test("drops a miscredited edition of a work already in Leí", () => {
