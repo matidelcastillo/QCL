@@ -1,5 +1,14 @@
 import { expect, test } from "bun:test";
-import { mergeBooks, mergeCoverList, mergeCovers, mergeSameEditions, withCover } from "./catalog";
+import {
+  googleBooks,
+  mergeBooks,
+  mergeCoverList,
+  mergeCovers,
+  mergeSameEditions,
+  openLibraryBooks,
+  pickIsbn,
+  withCover,
+} from "./catalog";
 import type { CatalogBook } from "../domain/types";
 
 const base: CatalogBook = {
@@ -137,4 +146,65 @@ test("mergeCoverList folds several URLs the same way mergeCovers would", () => {
     coverFallback: google,
   });
   expect(mergeCoverList([null, google])).toEqual({ coverUrl: google });
+});
+
+/* Scanning 9780140280197 returned 9789029086622: the Open Library work
+   lists every edition and the first one won. */
+test("an ISBN lookup keeps the scanned edition", () => {
+  const scanned = "9780140280197";
+  const other = "9789029086622";
+  expect(pickIsbn([other, "0140280197"], scanned)).toBe(scanned);
+  expect(pickIsbn([other, scanned])).toBe(other);
+
+  const [work] = openLibraryBooks(
+    {
+      docs: [
+        {
+          key: "/works/OL1W",
+          title: "The 48 Laws of Power",
+          author_name: ["Robert Greene"],
+          isbn: [other, scanned],
+          cover_i: 6424160,
+        },
+      ],
+    },
+    scanned,
+  );
+  expect(work.isbn).toBe(scanned);
+
+  const [volume] = googleBooks(
+    {
+      items: [
+        {
+          id: "g-48",
+          volumeInfo: {
+            title: "The 48 Laws of Power",
+            authors: ["Robert Greene"],
+            industryIdentifiers: [{ identifier: "0140280197" }, { identifier: scanned }],
+          },
+        },
+      ],
+    },
+    scanned,
+  );
+  expect(volume.isbn).toBe(scanned);
+
+  const edition: CatalogBook = {
+    ...base,
+    title: "The 48 Laws of Power",
+    author: "Robert Greene",
+    isbn: other,
+    coverUrl: "https://covers.openlibrary.org/b/id/6424160-L.jpg",
+    externalId: "/works/OL1W",
+  };
+  const exact: CatalogBook = {
+    ...edition,
+    isbn: scanned,
+    coverUrl: null,
+    source: "google",
+    externalId: "g-48",
+  };
+  const merged = mergeBooks(scanned, [[edition], [exact]]);
+  expect(merged[0].isbn).toBe(scanned);
+  expect(mergeBooks(scanned, [[edition, { ...exact, title: "Otro" }], []])[0].isbn).toBe(scanned);
 });

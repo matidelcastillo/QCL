@@ -16,7 +16,7 @@ import type { Book, SharedBook } from "../domain/types";
 
 /* Bump when the CatalogBook shape or cleaning rules change, so cached
    responses from an older worker are not served. */
-const CATALOG_SCHEMA = "7";
+const CATALOG_SCHEMA = "8";
 
 type RateLimit = { limit: (options: { key: string }) => Promise<{ success: boolean }> };
 

@@ -80,16 +80,26 @@ function labels(values: unknown): string[] {
     .slice(0, SUBJECT_LIMIT);
 }
 
-function googleBooks(data: unknown): CatalogBook[] {
+/* A record lists several ISBNs (Open Library: every edition of the work;
+   Google: ISBN-10 and -13). On an ISBN lookup the scanned one wins, so the
+   result never turns into another edition. */
+export function pickIsbn(values: unknown[], wanted: string | null = null): string | null {
+  const isbns = values.map((value) => normalizeIsbn(String(value ?? ""))).filter(Boolean);
+  if (wanted && isbns.includes(wanted)) return wanted;
+  return isbns[0] ?? null;
+}
+
+export function googleBooks(data: unknown, wanted: string | null = null): CatalogBook[] {
   if (!data || typeof data !== "object" || !("items" in data) || !Array.isArray(data.items))
     return [];
   return (data.items as GoogleItem[]).flatMap((item) => {
     const info = item?.volumeInfo;
     if (typeof info?.title !== "string" || !info.title.trim()) return [];
     const isbn = Array.isArray(info.industryIdentifiers)
-      ? (info.industryIdentifiers
-          .map((entry) => normalizeIsbn(String(entry?.identifier ?? "")))
-          .find(Boolean) ?? null)
+      ? pickIsbn(
+          info.industryIdentifiers.map((entry) => entry?.identifier),
+          wanted,
+        )
       : null;
     return [
       {
@@ -135,14 +145,12 @@ function openLibraryCover(doc: OpenDoc, isbn: string | null): string | null {
   return isbn ? `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false` : null;
 }
 
-function openLibraryBooks(data: unknown): CatalogBook[] {
+export function openLibraryBooks(data: unknown, wanted: string | null = null): CatalogBook[] {
   if (!data || typeof data !== "object" || !("docs" in data) || !Array.isArray(data.docs))
     return [];
   return (data.docs as OpenDoc[]).flatMap((doc) => {
     if (typeof doc.title !== "string" || !doc.title.trim()) return [];
-    const isbn = Array.isArray(doc.isbn)
-      ? (doc.isbn.map((item: unknown) => normalizeIsbn(String(item))).find(Boolean) ?? null)
-      : null;
+    const isbn = Array.isArray(doc.isbn) ? pickIsbn(doc.isbn, wanted) : null;
     return [
       {
         title: cleanText(doc.title),
@@ -170,7 +178,7 @@ async function openLibrary(query: string, isbn: string | null): Promise<SourceRe
   });
   params.set(isbn ? "isbn" : "q", query);
   const search = await getJson(`https://openlibrary.org/search.json?${params}`);
-  let books = openLibraryBooks(search.data);
+  let books = openLibraryBooks(search.data, isbn);
   if (isbn) {
     const edition = await getJson(`https://openlibrary.org/isbn/${isbn}.json`);
     const doc = edition.data as OpenDoc | null;
@@ -222,7 +230,7 @@ async function google(
   if (langRestrict) params.set("langRestrict", langRestrict);
   if (key) params.set("key", key);
   const result = await getJson(`https://www.googleapis.com/books/v1/volumes?${params}`);
-  return { ok: result.ok, books: googleBooks(result.data) };
+  return { ok: result.ok, books: googleBooks(result.data, isbn) };
 }
 
 function rank(book: CatalogBook, query: string): number {
@@ -230,6 +238,9 @@ function rank(book: CatalogBook, query: string): number {
   const title = identity(book.title);
   const content = `${title} ${identity(book.author)}`;
   let score = title === q ? 20 : title.startsWith(q) ? 12 : 0;
+  /* ISBN lookup: the exact edition outranks every text signal. */
+  const wanted = normalizeIsbn(query);
+  if (wanted && book.isbn === wanted) score += 100;
   for (const word of q.split(" ")) if (word && content.includes(word)) score += 2;
   if (book.coverUrl) score += 2;
   if (book.isbn) score += 1;
@@ -288,6 +299,7 @@ export function mergeCoverList(urls: Array<string | null | undefined>): MergedCo
 }
 
 export function mergeBooks(query: string, groups: CatalogBook[][]): CatalogBookWithFallback[] {
+  const wanted = normalizeIsbn(query);
   const byIsbn = new Map<string, number>();
   const byName = new Map<string, number>();
   const mergedBooks: CatalogBookWithFallback[] = [];
@@ -304,7 +316,10 @@ export function mergeBooks(query: string, groups: CatalogBook[][]): CatalogBookW
         /* Spec 6.1: a confirmed Open Library cover (id or olid) first;
            if that URL is only an ISBN guess, or later fails verify, use Google. */
         coverUrl: covers.coverUrl,
-        isbn: preferred.isbn ?? previous.isbn ?? book.isbn,
+        isbn:
+          wanted && (previous.isbn === wanted || book.isbn === wanted)
+            ? wanted
+            : (preferred.isbn ?? previous.isbn ?? book.isbn),
         /* Each provider brings its own labels; the classifier gets both. */
         subjects: previous.subjects.length ? previous.subjects : book.subjects,
         categories: previous.categories.length ? previous.categories : book.categories,
@@ -349,7 +364,7 @@ function editionIsbn(edition: Edition): string | null {
 }
 
 /* Spec 6.1: Open Library by cover id, then by edition (Spanish first). */
-async function editionCover(book: CatalogBook): Promise<CatalogBook | null> {
+async function editionCover(book: CatalogBook, wanted: string | null): Promise<CatalogBook | null> {
   if (book.source !== "openlibrary" || !/^\/works\/OL\d+W$/.test(book.externalId)) return null;
   const { data } = await getJson(
     `https://openlibrary.org${book.externalId}/editions.json?limit=50&fields=covers,languages,isbn_13,isbn_10`,
@@ -364,7 +379,12 @@ async function editionCover(book: CatalogBook): Promise<CatalogBook | null> {
   for (const edition of candidates) {
     const coverUrl = `https://covers.openlibrary.org/b/id/${Number((edition.covers as unknown[])[0])}-L.jpg?default=false`;
     if (await coverResolves(coverUrl))
-      return { ...book, coverUrl, isbn: editionIsbn(edition) ?? book.isbn };
+      /* Another edition may lend its cover, never its ISBN to a lookup. */
+      return {
+        ...book,
+        coverUrl,
+        isbn: wanted && book.isbn === wanted ? wanted : (editionIsbn(edition) ?? book.isbn),
+      };
   }
   return null;
 }
@@ -374,9 +394,12 @@ function withoutFallback(book: CatalogBookWithFallback): CatalogBook {
   return rest;
 }
 
-async function withVerifiedCover(book: CatalogBookWithFallback): Promise<CatalogBook> {
+async function withVerifiedCover(
+  book: CatalogBookWithFallback,
+  wanted: string | null,
+): Promise<CatalogBook> {
   if (await coverResolves(book.coverUrl)) return withoutFallback(book);
-  const edition = await editionCover(book);
+  const edition = await editionCover(book, wanted);
   if (edition) return withoutFallback(edition);
   if (book.coverFallback) return withoutFallback({ ...book, coverUrl: book.coverFallback });
   return withoutFallback({ ...book, coverUrl: null });
@@ -402,7 +425,9 @@ export async function searchCatalog(
     query,
     results.map((result) => result.books),
   );
-  const verified = await Promise.all(merged.slice(0, VERIFIED_RESULTS).map(withVerifiedCover));
+  const verified = await Promise.all(
+    merged.slice(0, VERIFIED_RESULTS).map((book) => withVerifiedCover(book, isbn)),
+  );
   return withCover([...verified, ...merged.slice(VERIFIED_RESULTS)]);
 }
 
