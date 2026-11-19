@@ -2,6 +2,7 @@ import { normalizeIsbn } from "../domain/isbn";
 import { CatalogUnavailable, searchCatalog } from "./catalog";
 import { allowedCoverUrl, readBody } from "./cover";
 import { findCover } from "./cover-search";
+import { DIAG_MAX_BYTES, parseScanDiag } from "./diag";
 import { type Ai, classifyGenre, genreInput } from "./genre-ai";
 import { LEO_ENABLED, parseLeoAnswers } from "../domain/leo";
 import {
@@ -30,6 +31,7 @@ export type Env = {
   GENRE_LIMIT?: RateLimit;
   TAPA_LIMIT?: RateLimit;
   LEO_LIMIT?: RateLimit;
+  DIAG_LIMIT?: RateLimit;
   AI?: Ai;
   SUPABASE_URL?: string;
   SUPABASE_PUBLISHABLE_KEY?: string;
@@ -55,7 +57,7 @@ export function withCors(request: Request, response: Response) {
   return out;
 }
 
-const API_PATHS = new Set(["/api/libros", "/api/tapa", "/api/genero", "/api/leo"]);
+const API_PATHS = new Set(["/api/libros", "/api/tapa", "/api/genero", "/api/leo", "/api/diag"]);
 
 const json = (body: unknown, status = 200, cache = "no-store") =>
   new Response(JSON.stringify(body), {
@@ -214,6 +216,27 @@ async function leoResponse(request: Request, env: Env): Promise<Response> {
   }
 }
 
+/* POST /api/diag (temporary): one scanner outcome per call, to the log. */
+async function diagResponse(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") return json({ error: "Método no permitido." }, 405);
+  if (contentLengthTooLarge(request, DIAG_MAX_BYTES))
+    return json({ error: "Pedido demasiado grande." }, 413);
+  const limited = await allow(env.DIAG_LIMIT, request, "Muchos pedidos.");
+  if (limited) return limited;
+  const bytes = await readBody(request, DIAG_MAX_BYTES);
+  if (!bytes) return json({ error: "Pedido demasiado grande." }, 413);
+  let parsed: unknown = null;
+  try {
+    parsed = JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    parsed = null;
+  }
+  const entry = parseScanDiag(parsed);
+  if (!entry) return json({ error: "Pedido inválido." }, 400);
+  console.log(`qcl-diag scan ${JSON.stringify(entry)}`);
+  return new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
+}
+
 export async function apiResponse(request: Request, env: Env = {}): Promise<Response | null> {
   const url = new URL(request.url);
   if (!API_PATHS.has(url.pathname)) return null;
@@ -225,6 +248,7 @@ export async function apiResponse(request: Request, env: Env = {}): Promise<Resp
   }
   const respond = async (pending: Promise<Response> | Response) => withCors(request, await pending);
   if (url.pathname === "/api/genero") return respond(genreResponse(request, env));
+  if (url.pathname === "/api/diag") return respond(diagResponse(request, env));
   if (url.pathname === "/api/leo") {
     if (!LEO_ENABLED) return respond(json({ error: "Recomendador no disponible." }, 503));
     return respond(leoResponse(request, env));

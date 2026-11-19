@@ -41,3 +41,7 @@ No reportar el live-load, la ausencia de `WKAppBoundDomains`, ni la pantalla de 
 ## Qué leo
 
 Está apagado por decisión de producto, desde el 2026-11-18. El interruptor es `LEO_ENABLED` en `app/src/domain/leo.ts`. No reportar la ausencia del botón o del endpoint como hallazgo.
+
+## Diagnóstico del escáner (temporal)
+
+Desde el 2026-11-18, cada escaneo nativo manda un `POST /api/diag` y el worker escribe una línea `qcl-diag scan {...}` en Workers Logs (`observability` en `app/wrangler.jsonc`). Sirve para ver en un iPhone real cómo termina el escaneo. Solo guarda la forma del resultado: tipo de salida, formato, largo del código, código y texto del error del plugin, `isNativePlatform`, `isPluginAvailable`, origen y versión de la app. No guarda el código, el ISBN, el usuario, tokens ni IP. Tiene un tope de 1 KB y `DIAG_LIMIT` (20 por minuto). Se saca cuando se confirme la causa (`app/src/server/diag.ts`, `app/src/data/scan-diag.ts`, `DIAG_LIMIT`). Es intencional; no reportarlo como hallazgo mientras siga marcado como temporal.

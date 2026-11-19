@@ -4,12 +4,19 @@ import { normalizeIsbn } from "../domain/isbn";
 import { guideCrop } from "../domain/scan-crop";
 import { preloadReader, readBarcode } from "./barcode-reader";
 import { buttonClass } from "./button";
-import { nativeIsbnScannerAvailable, scanIsbnNative, stopNativeScan } from "./native-isbn-scan";
+import {
+  claimNativeScan,
+  nativeIsbnScannerAvailable,
+  startNativeScan,
+  type NativeScan,
+} from "./native-isbn-scan";
 import {
   CAMERA_DENIED_MESSAGE,
   CAMERA_UNAVAILABLE_MESSAGE,
   createWebScanSession,
+  NO_CODE_MESSAGE,
   NOT_ISBN_MESSAGE,
+  SCAN_FAILED_MESSAGE,
   type WebScanSession,
 } from "./web-scan-session";
 
@@ -72,33 +79,46 @@ export function Scanner({
     if (engine !== "native") return;
     let cancelled = false;
 
-    async function run() {
-      setError("");
-      setNoCamera(false);
-      setCanRetry(false);
-      const result = await scanIsbnNative();
-      if (cancelled) return;
+    /* Every outcome ends visibly: a book, or manual entry with retry and,
+       unless the user closed the camera, the reason. */
+    function settle(result: NativeScan) {
       if (result.status === "isbn") {
         accept(result.isbn);
         return;
       }
       setEngine("manual");
-      if (result.status === "cancelled") return;
       setCanRetry(true);
-      if (result.status === "invalid") setError(NOT_ISBN_MESSAGE);
-      else if (result.status === "denied") setError(CAMERA_DENIED_MESSAGE);
-      else setNoCamera(true);
+      if (result.status === "cancelled") return;
+      if (result.status === "unavailable") {
+        setNoCamera(true);
+        return;
+      }
+      setError(
+        result.status === "invalid"
+          ? NOT_ISBN_MESSAGE
+          : result.status === "empty"
+            ? NO_CODE_MESSAGE
+            : result.status === "denied"
+              ? CAMERA_DENIED_MESSAGE
+              : SCAN_FAILED_MESSAGE,
+      );
     }
 
-    void run();
-    function onVisibility() {
-      if (document.hidden) void stopNativeScan();
-    }
-    document.addEventListener("visibilitychange", onVisibility);
+    setError("");
+    setNoCamera(false);
+    setCanRetry(false);
+    /* A scan that finished while this Scanner was unmounted is handled
+       now instead of opening the camera again. */
+    const missed = claimNativeScan();
+    if (missed) settle(missed);
+    else
+      void startNativeScan().then(() => {
+        if (cancelled) return;
+        const result = claimNativeScan();
+        if (result) settle(result);
+      });
     return () => {
       cancelled = true;
-      document.removeEventListener("visibilitychange", onVisibility);
-      void stopNativeScan();
     };
   }, [engine, attempt, accept]);
 

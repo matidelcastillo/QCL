@@ -13,3 +13,7 @@ El host fijo es `https://qcl.matidelcastillo.workers.dev`. Nunca hay que cambiar
 ## iOS
 
 El wrapper Capacitor 8 carga el worker (`server.url` en `capacitor.config.ts`). `webDir` es `capacitor-shell`, con `offline.html` como `errorPath`. `bun run ios:prepare` solo corre `cap sync ios`. No agregar `WKAppBoundDomains`. Un cambio nativo (plugin, config, pantalla offline) sí pide un build; el usuario lo lanza en Codemagic.
+
+## Escáner
+
+`/api/diag` y `app/src/data/scan-diag.ts` son diagnóstico temporal del escáner (ver `docs/DECISIONS.md`). El escaneo nativo vive fuera de React (`native-isbn-scan.ts`): un solo escaneo a la vez y su resultado espera a que lo tome el `Scanner` montado. No volver a una promesa local del componente.

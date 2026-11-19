@@ -15,6 +15,8 @@ export function classifyCameraError(error: unknown): CameraFailure {
 export const CAMERA_DENIED_MESSAGE = "Habilitá la cámara en Ajustes.";
 export const CAMERA_UNAVAILABLE_MESSAGE = "Sin cámara. Escribí el ISBN.";
 export const NOT_ISBN_MESSAGE = "Ese código no es un ISBN.";
+export const NO_CODE_MESSAGE = "No leí ningún código.";
+export const SCAN_FAILED_MESSAGE = "Falló el escáner.";
 
 const DEFAULT_CONSTRAINTS: MediaStreamConstraints = {
   video: {

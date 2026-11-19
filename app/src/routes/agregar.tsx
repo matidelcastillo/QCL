@@ -15,6 +15,7 @@ import { EmptyState, LoadError } from "../components/feedback";
 import { LoadingRows, LoadingSheet } from "../components/skeleton";
 import { useDeferredPending } from "../components/use-deferred-pending";
 import { Scanner } from "../components/scanner";
+import { discardNativeScan } from "../components/native-isbn-scan";
 
 export const Route = createFileRoute("/agregar")({ component: Add });
 
@@ -100,7 +101,10 @@ function Add() {
 
   function selectTab(next: AddTab) {
     scanGeneration.current = nextScanGeneration(tab, next, scanGeneration.current);
-    if (next !== "escanear") setLooking(false);
+    if (next !== "escanear") {
+      setLooking(false);
+      discardNativeScan();
+    }
     setTab(next);
   }
 
