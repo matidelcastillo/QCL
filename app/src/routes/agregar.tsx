@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import type { CatalogBook } from "../domain/types";
 import { normalizeIsbn } from "../domain/isbn";
-import { ADD_TABS, nextScanGeneration, type AddTab } from "../domain/add-tabs";
+import { ADD_TABS, nextScanGeneration, restartsScan, type AddTab } from "../domain/add-tabs";
 import { duplicate } from "../data/library";
 import { searchCatalog } from "../data/catalog";
 import { useBooks } from "../data/use-books";
@@ -84,6 +84,11 @@ function Add() {
   const [overlay, setOverlay] = useState<CatalogBook | null>(null);
   const scanGeneration = useRef(0);
   const [looking, setLooking] = useState(false);
+  /* After a scan is handled (sheet, "No está." or an error) Escanear rests:
+     closing the sheet must not reopen the camera. Tapping Escanear. or
+     "Escanear otro" starts the next one. */
+  const [scanIdle, setScanIdle] = useState(false);
+  const [scanRun, setScanRun] = useState(0);
   useEffect(() => {
     const timer = setTimeout(() => setTerm(query.trim()), DEBOUNCE_MS);
     return () => clearTimeout(timer);
@@ -104,6 +109,9 @@ function Add() {
     if (next !== "escanear") {
       setLooking(false);
       discardNativeScan();
+    } else if (restartsScan(next, scanIdle, Boolean(overlay) || looking)) {
+      setScanIdle(false);
+      setScanRun((run) => run + 1);
     }
     setTab(next);
   }
@@ -111,6 +119,7 @@ function Add() {
   async function scanned(code: string) {
     const started = scanGeneration.current;
     setScanError("");
+    setScanIdle(true);
     setLooking(true);
     try {
       const [first] = await searchCatalog({ isbn: code });
@@ -178,6 +187,8 @@ function Add() {
             <LoadingSheet />
           ) : (
             <Scanner
+              key={scanRun}
+              autoStart={!scanIdle}
               onFound={(code) => void scanned(code)}
               isbn={isbnDraft}
               onIsbnChange={setIsbnDraft}

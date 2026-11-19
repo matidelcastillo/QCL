@@ -6,6 +6,7 @@ import { preloadReader, readBarcode } from "./barcode-reader";
 import { buttonClass } from "./button";
 import {
   claimNativeScan,
+  hasUnclaimedNativeScan,
   nativeIsbnScannerAvailable,
   startNativeScan,
   type NativeScan,
@@ -32,10 +33,14 @@ export function Scanner({
   onFound,
   isbn = "",
   onIsbnChange,
+  autoStart = true,
 }: {
   onFound: (isbn: string) => void;
   isbn?: string;
   onIsbnChange?: (value: string) => void;
+  /* false after a scan was handled: Escanear waits for "Escanear otro"
+     instead of reopening the camera when the sheet closes. */
+  autoStart?: boolean;
 }) {
   const video = useRef<HTMLVideoElement>(null);
   const guide = useRef<HTMLSpanElement>(null);
@@ -51,6 +56,8 @@ export function Scanner({
   const [canRetry, setCanRetry] = useState(false);
   const [engine, setEngine] = useState<"pending" | "native" | "web" | "manual">("pending");
   const [attempt, setAttempt] = useState(0);
+  const [idle, setIdle] = useState(!autoStart);
+  const autoStartRef = useRef(autoStart);
   const platform = useRef<"native" | "web" | null>(null);
   const onFoundRef = useRef(onFound);
   onFoundRef.current = onFound;
@@ -68,7 +75,9 @@ export function Scanner({
       if (cancelled) return;
       const next = native ? "native" : "web";
       platform.current = next;
-      setEngine(next);
+      /* A scan that finished while unmounted is still handled. */
+      if (autoStartRef.current || (native && hasUnclaimedNativeScan())) setEngine(next);
+      else setEngine("manual");
     });
     return () => {
       cancelled = true;
@@ -284,6 +293,7 @@ export function Scanner({
 
   function retry() {
     const next = platform.current ?? "web";
+    setIdle(false);
     setError("");
     setNoCamera(false);
     setCanRetry(false);
@@ -307,6 +317,11 @@ export function Scanner({
         </div>
       )}
       {noCamera && !error && <p className="scanner-note">{CAMERA_UNAVAILABLE_MESSAGE}</p>}
+      {idle && engine === "manual" && !canRetry && (
+        <button type="button" className={buttonClass("primary", true)} onClick={retry}>
+          Escanear otro
+        </button>
+      )}
       <form
         className="scanner-manual"
         onSubmit={(event) => {

@@ -129,6 +129,10 @@ export function claimNativeScan(now: () => number = Date.now): NativeScan | null
   return pending && now() - pending.at <= UNCLAIMED_MS ? pending.result : null;
 }
 
+export function hasUnclaimedNativeScan() {
+  return unclaimed !== null;
+}
+
 export function nativeScanInFlight() {
   return inFlight !== null;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { ADD_TABS, nextScanGeneration, shouldAcceptScan } from "./add-tabs";
+import { ADD_TABS, nextScanGeneration, restartsScan, shouldAcceptScan } from "./add-tabs";
 
 describe("add tabs", () => {
   test("uses the same period labels as home filters", () => {
@@ -22,4 +22,11 @@ describe("add tabs", () => {
     expect(shouldAcceptScan(started, current)).toBe(false);
     expect(shouldAcceptScan(current, current)).toBe(true);
   });
+});
+
+test("a handled scan rests until Escanear. is tapped again", () => {
+  expect(restartsScan("escanear", true, false)).toBe(true);
+  expect(restartsScan("escanear", false, false)).toBe(false);
+  expect(restartsScan("escanear", true, true)).toBe(false);
+  expect(restartsScan("buscar", true, false)).toBe(false);
 });

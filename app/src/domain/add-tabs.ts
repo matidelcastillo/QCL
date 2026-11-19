@@ -14,3 +14,9 @@ export function nextScanGeneration(from: AddTab, to: AddTab, generation: number)
 export function shouldAcceptScan(started: number, current: number): boolean {
   return started === current;
 }
+
+/* After a handled scan Escanear rests. Tapping Escanear. again starts a new
+   scan, unless a sheet or a lookup is still on screen. */
+export function restartsScan(next: AddTab, idle: boolean, busy: boolean): boolean {
+  return next === "escanear" && idle && !busy;
+}
