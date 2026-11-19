@@ -1,7 +1,7 @@
 // Security headers for every worker response.
 // Covers come through /api/tapa as blobs, so img-src must allow blob: as well as 'self'.
 // The barcode reader (zxing-wasm, .wasm from 'self') needs 'wasm-unsafe-eval'.
-const SUPABASE_ORIGIN = "https://mdytuysdombxyydqnsmj.supabase.co";
+import { SUPABASE_ORIGIN } from "../domain/supabase-route";
 
 type ElementHandler = {
   element(element: { setAttribute(name: string, value: string): void }): void;

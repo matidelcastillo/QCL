@@ -71,7 +71,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         if (data.session) {
           refreshedAt = Date.now();
           reportAuthLoss("refreshed", null);
-          await queryClient.invalidateQueries();
+          /* Not awaited: the refetch must run outside `recovering`, or a 401
+             it gets is dropped and the page stays on "No pudimos cargar". */
+          void queryClient.invalidateQueries();
         } else {
           reportAuthLoss("signed-out", again ? "repeat" : (error?.name ?? null));
           await client.auth.signOut({ scope: "local" }).catch(() => undefined);
