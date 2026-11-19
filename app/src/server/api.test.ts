@@ -477,3 +477,39 @@ test("scanner diagnostics log the outcome shape only", async () => {
     console.log = log;
   }
 });
+
+test("auth diagnostics log the session shape only; probe is a no-op", async () => {
+  const logged: string[] = [];
+  const log = console.log;
+  console.log = (line: string) => void logged.push(line);
+  try {
+    const post = (body: unknown) =>
+      apiResponse(new Request(`${base}/api/diag`, { method: "POST", body: JSON.stringify(body) }), {
+        DIAG_LIMIT: allow,
+      });
+    expect((await post({ kind: "probe" }))?.status).toBe(204);
+    expect(logged).toHaveLength(0);
+    const ok = await post({
+      kind: "auth",
+      outcome: "signed-out",
+      refreshError: "AuthSessionMissingError",
+      storage: "ok",
+      stored: false,
+      storedExpired: null,
+      skewSec: 3600.4,
+      origin: "https://qcl.matidelcastillo.workers.dev",
+      ua: "Safari",
+      email: "x@y.z",
+      access_token: "secret",
+    });
+    expect(ok?.status).toBe(204);
+    expect(logged).toHaveLength(1);
+    expect(logged[0]).toStartWith("qcl-diag auth ");
+    expect(logged[0]).toContain('"skewSec":3600');
+    expect(logged[0]).not.toContain("x@y.z");
+    expect(logged[0]).not.toContain("secret");
+    expect((await post({ kind: "auth", outcome: "nope" }))?.status).toBe(400);
+  } finally {
+    console.log = log;
+  }
+});

@@ -2,7 +2,7 @@ import { normalizeIsbn } from "../domain/isbn";
 import { CatalogUnavailable, searchCatalog } from "./catalog";
 import { allowedCoverUrl, readBody } from "./cover";
 import { findCover } from "./cover-search";
-import { DIAG_MAX_BYTES, parseScanDiag } from "./diag";
+import { DIAG_MAX_BYTES, parseAuthDiag, parseScanDiag } from "./diag";
 import { type Ai, classifyGenre, genreInput } from "./genre-ai";
 import { LEO_ENABLED, parseLeoAnswers } from "../domain/leo";
 import {
@@ -230,6 +230,13 @@ async function diagResponse(request: Request, env: Env): Promise<Response> {
     parsed = JSON.parse(new TextDecoder().decode(bytes));
   } catch {
     parsed = null;
+  }
+  const auth = parseAuthDiag(parsed);
+  if (auth === "probe")
+    return new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
+  if (auth) {
+    console.log(`qcl-diag auth ${JSON.stringify(auth)}`);
+    return new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
   }
   const entry = parseScanDiag(parsed);
   if (!entry) return json({ error: "Pedido inválido." }, 400);

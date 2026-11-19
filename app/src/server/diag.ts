@@ -52,3 +52,39 @@ export function parseScanDiag(body: unknown): ScanDiag | null {
     app: text(entry.app, 24),
   };
 }
+
+/* TEMPORARY (2026-11-18): the client lost its Supabase session behind a
+   signed-in UI. Shape only: no token, user id or email. "probe" is the
+   no-op call the client uses to read the server Date for clock skew. */
+export type AuthDiag = {
+  outcome: string;
+  refreshError: string | null;
+  storage: string;
+  stored: boolean | null;
+  storedExpired: boolean | null;
+  skewSec: number | null;
+  origin: string;
+  ua: string | null;
+};
+
+export function parseAuthDiag(body: unknown): AuthDiag | "probe" | null {
+  if (!body || typeof body !== "object") return null;
+  const entry = body as Record<string, unknown>;
+  if (entry.kind === "probe") return "probe";
+  if (entry.kind !== "auth") return null;
+  if (entry.outcome !== "refreshed" && entry.outcome !== "signed-out") return null;
+  const flag = (value: unknown) => (typeof value === "boolean" ? value : null);
+  return {
+    outcome: entry.outcome,
+    refreshError: text(entry.refreshError, 48),
+    storage: entry.storage === "ok" ? "ok" : "blocked",
+    stored: flag(entry.stored),
+    storedExpired: flag(entry.storedExpired),
+    skewSec:
+      typeof entry.skewSec === "number" && Number.isFinite(entry.skewSec)
+        ? Math.max(-1e7, Math.min(1e7, Math.round(entry.skewSec)))
+        : null,
+    origin: typeof entry.origin === "string" && ORIGINS.has(entry.origin) ? entry.origin : "other",
+    ua: text(entry.ua, 200),
+  };
+}

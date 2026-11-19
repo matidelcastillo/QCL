@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { SharedBook } from "../domain/types";
+import { checked } from "./auth-guard";
 import { browserSupabase } from "./supabase";
 
 type Row = {
@@ -19,8 +20,7 @@ type Row = {
 
 /* Aggregate across all users via the definer function; it never returns ids. */
 export async function listSharedBooks(): Promise<SharedBook[]> {
-  const { data, error } = await browserSupabase().rpc("most_read_books");
-  if (error) throw error;
+  const data = checked(await browserSupabase().rpc("most_read_books"));
   return ((data ?? []) as Row[]).map((row) => ({
     title: row.title,
     author: row.author,

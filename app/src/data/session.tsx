@@ -3,6 +3,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { browserSupabase } from "./supabase";
 import { updateSessionUser } from "./session-epoch";
 import { SessionContext, type SessionState } from "./session-context";
+import { onSessionLost } from "./auth-guard";
+import { reportAuthLoss } from "./auth-diag";
+
+const RECOVERY_WINDOW_MS = 30_000;
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SessionState>({
@@ -49,8 +53,40 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         };
       });
     });
+    /* A user call answered 401: the client lost its session behind the UI.
+       Refresh once; if there is nothing to refresh, sign out locally so the
+       Gate sends the user to Entrar instead of a dead "No pudimos cargar". */
+    let recovering = false;
+    /* A second 401 right after a refresh means refreshing does not help. */
+    let refreshedAt = 0;
+    const stopListening = onSessionLost(() => {
+      if (recovering) return;
+      recovering = true;
+      void (async () => {
+        const again = Date.now() - refreshedAt < RECOVERY_WINDOW_MS;
+        const { data, error } = again
+          ? { data: { session: null }, error: null }
+          : await client.auth.refreshSession();
+        if (!alive) return;
+        if (data.session) {
+          refreshedAt = Date.now();
+          reportAuthLoss("refreshed", null);
+          await queryClient.invalidateQueries();
+        } else {
+          reportAuthLoss("signed-out", again ? "repeat" : (error?.name ?? null));
+          await client.auth.signOut({ scope: "local" }).catch(() => undefined);
+          if (!alive) return;
+          updateSessionUser(null);
+          queryClient.clear();
+          setState({ loading: false, user: null, passwordRecovery: false });
+        }
+      })().finally(() => {
+        recovering = false;
+      });
+    });
     return () => {
       alive = false;
+      stopListening();
       subscription.unsubscribe();
     };
   }, [queryClient]);

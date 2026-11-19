@@ -4,16 +4,18 @@ import { coverParams } from "../domain/cover-url";
 import { knownGenre, OTHER_GENRE } from "../domain/genre";
 import { identity } from "../domain/metadata";
 import { apiUrl } from "./api-base";
+import { checked } from "./auth-guard";
 import { browserSupabase } from "./supabase";
 
 export async function listBooks(ownerId: string): Promise<Book[]> {
-  const { data, error } = await browserSupabase()
-    .from("books")
-    .select("*")
-    .eq("owner_id", ownerId)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false });
-  if (error) throw error;
+  const data = checked(
+    await browserSupabase()
+      .from("books")
+      .select("*")
+      .eq("owner_id", ownerId)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false }),
+  );
   return (data ?? []) as Book[];
 }
 
@@ -139,7 +141,7 @@ export async function ensureBook(
   if (existing)
     return existing.status === status ? existing : setBookStatus(ownerId, existing.id, status);
   const [coverUrl, genre] = await Promise.all([validatedCover(input), classifiedGenre(input)]);
-  const { data, error } = await browserSupabase()
+  const result = await browserSupabase()
     .from("books")
     .insert({
       ...columns(input),
@@ -153,13 +155,12 @@ export async function ensureBook(
     })
     .select("*")
     .single();
-  if (error?.code === UNIQUE_VIOLATION) {
+  if (result.error?.code === UNIQUE_VIOLATION) {
     /* books_owner_isbn_unique: another tab saved it first. */
     const saved = duplicate(await listBooks(ownerId), input);
     if (saved) return saved.status === status ? saved : setBookStatus(ownerId, saved.id, status);
   }
-  if (error) throw error;
-  return data as Book;
+  return checked(result) as Book;
 }
 
 export async function setBookStatus(
@@ -167,22 +168,18 @@ export async function setBookStatus(
   bookId: string,
   status: BookStatus,
 ): Promise<Book> {
-  const { data, error } = await browserSupabase()
-    .from("books")
-    .update({ status, read_at: status === "lei" ? today() : null })
-    .eq("id", bookId)
-    .eq("owner_id", ownerId)
-    .select("*")
-    .single();
-  if (error) throw error;
+  const data = checked(
+    await browserSupabase()
+      .from("books")
+      .update({ status, read_at: status === "lei" ? today() : null })
+      .eq("id", bookId)
+      .eq("owner_id", ownerId)
+      .select("*")
+      .single(),
+  );
   return data as Book;
 }
 
 export async function removeBook(ownerId: string, bookId: string): Promise<void> {
-  const { error } = await browserSupabase()
-    .from("books")
-    .delete()
-    .eq("id", bookId)
-    .eq("owner_id", ownerId);
-  if (error) throw error;
+  checked(await browserSupabase().from("books").delete().eq("id", bookId).eq("owner_id", ownerId));
 }
