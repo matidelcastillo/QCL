@@ -4,7 +4,6 @@ import { browserSupabase } from "./supabase";
 import { updateSessionUser } from "./session-epoch";
 import { SessionContext, type SessionState } from "./session-context";
 import { onSessionLost } from "./auth-guard";
-import { reportAuthLoss } from "./auth-diag";
 
 const RECOVERY_WINDOW_MS = 30_000;
 
@@ -64,18 +63,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       recovering = true;
       void (async () => {
         const again = Date.now() - refreshedAt < RECOVERY_WINDOW_MS;
-        const { data, error } = again
-          ? { data: { session: null }, error: null }
+        const { data } = again
+          ? { data: { session: null } }
           : await client.auth.refreshSession();
         if (!alive) return;
         if (data.session) {
           refreshedAt = Date.now();
-          reportAuthLoss("refreshed", null);
           /* Not awaited: the refetch must run outside `recovering`, or a 401
              it gets is dropped and the page stays on "No pudimos cargar". */
           void queryClient.invalidateQueries();
         } else {
-          reportAuthLoss("signed-out", again ? "repeat" : (error?.name ?? null));
           await client.auth.signOut({ scope: "local" }).catch(() => undefined);
           if (!alive) return;
           updateSessionUser(null);

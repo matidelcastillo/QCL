@@ -4,7 +4,6 @@ import {
 } from "@capacitor/barcode-scanner";
 import { Capacitor } from "@capacitor/core";
 import { normalizeIsbn } from "../domain/isbn";
-import { reportScan, type ScanDiagnostic } from "../data/scan-diag";
 
 /* Every way the native scan can end. Only "isbn" opens a book; each other
    kind is shown to the user (see scanner.tsx), never swallowed. */
@@ -55,53 +54,25 @@ export function nativeScanAvailable() {
   return Capacitor.isNativePlatform() && Capacitor.isPluginAvailable(PLUGIN);
 }
 
-function diagnostic(
-  result: NativeScan,
-  value: unknown,
-  error: unknown,
-): Omit<ScanDiagnostic, "origin" | "app"> {
-  const raw =
-    value && typeof value === "object" && "ScanResult" in value ? value.ScanResult : undefined;
-  const format = value && typeof value === "object" && "format" in value ? value.format : null;
-  const { code, message } = error === undefined ? { code: "", message: "" } : errorParts(error);
-  return {
-    kind: result.status,
-    format: typeof format === "number" || typeof format === "string" ? String(format) : null,
-    length: typeof raw === "string" ? raw.trim().length : null,
-    digits: typeof raw === "string" ? /^[\dXx\s-]+$/.test(raw.trim()) : null,
-    errorCode: code || null,
-    errorMessage: message || null,
-    native: Capacitor.isNativePlatform(),
-    plugin: Capacitor.isPluginAvailable(PLUGIN),
-  };
-}
-
-/* Native shell without the plugin bridged: report it and let Scanner use
+/* Native shell without the plugin bridged: let Scanner use
    the in-page camera instead of a scanner that can never answer. */
 export async function nativeIsbnScannerAvailable() {
   if (!Capacitor.isNativePlatform()) return false;
   if (nativeScanAvailable()) return true;
-  reportScan(diagnostic({ status: "unavailable" }, undefined, undefined));
   return false;
 }
 
 async function scanOnce(): Promise<NativeScan> {
   if (!nativeScanAvailable()) {
-    const result: NativeScan = { status: "unavailable" };
-    reportScan(diagnostic(result, undefined, undefined));
-    return result;
+    return { status: "unavailable" };
   }
   try {
     const value: unknown = await CapacitorBarcodeScanner.scanBarcode({
       hint: CapacitorBarcodeScannerTypeHintALLOption.ALL,
     });
-    const result = nativeScanResult(value);
-    reportScan(diagnostic(result, value, undefined));
-    return result;
+    return nativeScanResult(value);
   } catch (error) {
-    const result: NativeScan = { status: nativeScanFailure(error) };
-    reportScan(diagnostic(result, undefined, error));
-    return result;
+    return { status: nativeScanFailure(error) };
   }
 }
 

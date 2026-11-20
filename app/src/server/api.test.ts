@@ -302,7 +302,7 @@ test("wrangler.jsonc declares the bindings the worker uses", async () => {
   );
   const names = new Set((parsed.ratelimits ?? []).map((entry: { name: string }) => entry.name));
   expect(names).toEqual(
-    new Set(["CATALOG_LIMIT", "GENRE_LIMIT", "TAPA_LIMIT", "LEO_LIMIT", "DIAG_LIMIT"]),
+    new Set(["CATALOG_LIMIT", "GENRE_LIMIT", "TAPA_LIMIT", "LEO_LIMIT"]),
   );
   expect(parsed.ai?.binding).toBe("AI");
 });
@@ -431,85 +431,4 @@ test("leo route: POST only, needs a session, validates the body, fails closed", 
   );
   expect(unauth?.status).toBe(401);
   expect(spent).toBe(0);
-});
-
-test("scanner diagnostics log the outcome shape only", async () => {
-  const logged: string[] = [];
-  const log = console.log;
-  console.log = (line: string) => void logged.push(line);
-  try {
-    const post = (body: string, env = { DIAG_LIMIT: allow }) =>
-      apiResponse(new Request(`${base}/api/diag`, { method: "POST", body }), env);
-    const ok = await post(
-      JSON.stringify({
-        kind: "cancelled",
-        format: null,
-        length: 13,
-        digits: true,
-        errorCode: "OS-PLUG-BARC-0006",
-        errorMessage: "Couldn’t scan 9780140280197",
-        native: true,
-        plugin: true,
-        origin: "https://qcl.matidelcastillo.workers.dev",
-        app: "1.0.1 (9)",
-        isbn: "9780140280197",
-        token: "secret",
-      }),
-    );
-    expect(ok?.status).toBe(204);
-    expect(logged).toHaveLength(1);
-    expect(logged[0]).toContain('"kind":"cancelled"');
-    expect(logged[0]).toContain('"app":"1.0.1 (9)"');
-    expect(logged[0]).not.toContain("9780140280197");
-    expect(logged[0]).not.toContain("secret");
-    expect((await post(JSON.stringify({ kind: "nope" })))?.status).toBe(400);
-    expect((await post("x".repeat(2_000)))?.status).toBe(413);
-    expect(
-      (
-        await apiResponse(new Request(`${base}/api/diag`, { method: "POST", body: "{}" }), {
-          DIAG_LIMIT: { limit: async () => ({ success: false }) },
-        })
-      )?.status,
-    ).toBe(429);
-    expect((await apiResponse(new Request(`${base}/api/diag`)))?.status).toBe(405);
-    expect(logged).toHaveLength(1);
-  } finally {
-    console.log = log;
-  }
-});
-
-test("auth diagnostics log the session shape only; probe is a no-op", async () => {
-  const logged: string[] = [];
-  const log = console.log;
-  console.log = (line: string) => void logged.push(line);
-  try {
-    const post = (body: unknown) =>
-      apiResponse(new Request(`${base}/api/diag`, { method: "POST", body: JSON.stringify(body) }), {
-        DIAG_LIMIT: allow,
-      });
-    expect((await post({ kind: "probe" }))?.status).toBe(204);
-    expect(logged).toHaveLength(0);
-    const ok = await post({
-      kind: "auth",
-      outcome: "signed-out",
-      refreshError: "AuthSessionMissingError",
-      storage: "ok",
-      stored: false,
-      storedExpired: null,
-      skewSec: 3600.4,
-      origin: "https://qcl.matidelcastillo.workers.dev",
-      ua: "Safari",
-      email: "x@y.z",
-      access_token: "secret",
-    });
-    expect(ok?.status).toBe(204);
-    expect(logged).toHaveLength(1);
-    expect(logged[0]).toStartWith("qcl-diag auth ");
-    expect(logged[0]).toContain('"skewSec":3600');
-    expect(logged[0]).not.toContain("x@y.z");
-    expect(logged[0]).not.toContain("secret");
-    expect((await post({ kind: "auth", outcome: "nope" }))?.status).toBe(400);
-  } finally {
-    console.log = log;
-  }
 });

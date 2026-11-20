@@ -37,14 +37,8 @@
       "namespace_id": "1004",
       "simple": { "limit": 15, "period": 60 },
     },
-    {
-      // Temporary scanner diagnostics (POST /api/diag), see docs/DECISIONS.md.
-      "name": "DIAG_LIMIT",
-      "namespace_id": "1005",
-      "simple": { "limit": 20, "period": 60 },
-    },
   ],
-  // Workers Logs, so /api/diag lines can be queried after the fact.
+  // Workers Logs for request and error traces.
   "observability": { "enabled": true },
   // Workers AI: genre classifier and Qué leo (src/server/genre-ai.ts, leo-ai.ts).
   "ai": { "binding": "AI" },

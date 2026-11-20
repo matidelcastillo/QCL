@@ -18,4 +18,4 @@ El wrapper Capacitor 8 carga el worker (`server.url` en `capacitor.config.ts`). 
 
 Las llamadas a Supabase que llevan el JWT del usuario pasan por el worker en `/sb` (`domain/supabase-route.ts`, `server/supabase-proxy.ts`). Así no les sacan el `Authorization` los bloqueadores de terceros (ver `docs/DECISIONS.md`). No volver a llamar a Supabase directo desde la web para esas rutas.
 
-`/api/diag` y `app/src/data/scan-diag.ts` son diagnóstico temporal del escáner (ver `docs/DECISIONS.md`). El escaneo nativo vive fuera de React (`native-isbn-scan.ts`): un solo escaneo a la vez y su resultado espera a que lo tome el `Scanner` montado. No volver a una promesa local del componente.
+El escaneo nativo vive fuera de React (`native-isbn-scan.ts`): un solo escaneo a la vez y su resultado espera a que lo tome el `Scanner` montado. No volver a una promesa local del componente. El `POST /api/diag` temporal se sacó el 2026-11-20.
